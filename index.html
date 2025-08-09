@@ -676,13 +676,13 @@
                     </ul>
                 </div>
                 
-                <button class="</button>
+                <button class="button button-success" onclick="startConsent()">I've Saved My Code - Continue</button>
             </div>
             
             <!-- Consent Status -->
             <div class="consent-status" id="consent-status">
-                <h3>Consent Forms Required</h3>
-                <p style="margin-bottom: 20px; color: #666;">Please complete both consent forms before beginning the study tasks.</p>
+                <h3>Consent Forms</h3>
+                <p style="margin-bottom: 20px; color: #666;">If you haven't already completed these through the screener, please complete both consent forms before beginning the study tasks.</p>
                 
                 <div class="consent-item" id="consent-1">
                     <span class="status">⭕</span>
@@ -696,11 +696,14 @@
                     <span class="status">⭕</span>
                     <div>
                         <strong>Video Consent Form</strong>
-                        <p style="font-size: 14px; color: #666;">Consent for video recording (classifier production)</p>
+                        <p style="font-size: 14px; color: #666;">Consent for video recording</p>
                     </div>
                 </div>
                 
-                <button class="button" id="consent-btn" onclick="proceedWithConsent()">Begin Consent Process</button>
+                <button class="button" id="consent-btn" onclick="proceedWithConsent()">Continue</button>
+                <p style="margin-top: 15px; font-size: 14px; color: #666; text-align: center;">
+                    If you already completed both forms through the screener, click each form and then click "I've Completed This Task" to mark them as done.
+                </p>
             </div>
             
             <!-- Session Info -->
@@ -744,41 +747,32 @@
             
             <!-- MRT Upload Section -->
             <div class="upload-section" id="mrt-upload">
-                <h3>Optional: Upload MRT Data</h3>
-                <p>If you have completed the Mental Rotation Task and downloaded your CSV file, you can upload it here.</p>
+                <h3>Upload MRT Data</h3>
+                <p>After completing the Mental Rotation Task, please upload the CSV file you downloaded.</p>
                 <div class="file-upload" id="file-upload">
                     <div style="font-size: 48px; color: #667eea;">📁</div>
                     <p>Click to select your MRT data file</p>
                     <p style="font-size: 14px; color: #666;">Or drag and drop the CSV file here</p>
                     <input type="file" id="mrt-file" accept=".csv">
                 </div>
-                <div id="upload-status" style="margin-top: 15px; padding: 15px; border-radius: 8px; display: none;"></div>
-                <p style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                    <strong>Note:</strong> If you don't have the CSV file ready now, you can continue without uploading. 
-                    Please save your CSV file and email it to the researcher later.
-                </p>
+                <button class="button button-success" id="mrt-continue" style="display: none;" onclick="completeCurrentTask()">Continue to Next Task</button>
             </div>
             
             <!-- Image Description Recording -->
             <div class="recording-section" id="recording-section">
                 <h3>Image Description Task - Video Recording</h3>
-                
-                <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                    <h4 style="color: #6a1b9a; margin-bottom: 10px;">🤟 Language for Your Descriptions:</h4>
-                    <p style="margin: 0;"><strong>ASL users:</strong> Please describe in ASL (any fluency level is great!)</p>
-                    <p style="margin: 5px 0 0 0;"><strong>Non-ASL users:</strong> Please describe in spoken English</p>
-                </div>
-                
                 <div class="image-counter" id="image-counter">Image 1 of 2</div>
+                
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="color: #6a1b9a;">🌐 Language Reminder:</strong>
+                    <span style="color: #333;">Please use <strong>ASL</strong> if you know it (any level is fine!), or <strong>spoken English</strong> if you don't know ASL.</span>
+                </div>
                 
                 <div class="video-container">
                     <div class="image-panel">
                         <h3>Image to Describe</h3>
                         <img id="current-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E" alt="Current Image">
-                        <p style="margin-top: 15px; color: #666;">Describe what you see, focusing on:<br>
-                        • Objects and people<br>
-                        • Spatial relationships (where things are)<br>
-                        • Actions happening</p>
+                        <p style="margin-top: 15px; color: #666;">Look at this image carefully and describe what you see</p>
                     </div>
                     
                     <div class="video-panel">
@@ -807,18 +801,20 @@
                 </div>
                 
                 <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                    <strong>Recording Tips:</strong>
+                    <strong>What to describe (30-60 seconds):</strong>
                     <ul style="margin: 10px 0 0 20px; text-align: left;">
-                        <li>Take 30-60 seconds per image</li>
-                        <li>Make sure you're well-lit and visible</li>
-                        <li>You can re-record if you're not happy with it</li>
-                        <li>We're studying spatial descriptions - there's no "wrong" answer!</li>
+                        <li>Objects and people you see</li>
+                        <li>Where things are located (left, right, front, back, etc.)</li>
+                        <li>What's happening in the image</li>
+                        <li>Spatial relationships between objects</li>
                     </ul>
                 </div>
             </div>
             
             <!-- General Continue Button -->
-            <button class="</button>
+            <button class="button button-success" id="general-continue" style="display: none;" onclick="completeCurrentTask()">
+                I've Completed This Task - Continue
+            </button>
         </div>
         
         <div class="footer">
@@ -863,33 +859,20 @@
                 name: 'Research Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g',
                 type: 'consent',
-                instructions: `
-                    <strong>Consent Form Confirmation:</strong>
-                    <p style="margin: 15px 0;">You should have already completed the research consent form from the screener survey.</p>
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <p style="margin-bottom: 10px;">✓ If you completed the consent form, click the button below to confirm.</p>
-                        <p style="margin-bottom: 0;">✗ If you haven't completed it yet, click "Open Consent Form" to complete it first.</p>
-                    </div>
-                `
+                instructions: 'If you have not yet done so, please read and complete the research consent form. This is required before participating in the study. If you already completed this through the screener, click "I\'ve Completed This Task" below.'
             },
             'CONSENT2': {
                 name: 'Video Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u',
                 type: 'consent',
-                instructions: `
-                    <strong>Video Consent Form Confirmation:</strong>
-                    <p style="margin: 15px 0;">You should have already completed the video consent form from the screener survey.</p>
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <p style="margin-bottom: 10px;">✓ If you completed the video consent form, click the button below to confirm.</p>
-                        <p style="margin-bottom: 0;">✗ If you haven't completed it yet, click "Open Video Consent Form" to complete it first.</p>
-                    </div>
-                `
+                instructions: 'If you have not yet done so, please complete the video consent form for the video recording task. If you already completed this through the screener, click "I\'ve Completed This Task" below.'
             },
             'MRT': {
                 name: 'Mental Rotation Task',
                 url: 'https://psych.hanover.edu/javatest/cle/Cognition_js/exp/mentRot.html',
                 type: 'external',
                 requiresUpload: true,
+                uploadOptional: true,
                 instructions: `
                     <strong>Important Instructions:</strong>
                     <ol style="text-align: left; margin: 15px 0;">
@@ -899,46 +882,50 @@
                         <li><strong>Do NOT change any settings</strong> - use the defaults</li>
                         <li>Complete all rotation trials (about 10-15 minutes)</li>
                         <li>At the end, <strong>download your results as a CSV file</strong></li>
-                        <li>Return to this tab to continue</li>
+                        <li>Return to this tab</li>
                     </ol>
-                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                        <p style="margin-bottom: 10px;"><strong>📁 Data Upload (Optional):</strong></p>
-                        <p style="margin-bottom: 10px;">If you have your CSV file ready, you can upload it below. If not, you can continue without uploading - just make sure to save your CSV file for later submission.</p>
-                        <p style="margin: 0; font-size: 14px; color: #856404;">The CSV file is important for the study, but you can email it later if needed.</p>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>📁 About the CSV File:</strong>
+                        <p style="margin: 10px 0;">After completing the task, you'll download a CSV file with your results.</p>
+                        <p style="margin: 10px 0;"><strong>You can either:</strong></p>
+                        <ul style="margin: 5px 0 5px 20px;">
+                            <li>Upload it now using the upload box below, OR</li>
+                            <li>Save it and continue without uploading (you can email it later if needed)</li>
+                        </ul>
                     </div>
+                    
+                    <p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        ⚠️ <strong>Tip:</strong> The download button appears after you complete all trials. The file is usually saved to your Downloads folder.
+                    </p>
                 `
             },
             'ASLCT': {
                 name: 'ASL Comprehension Test',
                 url: 'https://vl2portal.gallaudet.edu/assessment/login.php',
                 type: 'external',
-                skipOption: true,
                 accessCode: 'NWMTLYMTP',
+                canSkip: true,
                 instructions: `
-                    <strong>ASL Comprehension Test Instructions:</strong>
-                    
-                    <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 15px 0;">
-                        <h4 style="color: #2e7d32; margin-bottom: 15px;">Do you know ASL (American Sign Language)?</h4>
-                        
-                        <div style="margin-bottom: 15px;">
-                            <strong>✓ If you know ASL (any level):</strong>
-                            <ol style="margin: 10px 0 0 20px;">
-                                <li>Click "Open Task" below</li>
-                                <li>Enter access code: <strong style="color: #1565c0;">NWMTLYMTP</strong></li>
-                                <li>Complete the comprehension test</li>
-                                <li>Return here when finished</li>
-                            </ol>
-                        </div>
-                        
-                        <div>
-                            <strong>✗ If you don't know ASL:</strong>
-                            <p style="margin: 10px 0 0 0;">You can skip this task entirely - just click "Skip This Task" below. This test is only for people who know some ASL.</p>
-                        </div>
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong style="color: #2e7d32;">📌 Who should complete this task:</strong>
+                        <p style="margin: 10px 0;">This task is for people who know American Sign Language (ASL) at any level - from beginner to fluent.</p>
+                        <p style="margin: 10px 0;"><strong>If you are a hearing person who does not know ASL, you can skip this task</strong> by clicking "Skip This Task - I Don't Know ASL" below.</p>
                     </div>
                     
+                    <strong>If you know ASL (even a little bit), please complete this task:</strong>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Click "Open Task" - a new tab will open</li>
+                        <li>You will see a login page</li>
+                        <li>Enter this access code: <strong style="color: #667eea; font-size: 1.3em; font-family: monospace;">NWMTLYMTP</strong></li>
+                        <li>Click "Submit" or "Enter"</li>
+                        <li>Complete all test items to the best of your ability</li>
+                        <li>When finished, return to this tab</li>
+                    </ol>
                     <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
-                        <strong>Access Code for ASL users:</strong><br>
-                        <span style="font-size: 2em; font-family: monospace; color: #1565c0; letter-spacing: 2px;">NWMTLYMTP</span>
+                        <strong>Access Code:</strong><br>
+                        <span style="font-size: 2em; font-family: monospace; color: #1565c0; letter-spacing: 2px;">NWMTLYMTP</span><br>
+                        <small>(Please type carefully)</small>
                     </div>
                 `
             },
@@ -978,39 +965,33 @@
                 name: 'Image Description',
                 type: 'recording',
                 instructions: `
-                    <strong>Video Recording Instructions:</strong>
-                    
-                    <div style="background: #f3e5f5; padding: 20px; border-radius: 8px; margin: 15px 0;">
-                        <h4 style="color: #6a1b9a; margin-bottom: 15px;">🤟 Language Choice for Descriptions:</h4>
-                        
-                        <div style="margin-bottom: 15px;">
-                            <strong>If you know ASL (any fluency level):</strong>
-                            <p style="margin: 10px 0 0 20px;">Please use ASL to describe the images. Don't worry about "perfect" signing - we're interested in how you describe spatial information, not judging your ASL skills! Any level of ASL fluency is perfectly fine.</p>
-                        </div>
-                        
-                        <div>
-                            <strong>If you don't know ASL:</strong>
-                            <p style="margin: 10px 0 0 20px;">Please use spoken English to describe the images. Speak clearly and describe what you see.</p>
-                        </div>
+                    <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong style="color: #6a1b9a;">🌐 Language for Your Descriptions:</strong>
+                        <p style="margin: 10px 0;"><strong>If you know ASL (at any level):</strong> Please use ASL to describe the images. Don't worry about making mistakes - we're interested in how you describe spatial information, not judging your ASL skills!</p>
+                        <p style="margin: 10px 0;"><strong>If you don't know ASL:</strong> Please use spoken English to describe the images.</p>
+                        <p style="margin: 10px 0; font-style: italic; color: #666;">The goal is to understand how people describe spatial relationships and locations in images, using whatever language is most comfortable for you.</p>
                     </div>
                     
-                    <p style="margin: 15px 0;"><strong>For each image, you will:</strong></p>
+                    <strong>Video Recording Instructions:</strong>
+                    <p style="margin: 10px 0;">You will describe two images separately. For each image:</p>
                     <ol style="text-align: left; margin: 15px 0;">
                         <li>Look at the image carefully</li>
                         <li>Click "Start Recording" - you'll see yourself on camera</li>
-                        <li>Describe what you see (30-60 seconds):<br>
-                            <span style="margin-left: 20px;">• Objects and people in the image</span><br>
-                            <span style="margin-left: 20px;">• Where things are located (spatial relationships)</span><br>
-                            <span style="margin-left: 20px;">• Actions or activities happening</span>
+                        <li>Describe what you see in the image (30-60 seconds):
+                            <ul style="margin: 5px 0 5px 20px;">
+                                <li>Objects and people in the image</li>
+                                <li>Where things are located</li>
+                                <li>Actions or activities happening</li>
+                                <li>Spatial relationships (left, right, behind, etc.)</li>
+                            </ul>
                         </li>
                         <li>Click "Stop Recording" when done</li>
                         <li>Review your video and re-record if needed</li>
                         <li>Click "Save & Continue" to proceed</li>
                     </ol>
-                    
-                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                        <p style="margin: 0;"><strong>Remember:</strong> We're studying how people describe spatial information. There's no "wrong" way to describe the images - just describe what you see naturally in your preferred language (ASL or English).</p>
-                    </div>
+                    <p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        ⚠️ <strong>Remember:</strong> We're studying spatial descriptions, not language proficiency. Use whichever language (ASL or English) feels most natural to you. Your video will be used for research purposes only.
+                    </p>
                 `
             },
             'DEMO': {
@@ -1266,9 +1247,9 @@
             // Update button text
             const btn = document.getElementById('consent-btn');
             if (!state.consentCompleted.consent1) {
-                btn.textContent = 'Begin Research Consent Form';
+                btn.textContent = 'Open Research Consent Form';
             } else if (!state.consentCompleted.consent2) {
-                btn.textContent = 'Begin Video Consent Form';
+                btn.textContent = 'Open Video Consent Form';
             } else {
                 btn.textContent = 'Continue to Study Tasks';
             }
@@ -1387,50 +1368,50 @@
             
             taskDisplay.style.display = 'block';
             taskTitle.textContent = task.name;
-            taskInstructions.innerHTML = `<div>${task.instructions}</div>`;
+            taskInstructions.innerHTML = `<p>${task.instructions}</p>`;
             
             if (task.type === 'external' || task.type === 'consent') {
-                let buttonsHTML = '';
+                let buttonsHTML = `
+                    <button class="task-button" onclick="openExternalTask('${taskCode}')">
+                        Open ${task.type === 'consent' ? 'Consent Form' : 'Task'}
+                    </button>
+                `;
                 
-                if (task.type === 'consent') {
-                    buttonsHTML = `
-                        <button class="task-button" onclick="openExternalTask('${taskCode}')">
-                            Open ${task.type === 'consent' ? 'Consent Form' : 'Task'} (If Needed)
+                // Add skip button for ASLCT if applicable
+                if (taskCode === 'ASLCT') {
+                    buttonsHTML += `
+                        <button class="button button-secondary" onclick="skipASLCT()" style="margin-top: 20px; display: block; margin-left: auto; margin-right: auto;">
+                            Skip This Task - I Don't Know ASL
                         </button>
-                        <p style="margin: 20px 0; font-size: 18px; font-weight: bold;">OR</p>
-                        <button class="</button>
-                    `;
-                } else if (task.skipOption) {
-                    // ASLCT with skip option
-                    buttonsHTML = `
-                        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
-                            <button class="task-button" onclick="openExternalTask('${taskCode}')">
-                                Open Task (ASL Users)
-                            </button>
-                            <button class="button" style="background: #ff9800; display: inline-block;" onclick="skipTask('${taskCode}')">
-                                Skip This Task (Non-ASL Users)
-                            </button>
-                        </div>
-                        <p style="margin-top: 20px; color: #666;">Complete the task OR skip it, then click continue below:</p>
-                    `;
-                } else {
-                    buttonsHTML = `
-                        <button class="task-button" onclick="openExternalTask('${taskCode}')">
-                            Open Task
-                        </button>
-                        <p style="margin-top: 15px; color: #666;">The task will open in a new tab. Return here when complete.</p>
                     `;
                 }
                 
-                taskContent.innerHTML = buttonsHTML;
+                taskContent.innerHTML = buttonsHTML + `
+                    <p style="margin-top: 15px; color: #666;">The task will open in a new tab. Return here when complete.</p>
+                `;
                 
                 if (task.requiresUpload) {
-                    // MRT with optional upload
                     setTimeout(() => {
                         document.getElementById('mrt-upload').style.display = 'block';
-                        // Show continue button immediately (not dependent on upload)
-                        document.getElementById('general-continue').style.display = 'block';
-                        document.getElementById('general-continue').textContent = 'Continue to Next Task';
+                        // Update the upload section to show optional nature
+                        const uploadSection = document.getElementById('mrt-upload');
+                        const existingButton = document.getElementById('mrt-continue');
+                        if (existingButton) {
+                            existingButton.textContent = 'Continue to Next Task';
+                            existingButton.style.display = 'block'; // Show continue button immediately
+                        }
+                        
+                        // Add optional upload message
+                        const uploadStatus = document.getElementById('upload-status');
+                        if (uploadStatus && !uploadStatus.classList.contains('success')) {
+                            uploadStatus.innerHTML = `
+                                <div style="background: #e3f2fd; padding: 10px; border-radius: 5px;">
+                                    📌 <strong>Optional:</strong> You can upload your CSV file now or save it to email later.
+                                    <br>Click "Continue to Next Task" when ready.
+                                </div>
+                            `;
+                            uploadStatus.style.display = 'block';
+                        }
                     }, 3000);
                 } else {
                     document.getElementById('general-continue').style.display = 'block';
@@ -1441,33 +1422,44 @@
             }
         }
         
-        function skipTask(taskCode) {
-            // Log that task was skipped
-            const task = TASKS[taskCode];
-            
-            alert('Task skipped. This is perfectly fine - the ASL Comprehension Test is only for ASL users.');
-            
-            // Record as skipped
-            state.taskData[taskCode] = {
-                startTime: new Date().toISOString(),
-                endTime: new Date().toISOString(),
-                skipped: true,
-                reason: 'Non-ASL user'
-            };
-            
-            // Send to Google Sheets
-            sendToGoogleSheets({
-                action: 'task_skipped',
-                sessionCode: state.sessionCode,
-                participantID: state.participantID,
-                task: task.name,
-                reason: 'Non-ASL user',
-                timestamp: new Date().toISOString()
-            });
-            
-            // Complete the task (move to next)
-            completeCurrentTask();
+        // Add function to handle ASLCT skip
+        function skipASLCT() {
+            if (confirm('Are you sure you want to skip the ASL Comprehension Test? This is only for people who do not know ASL.')) {
+                // Record as skipped
+                state.taskData.ASLCT = {
+                    skipped: true,
+                    reason: 'Does not know ASL',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Send to Google Sheets
+                sendToGoogleSheets({
+                    action: 'task_skipped',
+                    sessionCode: state.sessionCode,
+                    participantID: state.participantID,
+                    task: 'ASL Comprehension Test',
+                    reason: 'Does not know ASL',
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Mark as completed and move on
+                completeCurrentTask();
+            }
         }
+        
+        // Make functions available globally for onclick handlers
+        window.showNewParticipant = showNewParticipant;
+        window.showReturningParticipant = showReturningParticipant;
+        window.backToWelcome = backToWelcome;
+        window.createNewSession = createNewSession;
+        window.resumeSession = resumeSession;
+        window.startConsent = startConsent;
+        window.proceedWithConsent = proceedWithConsent;
+        window.continueToCurrentTask = continueToCurrentTask;
+        window.pauseAndSave = pauseAndSave;
+        window.skipASLCT = skipASLCT;
+        window.openExternalTask = openExternalTask;
+        window.completeCurrentTask = completeCurrentTask;
         
         function openExternalTask(taskCode) {
             const task = TASKS[taskCode];
@@ -1695,14 +1687,17 @@
                     
                     // Show success message
                     const uploadStatus = document.getElementById('upload-status');
-                    uploadStatus.style.display = 'block';
-                    uploadStatus.style.background = '#d4edda';
-                    uploadStatus.style.color = '#155724';
+                    uploadStatus.className = 'upload-status success';
                     uploadStatus.innerHTML = `
-                        ✅ <strong>File uploaded successfully!</strong><br>
-                        File name: ${file.name}<br>
-                        Thank you for uploading your data!
+                        ✅ File uploaded successfully!<br>
+                        <small>File: ${file.name}</small>
                     `;
+                    
+                    // Update button text to show upload was successful
+                    const continueBtn = document.getElementById('mrt-continue');
+                    if (continueBtn) {
+                        continueBtn.textContent = 'Continue to Next Task ✓';
+                    }
                     
                     sendToGoogleSheets({
                         action: 'mrt_uploaded',
@@ -1714,7 +1709,7 @@
                 };
                 reader.readAsText(file);
             } else {
-                alert('Please upload a CSV file from the MRT task.');
+                alert('Please select a CSV file, or click "Continue to Next Task" to proceed without uploading.');
             }
         }
         
