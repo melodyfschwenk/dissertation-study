@@ -180,6 +180,10 @@
         .consent-item.pending .status {
             color: #ff9800;
         }
+
+        .consent-item.declined .status {
+            color: #f44336;
+        }
         
         .button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -418,7 +422,7 @@
             border-radius: 10px;
             border: 2px solid #4caf50;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transform: scaleX(-1); /* Mirror the video */
+            transform: scaleX(-1);
         }
         
         #recorded-video {
@@ -590,6 +594,14 @@
                 bottom: 20px;
             }
         }
+
+        .banner {
+            background: #fff3cd;
+            border: 1px solid #ffe08a;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -603,7 +615,12 @@
             <!-- Welcome Screen -->
             <div class="welcome-screen" id="welcome-screen">
                 <h2>Welcome to Our Research Study</h2>
-                <p style="margin-bottom: 30px; color: #666;">This study can be completed at your own pace. You can pause and resume at any time using your unique code.</p>
+                <p style="margin-bottom: 20px; color: #666;">This study can be completed at your own pace. You can pause and resume at any time using your unique code.</p>
+                
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #4caf50;">
+                    <strong style="color: #2e7d32;">📅 Important: Zoom Meeting Required</strong>
+                    <p style="margin: 10px 0; color: #333;">All participants must schedule a brief 15-20 minute Zoom meeting with the research team before beginning the study tasks. This helps ensure you understand the tasks and allows us to answer any questions.</p>
+                </div>
                 
                 <div class="option-card">
                     <h3>🆕 New Participant</h3>
@@ -681,8 +698,8 @@
             
             <!-- Consent Status -->
             <div class="consent-status" id="consent-status">
-                <h3>Consent Forms</h3>
-                <p style="margin-bottom: 20px; color: #666;">If you haven't already completed these through the screener, please complete both consent forms before beginning the study tasks.</p>
+                <h3>✅ Zoom Meeting Scheduled - Now Complete Consent Forms</h3>
+                <p style="margin-bottom: 20px; color: #666;">Great! Now that you've scheduled your Zoom meeting, please complete the consent forms before we meet. If you haven't already completed these through the screener, please do so now.</p>
                 
                 <div class="consent-item" id="consent-1">
                     <span class="status">⭕</span>
@@ -698,6 +715,10 @@
                         <strong>Video Consent Form</strong>
                         <p style="font-size: 14px; color: #666;">Consent for video recording</p>
                     </div>
+                </div>
+
+                <div id="consent-choices" style="text-align:center; margin-top:10px; display:none;">
+                    <button class="button button-secondary" id="decline-video-btn" onclick="declineVideoConsent()">I do not consent to video, continue</button>
                 </div>
                 
                 <button class="button" id="consent-btn" onclick="proceedWithConsent()">Continue</button>
@@ -755,6 +776,7 @@
                     <p style="font-size: 14px; color: #666;">Or drag and drop the CSV file here</p>
                     <input type="file" id="mrt-file" accept=".csv">
                 </div>
+                <div id="upload-status" style="margin-top:12px;"></div>
                 <button class="button button-success" id="mrt-continue" style="display: none;" onclick="completeCurrentTask()">Continue to Next Task</button>
             </div>
             
@@ -762,13 +784,25 @@
             <div class="recording-section" id="recording-section">
                 <h3>Image Description Task - Video Recording</h3>
                 <div class="image-counter" id="image-counter">Image 1 of 2</div>
-                
-                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <strong style="color: #6a1b9a;">🌐 Language Reminder:</strong>
-                    <span style="color: #333;">Please use <strong>ASL</strong> if you know it (any level is fine!), or <strong>spoken English</strong> if you don't know ASL.</span>
+
+                <div id="video-consent-banner" class="banner" style="display:none;">
+                    <strong>Video consent not completed.</strong>
+                    <div style="margin-top:8px;">
+                        <button class="button" onclick="openExternalTask('CONSENT2')">Open Video Consent Form</button>
+                        <button class="button button-secondary" onclick="skipVideoTask()">Skip Video Task</button>
+                    </div>
+                </div>
+
+                <div id="video-declined-banner" class="banner" style="display:none;">
+                    <strong>You declined video consent.</strong> This task is optional. You can skip it now.
+                    <div style="margin-top:8px;">
+                        <button class="button button-secondary" onclick="skipVideoTask()">Skip Video Task</button>
+                    </div>
                 </div>
                 
-                <div class="video-container">
+                <div class="image-counter" id="image-counter-spacer" style="visibility:hidden;">.</div>
+                
+                <div class="video-container" id="video-container">
                     <div class="image-panel">
                         <h3>Image to Describe</h3>
                         <img id="current-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E" alt="Current Image">
@@ -818,7 +852,7 @@
         </div>
         
         <div class="footer">
-            <p>For technical support: [research email]</p>
+            <p>For technical support: action.brain.lab@gallaudet.edu</p>
             <p style="margin-top: 10px; font-size: 14px;">Your progress is automatically saved after each task.</p>
         </div>
     </div>
@@ -846,7 +880,7 @@
         // CONFIGURATION
         // ===============================================
         const CONFIG = {
-            GOOGLE_SHEETS_URL: 'YOUR_GOOGLE_SHEETS_WEB_APP_URL_HERE',
+            GOOGLE_SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
             IMAGE_1_URL: 'images/description1.jpg',
             IMAGE_2_URL: 'images/description2.jpg'
         };
@@ -855,6 +889,48 @@
         // TASK DEFINITIONS
         // ===============================================
         const TASKS = {
+            'ZOOM': {
+                name: 'Schedule Zoom Meeting',
+                url: 'https://calendly.com/melodyschwenk/spatialcognitionzoom',
+                type: 'external',
+                required: true,
+                instructions: `
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong style="color: #2e7d32;">📅 REQUIRED: Schedule Your Zoom Meeting</strong>
+                        <p style="margin: 10px 0;">Before beginning the study tasks, you need to schedule a brief 15-20 minute Zoom meeting with the research team.</p>
+                        <p style="margin: 10px 0;"><strong>This meeting is required for all participants</strong> and helps us:</p>
+                        <ul style="margin: 5px 0 10px 20px; text-align: left;">
+                            <li>Answer any questions you have about the study</li>
+                            <li>Ensure you understand the tasks</li>
+                            <li>Provide technical support if needed</li>
+                            <li>Get to know our participants better</li>
+                        </ul>
+                    </div>
+                    
+                    <strong>How to Schedule:</strong>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Click "Schedule Meeting" below</li>
+                        <li>Select a date and time that works for you</li>
+                        <li>Enter your name and email</li>
+                        <li>You'll receive a confirmation email with the Zoom link</li>
+                        <li>Return to this tab and click "I've Scheduled My Meeting"</li>
+                    </ol>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <strong>⏱️ Meeting Details:</strong>
+                        <ul style="margin: 10px 0 0 20px; text-align: left;">
+                            <li>Duration: 15-20 minutes (30 min slot for flexibility)</li>
+                            <li>Platform: Zoom</li>
+                            <li>What to prepare: Your questions about the study</li>
+                            <li>Camera optional but preferred</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 15px; text-align: center;">
+                        <strong>Important:</strong> You must schedule this meeting to continue with the study.
+                    </p>
+                `
+            },
             'CONSENT1': {
                 name: 'Research Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g',
@@ -865,7 +941,7 @@
                 name: 'Video Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u',
                 type: 'consent',
-                instructions: 'If you have not yet done so, please complete the video consent form for the video recording task. If you already completed this through the screener, click "I\'ve Completed This Task" below.'
+                instructions: 'If you have not yet done so, please complete the video consent form for the video recording task. If you already completed this through the screener, click "I\'ve Completed This Task" below. If you do not consent to video, you can decline and continue.'
             },
             'MRT': {
                 name: 'Mental Rotation Task',
@@ -876,11 +952,11 @@
                 instructions: `
                     <strong>Important Instructions:</strong>
                     <ol style="text-align: left; margin: 15px 0;">
-                        <li>Click "Open Task" - a new tab will open</li>
-                        <li><strong style="color: #f44336;">Scroll to the BOTTOM of the page</strong></li>
-                        <li>Click <strong>"Begin Experiment"</strong> button at the bottom</li>
-                        <li><strong>Do NOT change any settings</strong> - use the defaults</li>
-                        <li>Complete all rotation trials (about 10-15 minutes)</li>
+                        <li>Click "Open Task"</li>
+                        <li><strong style="color: #f44336;">Scroll to the bottom of the page</strong></li>
+                        <li>Click <strong>"Begin Experiment"</strong></li>
+                        <li>Do not change any settings</li>
+                        <li>Complete all rotation trials</li>
                         <li>At the end, <strong>download your results as a CSV file</strong></li>
                         <li>Return to this tab</li>
                     </ol>
@@ -890,13 +966,13 @@
                         <p style="margin: 10px 0;">After completing the task, you'll download a CSV file with your results.</p>
                         <p style="margin: 10px 0;"><strong>You can either:</strong></p>
                         <ul style="margin: 5px 0 5px 20px;">
-                            <li>Upload it now using the upload box below, OR</li>
-                            <li>Save it and continue without uploading (you can email it later if needed)</li>
+                            <li>Upload it now using the upload box below, or</li>
+                            <li>Save it and continue without uploading</li>
                         </ul>
                     </div>
                     
                     <p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
-                        ⚠️ <strong>Tip:</strong> The download button appears after you complete all trials. The file is usually saved to your Downloads folder.
+                        ⚠️ <strong>Tip:</strong> The file is usually saved to your Downloads folder.
                     </p>
                 `
             },
@@ -909,24 +985,17 @@
                 instructions: `
                     <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                         <strong style="color: #2e7d32;">📌 Who should complete this task:</strong>
-                        <p style="margin: 10px 0;">This task is for people who know American Sign Language (ASL) at any level - from beginner to fluent.</p>
-                        <p style="margin: 10px 0;"><strong>If you are a hearing person who does not know ASL, you can skip this task</strong> by clicking "Skip This Task - I Don't Know ASL" below.</p>
+                        <p style="margin: 10px 0;">This task is for people who know American Sign Language (ASL) at any level.</p>
+                        <p style="margin: 10px 0;"><strong>If you do not know ASL, you can skip this task</strong> by clicking "Skip This Task - I Don't Know ASL" below.</p>
                     </div>
                     
-                    <strong>If you know ASL (even a little bit), please complete this task:</strong>
+                    <strong>If you know ASL, please complete this task:</strong>
                     <ol style="text-align: left; margin: 15px 0;">
-                        <li>Click "Open Task" - a new tab will open</li>
-                        <li>You will see a login page</li>
+                        <li>Click "Open Task"</li>
                         <li>Enter this access code: <strong style="color: #667eea; font-size: 1.3em; font-family: monospace;">NWMTLYMTP</strong></li>
-                        <li>Click "Submit" or "Enter"</li>
-                        <li>Complete all test items to the best of your ability</li>
-                        <li>When finished, return to this tab</li>
+                        <li>Complete all test items</li>
+                        <li>Return to this tab</li>
                     </ol>
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
-                        <strong>Access Code:</strong><br>
-                        <span style="font-size: 2em; font-family: monospace; color: #1565c0; letter-spacing: 2px;">NWMTLYMTP</span><br>
-                        <small>(Please type carefully)</small>
-                    </div>
                 `
             },
             'VCN': {
@@ -936,13 +1005,11 @@
                 instructions: `
                     <strong>Instructions:</strong>
                     <ol style="text-align: left; margin: 15px 0;">
-                        <li>Click "Open Task" - a new tab will open</li>
-                        <li>Wait for the virtual environment to load (may take 30 seconds)</li>
+                        <li>Click "Open Task"</li>
+                        <li>Wait for the virtual environment to load</li>
                         <li>Follow the on-screen navigation instructions</li>
-                        <li>Use arrow keys or WASD to move</li>
-                        <li>Use mouse to look around</li>
                         <li>Complete all navigation trials</li>
-                        <li>When finished, return to this tab</li>
+                        <li>Return to this tab</li>
                     </ol>
                 `
             },
@@ -953,11 +1020,10 @@
                 instructions: `
                     <strong>Instructions:</strong>
                     <ol style="text-align: left; margin: 15px 0;">
-                        <li>Click "Open Task" - a new tab will open</li>
+                        <li>Click "Open Task"</li>
                         <li>Read the instructions carefully</li>
                         <li>Complete the maze navigation exercises</li>
-                        <li>Follow all on-screen prompts</li>
-                        <li>When all trials are complete, return to this tab</li>
+                        <li>Return to this tab</li>
                     </ol>
                 `
             },
@@ -967,31 +1033,10 @@
                 instructions: `
                     <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                         <strong style="color: #6a1b9a;">🌐 Language for Your Descriptions:</strong>
-                        <p style="margin: 10px 0;"><strong>If you know ASL (at any level):</strong> Please use ASL to describe the images. Don't worry about making mistakes - we're interested in how you describe spatial information, not judging your ASL skills!</p>
-                        <p style="margin: 10px 0;"><strong>If you don't know ASL:</strong> Please use spoken English to describe the images.</p>
-                        <p style="margin: 10px 0; font-style: italic; color: #666;">The goal is to understand how people describe spatial relationships and locations in images, using whatever language is most comfortable for you.</p>
+                        <p style="margin: 10px 0;"><strong>If you know ASL:</strong> Please use ASL to describe the images. Any level is fine.</p>
+                        <p style="margin: 10px 0;"><strong>If you do not know ASL:</strong> Please use spoken English.</p>
+                        <p style="margin: 10px 0; font-style: italic; color: #666;">If you do not consent to video, you can skip this task.</p>
                     </div>
-                    
-                    <strong>Video Recording Instructions:</strong>
-                    <p style="margin: 10px 0;">You will describe two images separately. For each image:</p>
-                    <ol style="text-align: left; margin: 15px 0;">
-                        <li>Look at the image carefully</li>
-                        <li>Click "Start Recording" - you'll see yourself on camera</li>
-                        <li>Describe what you see in the image (30-60 seconds):
-                            <ul style="margin: 5px 0 5px 20px;">
-                                <li>Objects and people in the image</li>
-                                <li>Where things are located</li>
-                                <li>Actions or activities happening</li>
-                                <li>Spatial relationships (left, right, behind, etc.)</li>
-                            </ul>
-                        </li>
-                        <li>Click "Stop Recording" when done</li>
-                        <li>Review your video and re-record if needed</li>
-                        <li>Click "Save & Continue" to proceed</li>
-                    </ol>
-                    <p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
-                        ⚠️ <strong>Remember:</strong> We're studying spatial descriptions, not language proficiency. Use whichever language (ASL or English) feels most natural to you. Your video will be used for research purposes only.
-                    </p>
                 `
             },
             'DEMO': {
@@ -1003,14 +1048,14 @@
         };
         
         // ===============================================
-        // SEQUENCES - Consent forms always first, demographics always last
+        // SEQUENCES
         // ===============================================
         const SEQUENCES = [
-            ['CONSENT1', 'CONSENT2', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
-            ['CONSENT1', 'CONSENT2', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
-            ['CONSENT1', 'CONSENT2', 'VCN', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
-            ['CONSENT1', 'CONSENT2', 'SN', 'ID', 'MRT', 'ASLCT', 'VCN', 'DEMO'],
-            ['CONSENT1', 'CONSENT2', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
+            ['ZOOM', 'CONSENT1', 'CONSENT2', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
+            ['ZOOM', 'CONSENT1', 'CONSENT2', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
+            ['ZOOM', 'CONSENT1', 'CONSENT2', 'VCN', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
+            ['ZOOM', 'CONSENT1', 'CONSENT2', 'SN', 'ID', 'MRT', 'ASLCT', 'VCN', 'DEMO'],
+            ['ZOOM', 'CONSENT1', 'CONSENT2', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
         ];
         
         // ===============================================
@@ -1032,6 +1077,7 @@
                 consent1: false,
                 consent2: false
             },
+            videoConsentDeclined: false, // NEW
             recording: false,
             mediaRecorder: null,
             videoChunks: [],
@@ -1132,6 +1178,7 @@
                 participantID: state.participantID,
                 email: state.email,
                 sequenceIndex: state.sequenceIndex,
+                totalTasks: state.sequence.length,
                 timestamp: new Date().toISOString()
             });
             
@@ -1156,20 +1203,16 @@
                 state = JSON.parse(savedState);
                 proceedToStudy();
             } else {
-                // Try to retrieve from Google Sheets
                 alert('Session not found locally. In production, this would check the server.');
-                // In production, you'd make a call to Google Sheets to retrieve the session
             }
         }
         
         function checkForSavedSession() {
-            // Check if there's a recent session in localStorage
             const recentCode = localStorage.getItem('recent_session_code');
             if (recentCode) {
                 const savedState = localStorage.getItem(`study_session_${recentCode}`);
                 if (savedState) {
                     const saved = JSON.parse(savedState);
-                    // Check if session is less than 30 days old
                     const daysSinceActivity = (Date.now() - new Date(saved.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
                     if (daysSinceActivity < 30) {
                         if (confirm(`Welcome back! You have an incomplete session (Code: ${recentCode}). Would you like to continue?`)) {
@@ -1219,8 +1262,12 @@
             document.getElementById('returning-participant').style.display = 'none';
             document.getElementById('code-display').style.display = 'none';
             
-            // Check consent status
-            if (!state.consentCompleted.consent1 || !state.consentCompleted.consent2) {
+            // Check if first task (Zoom) is completed
+            if (!state.completedTasks.includes('ZOOM')) {
+                startTask('ZOOM');
+            } else if (!state.consentCompleted.consent1 || (!state.consentCompleted.consent2 && !state.videoConsentDeclined)) {
+                // Show consent status until research consent is done
+                // and either video consent is completed or explicitly declined
                 showConsentStatus();
             } else {
                 showProgressOverview();
@@ -1234,22 +1281,45 @@
             const consent1 = document.getElementById('consent-1');
             const consent2 = document.getElementById('consent-2');
             
+            consent1.classList.remove('complete', 'pending');
+            consent2.classList.remove('complete', 'pending', 'declined');
+            
             if (state.consentCompleted.consent1) {
                 consent1.classList.add('complete');
                 consent1.querySelector('.status').textContent = '✅';
+            } else {
+                consent1.classList.add('pending');
+                consent1.querySelector('.status').textContent = '⭕';
             }
             
-            if (state.consentCompleted.consent2) {
+            if (state.videoConsentDeclined) {
+                consent2.classList.add('declined');
+                consent2.querySelector('.status').textContent = '🚫';
+                consent2.querySelector('p').textContent = 'Video consent declined';
+            } else if (state.consentCompleted.consent2) {
                 consent2.classList.add('complete');
                 consent2.querySelector('.status').textContent = '✅';
+                consent2.querySelector('p').textContent = 'Consent for video recording';
+            } else {
+                consent2.classList.add('pending');
+                consent2.querySelector('.status').textContent = '⭕';
+                consent2.querySelector('p').textContent = 'Consent for video recording';
             }
             
-            // Update button text
+            // Show decline button if research consent done and video consent not done
+            const choices = document.getElementById('consent-choices');
+            if (state.consentCompleted.consent1 && !state.consentCompleted.consent2 && !state.videoConsentDeclined) {
+                choices.style.display = 'block';
+            } else {
+                choices.style.display = 'none';
+            }
+
+            // Update main button text
             const btn = document.getElementById('consent-btn');
             if (!state.consentCompleted.consent1) {
-                btn.textContent = 'Open Research Consent Form';
-            } else if (!state.consentCompleted.consent2) {
-                btn.textContent = 'Open Video Consent Form';
+                btn.textContent = 'Continue to Research Consent Form';
+            } else if (!state.consentCompleted.consent2 && !state.videoConsentDeclined) {
+                btn.textContent = 'Continue to Video Consent Form';
             } else {
                 btn.textContent = 'Continue to Study Tasks';
             }
@@ -1258,11 +1328,28 @@
         function proceedWithConsent() {
             if (!state.consentCompleted.consent1) {
                 startTask('CONSENT1');
-            } else if (!state.consentCompleted.consent2) {
+            } else if (!state.consentCompleted.consent2 && !state.videoConsentDeclined) {
                 startTask('CONSENT2');
             } else {
                 showProgressOverview();
             }
+        }
+
+        function declineVideoConsent() {
+            // mark video consent as declined and treated as "complete" for flow
+            state.videoConsentDeclined = true;
+            state.consentCompleted.consent2 = true;
+            saveState();
+
+            sendToGoogleSheets({
+                action: 'video_consent_declined',
+                sessionCode: state.sessionCode,
+                participantID: state.participantID,
+                timestamp: new Date().toISOString()
+            });
+
+            // Move forward
+            showProgressOverview();
         }
         
         function showProgressOverview() {
@@ -1373,7 +1460,8 @@
             if (task.type === 'external' || task.type === 'consent') {
                 let buttonsHTML = `
                     <button class="task-button" onclick="openExternalTask('${taskCode}')">
-                        Open ${task.type === 'consent' ? 'Consent Form' : 'Task'}
+                        ${taskCode === 'ZOOM' ? 'Schedule Meeting' : 
+                          task.type === 'consent' ? 'Open Consent Form' : 'Open Task'}
                     </button>
                 `;
                 
@@ -1385,28 +1473,37 @@
                         </button>
                     `;
                 }
+
+                // Add decline button directly on CONSENT2 page
+                if (taskCode === 'CONSENT2' && !state.videoConsentDeclined && !state.consentCompleted.consent2) {
+                    buttonsHTML += `
+                        <div style="margin-top:10px; text-align:center;">
+                            <button class="button button-secondary" onclick="declineVideoConsent()">I do not consent to video, continue</button>
+                        </div>
+                    `;
+                }
                 
                 taskContent.innerHTML = buttonsHTML + `
-                    <p style="margin-top: 15px; color: #666;">The task will open in a new tab. Return here when complete.</p>
+                    <p style="margin-top: 15px; color: #666;">
+                        ${taskCode === 'ZOOM' ? 
+                          'Calendly will open in a new tab. Schedule your meeting, then return here.' : 
+                          'The task will open in a new tab. Return here when complete.'}
+                    </p>
                 `;
                 
                 if (task.requiresUpload) {
                     setTimeout(() => {
                         document.getElementById('mrt-upload').style.display = 'block';
-                        // Update the upload section to show optional nature
-                        const uploadSection = document.getElementById('mrt-upload');
                         const existingButton = document.getElementById('mrt-continue');
                         if (existingButton) {
                             existingButton.textContent = 'Continue to Next Task';
-                            existingButton.style.display = 'block'; // Show continue button immediately
+                            existingButton.style.display = 'block';
                         }
-                        
-                        // Add optional upload message
                         const uploadStatus = document.getElementById('upload-status');
                         if (uploadStatus && !uploadStatus.classList.contains('success')) {
                             uploadStatus.innerHTML = `
                                 <div style="background: #e3f2fd; padding: 10px; border-radius: 5px;">
-                                    📌 <strong>Optional:</strong> You can upload your CSV file now or save it to email later.
+                                    📌 <strong>Optional:</strong> You can upload your CSV file now or email it later.
                                     <br>Click "Continue to Next Task" when ready.
                                 </div>
                             `;
@@ -1414,7 +1511,13 @@
                         }
                     }, 3000);
                 } else {
-                    document.getElementById('general-continue').style.display = 'block';
+                    const continueBtn = document.getElementById('general-continue');
+                    if (taskCode === 'ZOOM') {
+                        continueBtn.textContent = "I've Scheduled My Meeting - Continue";
+                    } else {
+                        continueBtn.textContent = "I've Completed This Task - Continue";
+                    }
+                    continueBtn.style.display = 'block';
                 }
             } else if (task.type === 'recording') {
                 taskContent.innerHTML = '';
@@ -1425,14 +1528,12 @@
         // Add function to handle ASLCT skip
         function skipASLCT() {
             if (confirm('Are you sure you want to skip the ASL Comprehension Test? This is only for people who do not know ASL.')) {
-                // Record as skipped
                 state.taskData.ASLCT = {
                     skipped: true,
                     reason: 'Does not know ASL',
                     timestamp: new Date().toISOString()
                 };
                 
-                // Send to Google Sheets
                 sendToGoogleSheets({
                     action: 'task_skipped',
                     sessionCode: state.sessionCode,
@@ -1442,12 +1543,11 @@
                     timestamp: new Date().toISOString()
                 });
                 
-                // Mark as completed and move on
                 completeCurrentTask();
             }
         }
         
-        // Make functions available globally for onclick handlers
+        // Expose functions globally
         window.showNewParticipant = showNewParticipant;
         window.showReturningParticipant = showReturningParticipant;
         window.backToWelcome = backToWelcome;
@@ -1460,14 +1560,59 @@
         window.skipASLCT = skipASLCT;
         window.openExternalTask = openExternalTask;
         window.completeCurrentTask = completeCurrentTask;
+        window.declineVideoConsent = declineVideoConsent;
+        window.skipVideoTask = skipVideoTask;
         
         function openExternalTask(taskCode) {
             const task = TASKS[taskCode];
             window.open(task.url, '_blank');
+            
+            if (taskCode === 'ZOOM') {
+                sendToGoogleSheets({
+                    action: 'calendly_opened',
+                    sessionCode: state.sessionCode,
+                    participantID: state.participantID,
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
         
         function showRecordingTask() {
-            document.getElementById('recording-section').style.display = 'block';
+            const section = document.getElementById('recording-section');
+            section.style.display = 'block';
+
+            // Show appropriate banners
+            const bannerNoConsent = document.getElementById('video-consent-banner');
+            const bannerDeclined = document.getElementById('video-declined-banner');
+            const videoContainer = document.getElementById('video-container');
+            const counter = document.getElementById('image-counter');
+            const counterSpacer = document.getElementById('image-counter-spacer');
+
+            // If declined, hide the entire recording UI and offer skip
+            if (state.videoConsentDeclined) {
+                bannerDeclined.style.display = 'block';
+                bannerNoConsent.style.display = 'none';
+                videoContainer.style.display = 'none';
+                counter.style.display = 'none';
+                counterSpacer.style.display = 'none';
+                return;
+            }
+
+            // If consent2 not completed, show banner with options but keep UI hidden until they decide
+            if (!state.consentCompleted.consent2) {
+                bannerNoConsent.style.display = 'block';
+                bannerDeclined.style.display = 'none';
+                videoContainer.style.display = 'none';
+                counter.style.display = 'none';
+                counterSpacer.style.display = 'none';
+                return;
+            } else {
+                bannerNoConsent.style.display = 'none';
+                bannerDeclined.style.display = 'none';
+                videoContainer.style.display = 'grid';
+                counter.style.display = 'inline-block';
+                counterSpacer.style.display = 'hidden';
+            }
             
             // Reset for first image
             state.currentImageIndex = 0;
@@ -1500,7 +1645,6 @@
                 videoPreview.srcObject = stream;
                 videoPreview.style.display = 'block';
                 
-                // Store stream for later use
                 state.currentStream = stream;
             } catch (err) {
                 alert('Unable to access camera. Please ensure you have granted camera and microphone permissions.');
@@ -1513,7 +1657,6 @@
             document.getElementById('current-image').src = imageUrl;
             document.getElementById('image-counter').textContent = `Image ${state.currentImageIndex + 1} of 2`;
             
-            // Reset recording UI
             document.getElementById('video-preview').style.display = 'block';
             document.getElementById('recorded-video').style.display = 'none';
             document.getElementById('record-button').style.display = 'block';
@@ -1532,7 +1675,6 @@
             
             if (!state.recording) {
                 try {
-                    // Use existing stream if available
                     const stream = state.currentStream || await navigator.mediaDevices.getUserMedia({ 
                         video: { facingMode: 'user' }, 
                         audio: true 
@@ -1553,20 +1695,17 @@
                         const blob = new Blob(state.videoChunks, { type: 'video/webm' });
                         const url = URL.createObjectURL(blob);
                         
-                        // Show recorded video
                         const recordedVideo = document.getElementById('recorded-video');
                         recordedVideo.src = url;
                         recordedVideo.style.display = 'block';
                         document.getElementById('video-preview').style.display = 'none';
                         
-                        // Update UI
                         button.style.display = 'none';
                         document.getElementById('re-record-button').style.display = 'block';
                         document.getElementById('save-video-button').style.display = 'block';
                         status.textContent = '✅ Recording complete! Review your video below.';
                         status.className = 'recording-status recorded';
                         
-                        // Store recording
                         state.currentRecording = blob;
                         state.currentRecordingURL = url;
                     };
@@ -1580,7 +1719,6 @@
                     status.textContent = '🔴 Recording in progress...';
                     status.className = 'recording-status recording';
                     
-                    // Start timer
                     timer.style.display = 'block';
                     state.recordingTimer = setInterval(updateRecordingTimer, 1000);
                     
@@ -1589,13 +1727,11 @@
                     console.error('Recording error:', err);
                 }
             } else {
-                // Stop recording
                 state.mediaRecorder.stop();
                 state.recording = false;
                 button.textContent = 'Start Recording';
                 button.classList.remove('recording');
                 
-                // Stop timer
                 clearInterval(state.recordingTimer);
                 timer.style.display = 'none';
             }
@@ -1610,7 +1746,6 @@
         }
         
         function reRecord() {
-            // Reset to allow re-recording
             document.getElementById('video-preview').style.display = 'block';
             document.getElementById('recorded-video').style.display = 'none';
             document.getElementById('record-button').style.display = 'block';
@@ -1620,14 +1755,12 @@
             document.getElementById('recording-status').textContent = 'Ready to record';
             document.getElementById('recording-status').className = 'recording-status ready';
             
-            // Clean up previous recording
             if (state.currentRecordingURL) {
                 URL.revokeObjectURL(state.currentRecordingURL);
             }
         }
         
         function saveAndContinue() {
-            // Save current recording
             state.imageRecordings.push({
                 imageNumber: state.currentImageIndex + 1,
                 blob: state.currentRecording,
@@ -1635,7 +1768,6 @@
                 timestamp: new Date().toISOString()
             });
             
-            // Send to Google Sheets
             sendToGoogleSheets({
                 action: 'video_recorded',
                 sessionCode: state.sessionCode,
@@ -1644,35 +1776,46 @@
                 timestamp: new Date().toISOString()
             });
             
-            // Check if there's another image
             if (state.currentImageIndex === 0) {
-                // Move to second image
                 state.currentImageIndex = 1;
                 updateCurrentImage();
-                
-                // Update button text for last image
                 document.getElementById('save-video-button').textContent = 'Save & Complete Task';
             } else {
-                // Both images done - complete the task
                 cleanupVideoRecording();
                 completeCurrentTask();
             }
         }
+
+        function skipVideoTask() {
+            // Log and mark the task as skipped
+            state.taskData.ID = state.taskData.ID || {};
+            state.taskData.ID.skipped = true;
+            state.taskData.ID.reason = state.videoConsentDeclined ? 'Video consent declined' : 'Video consent not completed';
+            state.taskData.ID.timestamp = new Date().toISOString();
+
+            sendToGoogleSheets({
+                action: 'task_skipped',
+                sessionCode: state.sessionCode,
+                participantID: state.participantID,
+                task: 'Image Description',
+                reason: state.taskData.ID.reason,
+                timestamp: new Date().toISOString()
+            });
+
+            completeCurrentTask();
+        }
         
         function cleanupVideoRecording() {
-            // Stop all streams
             if (state.currentStream) {
                 state.currentStream.getTracks().forEach(track => track.stop());
                 state.currentStream = null;
             }
-            
-            // Clear timers
             if (state.recordingTimer) {
                 clearInterval(state.recordingTimer);
                 state.recordingTimer = null;
             }
             
-            // Store recording data in task data
+            state.taskData.ID = state.taskData.ID || {};
             state.taskData.ID.recordings = state.imageRecordings;
             state.taskData.ID.recordingComplete = true;
         }
@@ -1682,10 +1825,10 @@
             if (file && file.type === 'text/csv') {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    state.taskData.MRT = state.taskData.MRT || {};
                     state.taskData.MRT.fileContent = e.target.result;
                     state.taskData.MRT.fileName = file.name;
                     
-                    // Show success message
                     const uploadStatus = document.getElementById('upload-status');
                     uploadStatus.className = 'upload-status success';
                     uploadStatus.innerHTML = `
@@ -1693,7 +1836,6 @@
                         <small>File: ${file.name}</small>
                     `;
                     
-                    // Update button text to show upload was successful
                     const continueBtn = document.getElementById('mrt-continue');
                     if (continueBtn) {
                         continueBtn.textContent = 'Continue to Next Task ✓';
@@ -1717,28 +1859,26 @@
             const taskCode = state.sequence[state.currentTaskIndex];
             const task = TASKS[taskCode];
             
-            // Calculate time spent
             const timeSpent = Date.now() - state.taskData[taskCode].startTimestamp;
             state.taskData[taskCode].endTime = new Date().toISOString();
             state.taskData[taskCode].duration = timeSpent;
             state.totalTimeSpent += timeSpent;
             
-            // Mark as completed
             if (!state.completedTasks.includes(taskCode)) {
                 state.completedTasks.push(taskCode);
             }
             
-            // Update consent status if needed
             if (taskCode === 'CONSENT1') {
                 state.consentCompleted.consent1 = true;
             } else if (taskCode === 'CONSENT2') {
-                state.consentCompleted.consent2 = true;
+                // If they visited CONSENT2, assume done unless already declined
+                if (!state.videoConsentDeclined) {
+                    state.consentCompleted.consent2 = true;
+                }
             }
             
-            // Save progress
             saveState();
             
-            // Send to Google Sheets
             sendToGoogleSheets({
                 action: 'task_completed',
                 sessionCode: state.sessionCode,
@@ -1748,21 +1888,18 @@
                 timestamp: new Date().toISOString()
             });
             
-            // Move to next task
             state.currentTaskIndex++;
             
-            // Hide task display
             document.getElementById('task-display').style.display = 'none';
             document.getElementById('mrt-upload').style.display = 'none';
             document.getElementById('recording-section').style.display = 'none';
             document.getElementById('general-continue').style.display = 'none';
             document.getElementById('pause-button').style.display = 'none';
             
-            // Check what to show next
-            if (taskCode === 'CONSENT1' && !state.consentCompleted.consent2) {
+            if (taskCode === 'ZOOM') {
                 showConsentStatus();
-            } else if (taskCode === 'CONSENT2') {
-                showProgressOverview();
+            } else if (taskCode === 'CONSENT1' && !state.consentCompleted.consent2 && !state.videoConsentDeclined) {
+                showConsentStatus();
             } else if (state.currentTaskIndex >= state.sequence.length) {
                 completeStudy();
             } else {
