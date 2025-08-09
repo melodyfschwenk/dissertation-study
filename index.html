@@ -380,24 +380,85 @@
             margin: 30px 0;
         }
         
-        .image-display {
+        .video-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 30px;
             margin: 20px 0;
+            align-items: start;
         }
         
-        .image-box {
+        .image-panel {
             text-align: center;
         }
         
-        .image-box img {
+        .image-panel img {
             width: 100%;
-            max-width: 400px;
-            height: 300px;
-            object-fit: cover;
+            max-width: 500px;
+            height: auto;
             border-radius: 10px;
             border: 2px solid #e0e0e0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .image-panel h3 {
+            color: #333;
+            margin: 15px 0;
+        }
+        
+        .video-panel {
+            text-align: center;
+        }
+        
+        #video-preview {
+            width: 100%;
+            max-width: 500px;
+            height: 375px;
+            background: #000;
+            border-radius: 10px;
+            border: 2px solid #4caf50;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transform: scaleX(-1); /* Mirror the video */
+        }
+        
+        #recorded-video {
+            width: 100%;
+            max-width: 500px;
+            height: 375px;
+            border-radius: 10px;
+            border: 2px solid #2196f3;
+            display: none;
+        }
+        
+        .recording-controls {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .recording-status {
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .recording-status.ready {
+            color: #666;
+        }
+        
+        .recording-status.recording {
+            color: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .recording-status.recorded {
+            color: #4caf50;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .record-button {
@@ -410,17 +471,59 @@
             font-weight: bold;
             cursor: pointer;
             margin: 10px;
+            transition: all 0.3s;
+        }
+        
+        .record-button:hover {
+            transform: scale(1.05);
         }
         
         .record-button.recording {
-            background: #4caf50;
+            background: #ff9800;
             animation: recordPulse 1.5s infinite;
         }
         
+        .record-button.re-record {
+            background: #9c27b0;
+        }
+        
+        .save-button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            display: none;
+        }
+        
+        .save-button:hover {
+            background: #45a049;
+        }
+        
+        .image-counter {
+            background: #2196f3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
         @keyframes recordPulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+        
+        @media (max-width: 768px) {
+            .video-container {
+                grid-template-columns: 1fr;
+            }
         }
         
         .modal {
@@ -573,7 +676,7 @@
                     </ul>
                 </div>
                 
-                <button class="button button-success" onclick="startConsent()">I've Saved My Code - Continue</button>
+                <button class="</button>
             </div>
             
             <!-- Consent Status -->
@@ -641,46 +744,86 @@
             
             <!-- MRT Upload Section -->
             <div class="upload-section" id="mrt-upload">
-                <h3>Upload MRT Data</h3>
-                <p>After completing the Mental Rotation Task, please upload the CSV file you downloaded.</p>
+                <h3>Optional: Upload MRT Data</h3>
+                <p>If you have completed the Mental Rotation Task and downloaded your CSV file, you can upload it here.</p>
                 <div class="file-upload" id="file-upload">
                     <div style="font-size: 48px; color: #667eea;">📁</div>
                     <p>Click to select your MRT data file</p>
                     <p style="font-size: 14px; color: #666;">Or drag and drop the CSV file here</p>
                     <input type="file" id="mrt-file" accept=".csv">
                 </div>
-                <button class="button button-success" id="mrt-continue" style="display: none;" onclick="completeCurrentTask()">Continue to Next Task</button>
+                <div id="upload-status" style="margin-top: 15px; padding: 15px; border-radius: 8px; display: none;"></div>
+                <p style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <strong>Note:</strong> If you don't have the CSV file ready now, you can continue without uploading. 
+                    Please save your CSV file and email it to the researcher later.
+                </p>
+            </div>
             </div>
             
             <!-- Image Description Recording -->
             <div class="recording-section" id="recording-section">
-                <h3>Image Description Task</h3>
-                <p>Look at these two images and record a brief description of each (30-60 seconds per image).</p>
-                <div class="image-display">
-                    <div class="image-box">
-                        <img id="desc-image-1" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage 1%3C/text%3E%3C/svg%3E" alt="Image 1">
-                        <h4>Image 1</h4>
+                <h3>Image Description Task - Video Recording</h3>
+                
+                <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="color: #6a1b9a; margin-bottom: 10px;">🤟 Language for Your Descriptions:</h4>
+                    <p style="margin: 0;"><strong>ASL users:</strong> Please describe in ASL (any fluency level is great!)</p>
+                    <p style="margin: 5px 0 0 0;"><strong>Non-ASL users:</strong> Please describe in spoken English</p>
+                </div>
+                
+                <div class="image-counter" id="image-counter">Image 1 of 2</div>
+                
+                <div class="video-container">
+                    <div class="image-panel">
+                        <h3>Image to Describe</h3>
+                        <img id="current-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E" alt="Current Image">
+                        <p style="margin-top: 15px; color: #666;">Describe what you see, focusing on:<br>
+                        • Objects and people<br>
+                        • Spatial relationships (where things are)<br>
+                        • Actions happening</p>
                     </div>
-                    <div class="image-box">
-                        <img id="desc-image-2" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage 2%3C/text%3E%3C/svg%3E" alt="Image 2">
-                        <h4>Image 2</h4>
+                    
+                    <div class="video-panel">
+                        <h3>Your Video</h3>
+                        <video id="video-preview" autoplay muted playsinline></video>
+                        <video id="recorded-video" controls playsinline></video>
+                        
+                        <div class="recording-controls">
+                            <div class="recording-status ready" id="recording-status">
+                                Ready to record
+                            </div>
+                            <div id="recording-timer" style="font-size: 24px; color: #f44336; margin: 10px 0; display: none;">
+                                00:00
+                            </div>
+                            <button class="record-button" id="record-button">
+                                Start Recording
+                            </button>
+                            <button class="record-button re-record" id="re-record-button" style="display: none;">
+                                Re-record Video
+                            </button>
+                            <button class="save-button" id="save-video-button">
+                                Save & Continue to Next Image
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div style="text-align: center;">
-                    <button class="record-button" id="record-button">Start Recording</button>
-                    <audio id="audio-playback" controls style="display: none; margin: 20px auto;"></audio>
+                
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                    <strong>Recording Tips:</strong>
+                    <ul style="margin: 10px 0 0 20px; text-align: left;">
+                        <li>Take 30-60 seconds per image</li>
+                        <li>Make sure you're well-lit and visible</li>
+                        <li>You can re-record if you're not happy with it</li>
+                        <li>We're studying spatial descriptions - there's no "wrong" answer!</li>
+                    </ul>
                 </div>
-                <button class="button button-success" id="recording-continue" style="display: none;" onclick="completeCurrentTask()">Continue to Next Task</button>
             </div>
             
             <!-- General Continue Button -->
-            <button class="button button-success" id="general-continue" style="display: none;" onclick="completeCurrentTask()">
-                I've Completed This Task - Continue
-            </button>
+            <button class="</button>
         </div>
         
         <div class="footer">
-            <p>For technical support: [research email]</p>
+            <p>For technical support: <a href="mailto:action.brain.lab@gallaudet.edu">action.brain.lab@gallaudet.edu</a></p>
             <p style="margin-top: 10px; font-size: 14px;">Your progress is automatically saved after each task.</p>
         </div>
     </div>
@@ -708,7 +851,7 @@
         // CONFIGURATION
         // ===============================================
         const CONFIG = {
-            GOOGLE_SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
+            GOOGLE_SHEETS_URL: 'YOUR_GOOGLE_SHEETS_WEB_APP_URL_HERE',
             IMAGE_1_URL: 'images/description1.jpg',
             IMAGE_2_URL: 'images/description2.jpg'
         };
@@ -721,44 +864,155 @@
                 name: 'Research Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g',
                 type: 'consent',
-                instructions: 'Please read and complete the research consent form. This is required before participating in the study.'
+                instructions: `
+                    <strong>Consent Form Confirmation:</strong>
+                    <p style="margin: 15px 0;">You should have already completed the research consent form from the screener survey.</p>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p style="margin-bottom: 10px;">✓ If you completed the consent form, click the button below to confirm.</p>
+                        <p style="margin-bottom: 0;">✗ If you haven't completed it yet, click "Open Consent Form" to complete it first.</p>
+                    </div>
+                `
             },
             'CONSENT2': {
                 name: 'Video Consent Form',
                 url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u',
                 type: 'consent',
-                instructions: 'Please complete the video consent form for the classifier production task.'
+                instructions: `
+                    <strong>Video Consent Form Confirmation:</strong>
+                    <p style="margin: 15px 0;">You should have already completed the video consent form from the screener survey.</p>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p style="margin-bottom: 10px;">✓ If you completed the video consent form, click the button below to confirm.</p>
+                        <p style="margin-bottom: 0;">✗ If you haven't completed it yet, click "Open Video Consent Form" to complete it first.</p>
+                    </div>
+                `
             },
             'MRT': {
                 name: 'Mental Rotation Task',
                 url: 'https://psych.hanover.edu/javatest/cle/Cognition_js/exp/mentRot.html',
                 type: 'external',
                 requiresUpload: true,
-                instructions: 'Complete the Mental Rotation Task. After finishing, download your data as a CSV file and upload it here.'
+                instructions: `
+                    <strong>Important Instructions:</strong>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Click "Open Task" - a new tab will open</li>
+                        <li><strong style="color: #f44336;">Scroll to the BOTTOM of the page</strong></li>
+                        <li>Click <strong>"Begin Experiment"</strong> button at the bottom</li>
+                        <li><strong>Do NOT change any settings</strong> - use the defaults</li>
+                        <li>Complete all rotation trials (about 10-15 minutes)</li>
+                        <li>At the end, <strong>download your results as a CSV file</strong></li>
+                        <li>Return to this tab to continue</li>
+                    </ol>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <p style="margin-bottom: 10px;"><strong>📁 Data Upload (Optional):</strong></p>
+                        <p style="margin-bottom: 10px;">If you have your CSV file ready, you can upload it below. If not, you can continue without uploading - just make sure to save your CSV file for later submission.</p>
+                        <p style="margin: 0; font-size: 14px; color: #856404;">The CSV file is important for the study, but you can email it later if needed.</p>
+                    </div>
+                `
             },
             'ASLCT': {
                 name: 'ASL Comprehension Test',
                 url: 'https://vl2portal.gallaudet.edu/assessment/login.php',
                 type: 'external',
+                skipOption: true,
                 accessCode: 'NWMTLYMTP',
-                instructions: 'Complete the ASL Comprehension Test. Use access code: <strong>NWMTLYMTP</strong>'
+                instructions: `
+                    <strong>ASL Comprehension Test Instructions:</strong>
+                    
+                    <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 15px 0;">
+                        <h4 style="color: #2e7d32; margin-bottom: 15px;">Do you know ASL (American Sign Language)?</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong>✓ If you know ASL (any level):</strong>
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li>Click "Open Task" below</li>
+                                <li>Enter access code: <strong style="color: #1565c0;">NWMTLYMTP</strong></li>
+                                <li>Complete the comprehension test</li>
+                                <li>Return here when finished</li>
+                            </ol>
+                        </div>
+                        
+                        <div>
+                            <strong>✗ If you don't know ASL:</strong>
+                            <p style="margin: 10px 0 0 0;">You can skip this task entirely - just click "Skip This Task" below. This test is only for people who know some ASL.</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
+                        <strong>Access Code for ASL users:</strong><br>
+                        <span style="font-size: 2em; font-family: monospace; color: #1565c0; letter-spacing: 2px;">NWMTLYMTP</span>
+                    </div>
+                `
             },
             'VCN': {
                 name: 'Virtual Campus Navigation',
                 url: 'http://www.virtualsilcton.com/study/753798747',
                 type: 'external',
-                instructions: 'Complete the Virtual Campus Navigation task.'
+                instructions: `
+                    <strong>Instructions:</strong>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Click "Open Task" - a new tab will open</li>
+                        <li>Wait for the virtual environment to load (may take 30 seconds)</li>
+                        <li>Follow the on-screen navigation instructions</li>
+                        <li>Use arrow keys or WASD to move</li>
+                        <li>Use mouse to look around</li>
+                        <li>Complete all navigation trials</li>
+                        <li>When finished, return to this tab</li>
+                    </ol>
+                `
             },
             'SN': {
                 name: 'Spatial Navigation Task',
                 url: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
                 type: 'external',
-                instructions: 'Complete the Spatial Navigation task.'
+                instructions: `
+                    <strong>Instructions:</strong>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Click "Open Task" - a new tab will open</li>
+                        <li>Read the instructions carefully</li>
+                        <li>Complete the maze navigation exercises</li>
+                        <li>Follow all on-screen prompts</li>
+                        <li>When all trials are complete, return to this tab</li>
+                    </ol>
+                `
             },
             'ID': {
                 name: 'Image Description',
                 type: 'recording',
-                instructions: 'Record brief descriptions of the two images shown (30-60 seconds per image).'
+                instructions: `
+                    <strong>Video Recording Instructions:</strong>
+                    
+                    <div style="background: #f3e5f5; padding: 20px; border-radius: 8px; margin: 15px 0;">
+                        <h4 style="color: #6a1b9a; margin-bottom: 15px;">🤟 Language Choice for Descriptions:</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong>If you know ASL (any fluency level):</strong>
+                            <p style="margin: 10px 0 0 20px;">Please use ASL to describe the images. Don't worry about "perfect" signing - we're interested in how you describe spatial information, not judging your ASL skills! Any level of ASL fluency is perfectly fine.</p>
+                        </div>
+                        
+                        <div>
+                            <strong>If you don't know ASL:</strong>
+                            <p style="margin: 10px 0 0 20px;">Please use spoken English to describe the images. Speak clearly and describe what you see.</p>
+                        </div>
+                    </div>
+                    
+                    <p style="margin: 15px 0;"><strong>For each image, you will:</strong></p>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Look at the image carefully</li>
+                        <li>Click "Start Recording" - you'll see yourself on camera</li>
+                        <li>Describe what you see (30-60 seconds):<br>
+                            <span style="margin-left: 20px;">• Objects and people in the image</span><br>
+                            <span style="margin-left: 20px;">• Where things are located (spatial relationships)</span><br>
+                            <span style="margin-left: 20px;">• Actions or activities happening</span>
+                        </li>
+                        <li>Click "Stop Recording" when done</li>
+                        <li>Review your video and re-record if needed</li>
+                        <li>Click "Save & Continue" to proceed</li>
+                    </ol>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <p style="margin: 0;"><strong>Remember:</strong> We're studying how people describe spatial information. There's no "wrong" way to describe the images - just describe what you see naturally in your preferred language (ASL or English).</p>
+                    </div>
+                `
             },
             'DEMO': {
                 name: 'Demographics & Language Background',
@@ -800,7 +1054,11 @@
             },
             recording: false,
             mediaRecorder: null,
-            audioChunks: []
+            videoChunks: [],
+            currentImageIndex: 0,
+            imageRecordings: [],
+            recordingStartTime: null,
+            recordingTimer: null
         };
         
         // ===============================================
@@ -847,9 +1105,6 @@
                     }
                 });
             }
-            
-            // Recording
-            document.getElementById('record-button')?.addEventListener('click', toggleRecording);
         }
         
         function handleInitialInput(e) {
@@ -1133,23 +1388,50 @@
             
             taskDisplay.style.display = 'block';
             taskTitle.textContent = task.name;
-            taskInstructions.innerHTML = `<p>${task.instructions}</p>`;
+            taskInstructions.innerHTML = `<div>${task.instructions}</div>`;
             
             if (task.type === 'external' || task.type === 'consent') {
-                if (task.accessCode) {
-                    taskInstructions.innerHTML += `<p style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px;">Access Code: <strong style="font-size: 1.2em;">${task.accessCode}</strong></p>`;
+                let buttonsHTML = '';
+                
+                if (task.type === 'consent') {
+                    buttonsHTML = `
+                        <button class="task-button" onclick="openExternalTask('${taskCode}')">
+                            Open ${task.type === 'consent' ? 'Consent Form' : 'Task'} (If Needed)
+                        </button>
+                        <p style="margin: 20px 0; font-size: 18px; font-weight: bold;">OR</p>
+                        <button class="</button>
+                    `;
+                } else if (task.skipOption) {
+                    // ASLCT with skip option
+                    buttonsHTML = `
+                        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                            <button class="task-button" onclick="openExternalTask('${taskCode}')">
+                                Open Task (ASL Users)
+                            </button>
+                            <button class="button" style="background: #ff9800; display: inline-block;" onclick="skipTask('${taskCode}')">
+                                Skip This Task (Non-ASL Users)
+                            </button>
+                        </div>
+                        <p style="margin-top: 20px; color: #666;">Complete the task OR skip it, then click continue below:</p>
+                    `;
+                } else {
+                    buttonsHTML = `
+                        <button class="task-button" onclick="openExternalTask('${taskCode}')">
+                            Open Task
+                        </button>
+                        <p style="margin-top: 15px; color: #666;">The task will open in a new tab. Return here when complete.</p>
+                    `;
                 }
                 
-                taskContent.innerHTML = `
-                    <button class="task-button" onclick="openExternalTask('${taskCode}')">
-                        Open ${task.type === 'consent' ? 'Consent Form' : 'Task'}
-                    </button>
-                    <p style="margin-top: 15px; color: #666;">The task will open in a new tab. Return here when complete.</p>
-                `;
+                taskContent.innerHTML = buttonsHTML;
                 
                 if (task.requiresUpload) {
+                    // MRT with optional upload
                     setTimeout(() => {
                         document.getElementById('mrt-upload').style.display = 'block';
+                        // Show continue button immediately (not dependent on upload)
+                        document.getElementById('general-continue').style.display = 'block';
+                        document.getElementById('general-continue').textContent = 'Continue to Next Task';
                     }, 3000);
                 } else {
                     document.getElementById('general-continue').style.display = 'block';
@@ -1160,6 +1442,34 @@
             }
         }
         
+        function skipTask(taskCode) {
+            // Log that task was skipped
+            const task = TASKS[taskCode];
+            
+            alert('Task skipped. This is perfectly fine - the ASL Comprehension Test is only for ASL users.');
+            
+            // Record as skipped
+            state.taskData[taskCode] = {
+                startTime: new Date().toISOString(),
+                endTime: new Date().toISOString(),
+                skipped: true,
+                reason: 'Non-ASL user'
+            };
+            
+            // Send to Google Sheets
+            sendToGoogleSheets({
+                action: 'task_skipped',
+                sessionCode: state.sessionCode,
+                participantID: state.participantID,
+                task: task.name,
+                reason: 'Non-ASL user',
+                timestamp: new Date().toISOString()
+            });
+            
+            // Complete the task (move to next)
+            completeCurrentTask();
+        }
+        
         function openExternalTask(taskCode) {
             const task = TASKS[taskCode];
             window.open(task.url, '_blank');
@@ -1167,49 +1477,213 @@
         
         function showRecordingTask() {
             document.getElementById('recording-section').style.display = 'block';
-            document.getElementById('desc-image-1').src = CONFIG.IMAGE_1_URL;
-            document.getElementById('desc-image-2').src = CONFIG.IMAGE_2_URL;
+            
+            // Reset for first image
+            state.currentImageIndex = 0;
+            state.imageRecordings = [];
+            
+            // Load first image
+            updateCurrentImage();
+            
+            // Setup video preview
+            setupVideoPreview();
+            
+            // Setup button listeners
+            document.getElementById('record-button').onclick = toggleRecording;
+            document.getElementById('re-record-button').onclick = reRecord;
+            document.getElementById('save-video-button').onclick = saveAndContinue;
+        }
+        
+        async function setupVideoPreview() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }, 
+                    audio: true 
+                });
+                
+                const videoPreview = document.getElementById('video-preview');
+                videoPreview.srcObject = stream;
+                videoPreview.style.display = 'block';
+                
+                // Store stream for later use
+                state.currentStream = stream;
+            } catch (err) {
+                alert('Unable to access camera. Please ensure you have granted camera and microphone permissions.');
+                console.error('Camera access error:', err);
+            }
+        }
+        
+        function updateCurrentImage() {
+            const imageUrl = state.currentImageIndex === 0 ? CONFIG.IMAGE_1_URL : CONFIG.IMAGE_2_URL;
+            document.getElementById('current-image').src = imageUrl;
+            document.getElementById('image-counter').textContent = `Image ${state.currentImageIndex + 1} of 2`;
+            
+            // Reset recording UI
+            document.getElementById('video-preview').style.display = 'block';
+            document.getElementById('recorded-video').style.display = 'none';
+            document.getElementById('record-button').style.display = 'block';
+            document.getElementById('record-button').textContent = 'Start Recording';
+            document.getElementById('re-record-button').style.display = 'none';
+            document.getElementById('save-video-button').style.display = 'none';
+            document.getElementById('recording-status').textContent = 'Ready to record';
+            document.getElementById('recording-status').className = 'recording-status ready';
+            document.getElementById('recording-timer').style.display = 'none';
         }
         
         async function toggleRecording() {
             const button = document.getElementById('record-button');
+            const status = document.getElementById('recording-status');
+            const timer = document.getElementById('recording-timer');
             
             if (!state.recording) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    state.mediaRecorder = new MediaRecorder(stream);
-                    state.audioChunks = [];
+                    // Use existing stream if available
+                    const stream = state.currentStream || await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'user' }, 
+                        audio: true 
+                    });
+                    
+                    state.mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'video/webm;codecs=vp8,opus'
+                    });
+                    state.videoChunks = [];
                     
                     state.mediaRecorder.ondataavailable = event => {
-                        state.audioChunks.push(event.data);
+                        if (event.data.size > 0) {
+                            state.videoChunks.push(event.data);
+                        }
                     };
                     
                     state.mediaRecorder.onstop = () => {
-                        const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                        const blob = new Blob(state.videoChunks, { type: 'video/webm' });
                         const url = URL.createObjectURL(blob);
                         
-                        const audioElement = document.getElementById('audio-playback');
-                        audioElement.src = url;
-                        audioElement.style.display = 'block';
+                        // Show recorded video
+                        const recordedVideo = document.getElementById('recorded-video');
+                        recordedVideo.src = url;
+                        recordedVideo.style.display = 'block';
+                        document.getElementById('video-preview').style.display = 'none';
                         
-                        document.getElementById('recording-continue').style.display = 'block';
+                        // Update UI
+                        button.style.display = 'none';
+                        document.getElementById('re-record-button').style.display = 'block';
+                        document.getElementById('save-video-button').style.display = 'block';
+                        status.textContent = '✅ Recording complete! Review your video below.';
+                        status.className = 'recording-status recorded';
+                        
+                        // Store recording
+                        state.currentRecording = blob;
+                        state.currentRecordingURL = url;
                     };
                     
                     state.mediaRecorder.start();
                     state.recording = true;
+                    state.recordingStartTime = Date.now();
+                    
                     button.textContent = 'Stop Recording';
                     button.classList.add('recording');
+                    status.textContent = '🔴 Recording in progress...';
+                    status.className = 'recording-status recording';
+                    
+                    // Start timer
+                    timer.style.display = 'block';
+                    state.recordingTimer = setInterval(updateRecordingTimer, 1000);
                     
                 } catch (err) {
-                    alert('Could not access microphone. Please ensure you have granted permission.');
+                    alert('Could not start recording. Please ensure you have granted camera and microphone permissions.');
+                    console.error('Recording error:', err);
                 }
             } else {
+                // Stop recording
                 state.mediaRecorder.stop();
-                state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 state.recording = false;
                 button.textContent = 'Start Recording';
                 button.classList.remove('recording');
+                
+                // Stop timer
+                clearInterval(state.recordingTimer);
+                timer.style.display = 'none';
             }
+        }
+        
+        function updateRecordingTimer() {
+            const elapsed = Math.floor((Date.now() - state.recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('recording-timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function reRecord() {
+            // Reset to allow re-recording
+            document.getElementById('video-preview').style.display = 'block';
+            document.getElementById('recorded-video').style.display = 'none';
+            document.getElementById('record-button').style.display = 'block';
+            document.getElementById('record-button').textContent = 'Start Recording';
+            document.getElementById('re-record-button').style.display = 'none';
+            document.getElementById('save-video-button').style.display = 'none';
+            document.getElementById('recording-status').textContent = 'Ready to record';
+            document.getElementById('recording-status').className = 'recording-status ready';
+            
+            // Clean up previous recording
+            if (state.currentRecordingURL) {
+                URL.revokeObjectURL(state.currentRecordingURL);
+            }
+        }
+        
+        function saveAndContinue() {
+            // Save current recording
+            state.imageRecordings.push({
+                imageNumber: state.currentImageIndex + 1,
+                blob: state.currentRecording,
+                url: state.currentRecordingURL,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Send to Google Sheets
+            sendToGoogleSheets({
+                action: 'video_recorded',
+                sessionCode: state.sessionCode,
+                participantID: state.participantID,
+                imageNumber: state.currentImageIndex + 1,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Check if there's another image
+            if (state.currentImageIndex === 0) {
+                // Move to second image
+                state.currentImageIndex = 1;
+                updateCurrentImage();
+                
+                // Update button text for last image
+                document.getElementById('save-video-button').textContent = 'Save & Complete Task';
+            } else {
+                // Both images done - complete the task
+                cleanupVideoRecording();
+                completeCurrentTask();
+            }
+        }
+        
+        function cleanupVideoRecording() {
+            // Stop all streams
+            if (state.currentStream) {
+                state.currentStream.getTracks().forEach(track => track.stop());
+                state.currentStream = null;
+            }
+            
+            // Clear timers
+            if (state.recordingTimer) {
+                clearInterval(state.recordingTimer);
+                state.recordingTimer = null;
+            }
+            
+            // Store recording data in task data
+            state.taskData.ID.recordings = state.imageRecordings;
+            state.taskData.ID.recordingComplete = true;
         }
         
         function handleMRTUpload(event) {
@@ -1220,8 +1694,16 @@
                     state.taskData.MRT.fileContent = e.target.result;
                     state.taskData.MRT.fileName = file.name;
                     
-                    document.getElementById('mrt-continue').style.display = 'block';
-                    alert('File uploaded successfully!');
+                    // Show success message
+                    const uploadStatus = document.getElementById('upload-status');
+                    uploadStatus.style.display = 'block';
+                    uploadStatus.style.background = '#d4edda';
+                    uploadStatus.style.color = '#155724';
+                    uploadStatus.innerHTML = `
+                        ✅ <strong>File uploaded successfully!</strong><br>
+                        File name: ${file.name}<br>
+                        Thank you for uploading your data!
+                    `;
                     
                     sendToGoogleSheets({
                         action: 'mrt_uploaded',
@@ -1232,6 +1714,8 @@
                     });
                 };
                 reader.readAsText(file);
+            } else {
+                alert('Please upload a CSV file from the MRT task.');
             }
         }
         
@@ -1360,5 +1844,4 @@
         }
     </script>
 </body>
-
 </html>
