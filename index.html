@@ -183,14 +183,28 @@
           This study can be completed at your own pace. You can pause and resume at any time using your unique code.
         </p>
 
-        <div style="background:#e8f0fe; border:1px solid #c6d2ff; padding:12px 14px; border-radius:8px; margin:16px 0;">
-          <strong>⚡ Recommended EEG visit (30-45 minutes):</strong>
-          If you can visit Washington, DC, please add a short EEG session after the online tasks.
-          Same total pay, the visit adds scientific value.
+        <!-- Local EEG reminder (nudges DC/MD/VA residents) -->
+        <div style="background:#e8f5e9; border:1px solid #a5d6a7; padding:12px 14px; border-radius:8px; margin:16px 0;">
+          <strong>📍 Live in DC, Maryland, or Northern Virginia?</strong>
+          <p style="margin:8px 0 0; color:#1b5e20;">
+            Add a quick in-lab EEG visit for <b>additional compensation</b>. It’s non-invasive and takes about 30–45 minutes.
+            Completing the EEG portion improves the scientific value, and we really appreciate it.
+          </p>
+          <ul style="margin:10px 0 0 18px; color:#2e7d32; text-align:left;">
+            <li>Flexible scheduling on the Gallaudet campus in DC</li>
+            <li>ASL or spoken English; captions available</li>
+            <li>Do the online tasks first, then add the EEG visit</li>
+          </ul>
+          <div style="margin-top:10px;">
+            <button id="btn-eeg-local" type="button" class="button button-success" onclick="contactEEGLocal()"
+              aria-label="I am local, tell me more about the EEG visit">
+              I am local, tell me more
+            </button>
+          </div>
         </div>
 
         <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #4caf50;">
-          <strong style="color: #2e7d32;">📅 Zoom task (15-20 minutes, required)</strong>
+          <strong style="color: #2e7d32;">Zoom task (15-20 minutes, required)</strong>
           <p style="margin: 10px 0; color: #333;">
             One short task must be done live on Zoom and cannot be completed asynchronously.
             Please use the Calendly link inside this portal. <b>You can start the other online tasks now</b>
@@ -660,7 +674,8 @@
         ['btn-saved-code-continue', startConsent],
         ['consent-btn', proceedWithConsent],
         ['continue-btn', continueToCurrentTask],
-        ['btn-save-exit', pauseAndSave]
+        ['btn-save-exit', pauseAndSave],
+        ['btn-eeg-local', contactEEGLocal] // newly added
       ];
       for (const [id, fn] of map) {
         const el = document.getElementById(id);
@@ -840,7 +855,7 @@
       }
       if (c2) {
         c2.className = 'consent-item ' + (state.videoConsentDeclined ? 'declined' : (state.consentCompleted.consent2 ? 'complete' : 'pending'));
-        const s = c2.querySelector('.status'); if (s) s.textContent = state.videoConsentDeclined ? '🚫' : (state.consentCompleted.consent2 ? '✅' : '⭕');
+        const s = c2.querySelector('.status'); if (s) s.textContent = state.videoConsentDeclined ? '🚫' : (state.consentCompleted.consent2 ? '✅' : '⭕';
         const p = c2.querySelector('p'); if (p) p.textContent = state.videoConsentDeclined ? 'Video consent declined' : 'Consent for video recording';
       }
 
@@ -1102,6 +1117,48 @@
     window.completeCurrentTask = completeCurrentTask;
     window.declineVideoConsent = declineVideoConsent;
     window.skipTask = skipTask;
+
+    // New: Local EEG contact helper (prefills email with session code)
+    function contactEEGLocal() {
+      // Encourage creating a session so we can include their code
+      if (!state.sessionCode) {
+        const go = confirm('We can include your session code in the email. Create your session now?');
+        if (go && typeof showNewParticipant === 'function') {
+          showNewParticipant();
+          return;
+        }
+      }
+      const code = state.sessionCode || 'TBD';
+      const emailInput = document.getElementById('email');
+      const participantEmail = emailInput && emailInput.value ? `Participant email: ${emailInput.value}\n` : '';
+      const subject = `Local EEG add-on interest - Session ${code}`;
+      const body = [
+        'Hello Action Brain Lab,',
+        '',
+        'I live in DC/MD/VA and would like to add the EEG visit for additional compensation.',
+        '',
+        `Session code: ${code}`,
+        participantEmail ? participantEmail.trim() : '',
+        'Preferred days or times:',
+        'Accessibility or communication preferences: ASL, spoken English, captions',
+        '',
+        'Thank you.'
+      ].join('\n');
+
+      // Log click (optional analytics)
+      try {
+        sendToGoogleSheets({
+          action: 'eeg_interest_clicked',
+          sessionCode: state.sessionCode || 'none',
+          participantID: state.participantID || 'none',
+          timestamp: new Date().toISOString()
+        });
+      } catch (_) {}
+
+      const mailto = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    }
+    window.contactEEGLocal = contactEEGLocal;
 
     function openExternalTask(taskCode) {
       const task = TASKS[taskCode];
@@ -1463,4 +1520,3 @@
   </script>
 </body>
 </html>
-
