@@ -675,8 +675,11 @@
         ['consent-btn', proceedWithConsent],
         ['continue-btn', continueToCurrentTask],
         ['btn-save-exit', pauseAndSave],
-        ['btn-eeg-local', contactEEGLocal]
+        ['btn-eeg-local', contactEEGLocal],
+        ['btn-resume-session', resumeSession],       // <-- add
+        ['decline-video-btn', declineVideoConsent],  // <-- add (exists in the DOM)
       ];
+
       for (const [id, fn] of map) {
         const el = document.getElementById(id);
         if (el && typeof fn === 'function') el.addEventListener('click', fn);
@@ -974,88 +977,129 @@
     }
 
     function displayTask(taskCode, task) {
-      const taskDisplay = document.getElementById('task-display');
-      const taskTitle = document.getElementById('task-title');
-      const taskInstructions = document.getElementById('task-instructions');
-      const taskContent = document.getElementById('task-content');
+  const taskDisplay = document.getElementById('task-display');
+  const taskTitle = document.getElementById('task-title');
+  const taskInstructions = document.getElementById('task-instructions');
+  const taskContent = document.getElementById('task-content');
 
-      const mrtUp = document.getElementById('mrt-upload');
-      const recSec = document.getElementById('recording-section');
-      const genCont = document.getElementById('general-continue');
+  const mrtUp = document.getElementById('mrt-upload');
+  const recSec = document.getElementById('recording-section');
+  const genCont = document.getElementById('general-continue');
 
-      if (mrtUp) mrtUp.style.display = 'none';
-      if (recSec) recSec.style.display = 'none';
-      if (genCont) genCont.style.display = 'none';
+  if (mrtUp) mrtUp.style.display = 'none';
+  if (recSec) recSec.style.display = 'none';
+  if (genCont) genCont.style.display = 'none';
 
-      if (taskDisplay) taskDisplay.style.display = 'block';
-      if (taskTitle) { taskTitle.textContent = task.name; taskTitle.focus(); }
-      if (taskInstructions) taskInstructions.innerHTML = task.instructions || '';
+  if (taskDisplay) taskDisplay.style.display = 'block';
+  if (taskTitle) { taskTitle.textContent = task.name; taskTitle.focus(); }
+  if (taskInstructions) taskInstructions.innerHTML = task.instructions || '';
+  if (taskContent) taskContent.innerHTML = '';
 
-      if (task.type === 'external' || task.type === 'consent') {
-        let buttonsHTML = `
-          <button class="task-button" type="button" onclick="openExternalTask('${taskCode}')">
-            ${taskCode === 'ZOOM' ? 'Schedule Zoom Task (15-20 min)' : task.type === 'consent' ? 'Open Consent Form' : 'Open Task'}
-          </button>
-        `;
-        if (taskCode === 'ASLCT') {
-          buttonsHTML += `
-            <button class="button button-secondary" type="button" onclick="skipASLCT()" style="margin-top: 20px; display: block; margin-left: auto; margin-right: auto;">
-              Skip This Task - I Do Not Know ASL
-            </button>
-          `;
-        }
-        if (taskCode === 'CONSENT2' && !state.videoConsentDeclined && !state.consentCompleted.consent2) {
-          buttonsHTML += `
-            <div style="margin-top:10px; text-align:center;">
-              <button class="button button-secondary" type="button" onclick="declineVideoConsent()">I do not consent to video, continue</button>
+  // helper to add a button
+  const addBtn = (text, className, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = className || 'button';
+    b.textContent = text;
+    b.addEventListener('click', onClick);
+    taskContent.appendChild(b);
+    return b;
+  };
+
+  // helper: small note under buttons
+  const addNote = (html) => {
+    const p = document.createElement('p');
+    p.style.marginTop = '15px';
+    p.style.color = '#666';
+    p.innerHTML = html;
+    taskContent.appendChild(p);
+  };
+
+  if (task.type === 'external' || task.type === 'consent') {
+    // Open task / consent (no inline onclick)
+    addBtn(
+      taskCode === 'ZOOM'
+        ? 'Schedule Zoom Task (15-20 min)'
+        : (task.type === 'consent' ? 'Open Consent Form' : 'Open Task'),
+      'task-button',
+      () => openExternalTask(taskCode)
+    );
+
+    // Optional ASLCT skip button
+    if (taskCode === 'ASLCT') {
+      const skip = addBtn('Skip This Task - I Do Not Know ASL', 'button button-secondary', skipASLCT);
+      skip.style.marginTop = '20px';
+      skip.style.display = 'block';
+      skip.style.marginLeft = 'auto';
+      skip.style.marginRight = 'auto';
+    }
+
+    // Video consent decline option
+    if (taskCode === 'CONSENT2' && !state.videoConsentDeclined && !state.consentCompleted.consent2) {
+      const wrap = document.createElement('div');
+      wrap.style.marginTop = '10px';
+      wrap.style.textAlign = 'center';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'button button-secondary';
+      btn.textContent = 'I do not consent to video, continue';
+      btn.addEventListener('click', declineVideoConsent);
+      wrap.appendChild(btn);
+      taskContent.appendChild(wrap);
+    }
+
+    // Info note
+    addNote(
+      taskCode === 'ZOOM'
+        ? 'Calendly will open in a new tab. Schedule the Zoom task, then return here.'
+        : 'The task will open in a new tab. Return here when complete.'
+    );
+
+    // Upload or continue
+    if (task.requiresUpload) {
+      setTimeout(() => {
+        const up = document.getElementById('mrt-upload');
+        if (up) up.style.display = 'block';
+        const existingButton = document.getElementById('mrt-continue');
+        if (existingButton) { existingButton.textContent = 'Continue to Next Task'; existingButton.style.display = 'block'; }
+        const uploadStatus = document.getElementById('upload-status');
+        if (uploadStatus && !uploadStatus.classList.contains('success')) {
+          uploadStatus.innerHTML = `
+            <div style="background:#e3f2fd; padding:10px; border-radius:5px;">
+              📌 <strong>Optional:</strong> You can upload your CSV file now or email it later.
+              <br>Click "Continue to Next Task" when ready.
             </div>
           `;
+          uploadStatus.style.display = 'block';
         }
-        if (taskContent) taskContent.innerHTML = buttonsHTML + `
-          <p style="margin-top: 15px; color: #666;">
-            ${taskCode === 'ZOOM'
-              ? 'Calendly will open in a new tab. Schedule the Zoom task, then return here.'
-              : 'The task will open in a new tab. Return here when complete.'}
-          </p>
-        `;
-
-        if (task.requiresUpload) {
-          setTimeout(() => {
-            const up = document.getElementById('mrt-upload');
-            if (up) up.style.display = 'block';
-            const existingButton = document.getElementById('mrt-continue');
-            if (existingButton) { existingButton.textContent = 'Continue to Next Task'; existingButton.style.display = 'block'; }
-            const uploadStatus = document.getElementById('upload-status');
-            if (uploadStatus && !uploadStatus.classList.contains('success')) {
-              uploadStatus.innerHTML = `
-                <div style="background: #e3f2fd; padding: 10px; border-radius: 5px;">
-                  📌 <strong>Optional:</strong> You can upload your CSV file now or email it later.
-                  <br>Click "Continue to Next Task" when ready.
-                </div>
-              `;
-              uploadStatus.style.display = 'block';
-            }
-          }, 300);
-        } else {
-          const continueBtn = document.getElementById('general-continue');
-          if (continueBtn) {
-            continueBtn.textContent = taskCode === 'ZOOM' ? "I have scheduled my meeting, continue" : "I have completed this task, continue";
-            continueBtn.style.display = 'block';
-          }
-        }
-      } else if (task.type === 'recording') {
-        if (taskContent) taskContent.innerHTML = '';
-        showRecordingTask();
-      }
-
-      if (task.canSkip && taskContent) {
-        const skipWrap = document.createElement('div');
-        skipWrap.style.textAlign = 'center';
-        skipWrap.style.marginTop = '10px';
-        skipWrap.innerHTML = `<button class="button button-secondary" type="button" onclick="skipTask('${taskCode}')">Skip this task</button>`;
-        taskContent.appendChild(skipWrap);
+      }, 300);
+    } else {
+      const continueBtn = document.getElementById('general-continue');
+      if (continueBtn) {
+        continueBtn.textContent = taskCode === 'ZOOM'
+          ? 'I have scheduled my meeting, continue'
+          : 'I have completed this task, continue';
+        continueBtn.style.display = 'block';
       }
     }
+  } else if (task.type === 'recording') {
+    showRecordingTask();
+  }
+
+  if (task.canSkip && taskContent) {
+    const skipWrap = document.createElement('div');
+    skipWrap.style.textAlign = 'center';
+    skipWrap.style.marginTop = '10px';
+    const skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'button button-secondary';
+    skipBtn.textContent = 'Skip this task';
+    skipBtn.addEventListener('click', () => skipTask(taskCode));
+    skipWrap.appendChild(skipBtn);
+    taskContent.appendChild(skipWrap);
+  }
+}
+
 
     function setNextTaskIndex() {
       const uncompleted = state.sequence.filter(code => !state.completedTasks.includes(code));
@@ -1520,3 +1564,4 @@
   </script>
 </body>
 </html>
+
