@@ -187,8 +187,8 @@
         <div style="background:#e8f5e9; border:1px solid #a5d6a7; padding:12px 14px; border-radius:8px; margin:16px 0;">
           <strong>📍 Live in DC, Maryland, or Northern Virginia?</strong>
           <p style="margin:8px 0 0; color:#1b5e20;">
-            Add a quick in-lab EEG visit for <b>additional compensation</b>. It’s non-invasive and takes about 30–45 minutes.
-            Completing the EEG portion improves the scientific value, and we really appreciate it.
+            Add a quick in-lab EEG visit for <b>additional compensation</b>. It is non-invasive and takes about 30-45 minutes.
+            Choosing the EEG portion boosts the scientific value, and we really appreciate it.
           </p>
           <ul style="margin:10px 0 0 18px; color:#2e7d32; text-align:left;">
             <li>Flexible scheduling on the Gallaudet campus in DC</li>
@@ -204,7 +204,7 @@
         </div>
 
         <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #4caf50;">
-          <strong style="color: #2e7d32;">Zoom task (15-20 minutes, required)</strong>
+          <strong style="color: #2e7d32;">📅 Zoom task (15-20 minutes, required)</strong>
           <p style="margin: 10px 0; color: #333;">
             One short task must be done live on Zoom and cannot be completed asynchronously.
             Please use the Calendly link inside this portal. <b>You can start the other online tasks now</b>
@@ -675,7 +675,7 @@
         ['consent-btn', proceedWithConsent],
         ['continue-btn', continueToCurrentTask],
         ['btn-save-exit', pauseAndSave],
-        ['btn-eeg-local', contactEEGLocal] // newly added
+        ['btn-eeg-local', contactEEGLocal]
       ];
       for (const [id, fn] of map) {
         const el = document.getElementById(id);
@@ -855,7 +855,7 @@
       }
       if (c2) {
         c2.className = 'consent-item ' + (state.videoConsentDeclined ? 'declined' : (state.consentCompleted.consent2 ? 'complete' : 'pending'));
-        const s = c2.querySelector('.status'); if (s) s.textContent = state.videoConsentDeclined ? '🚫' : (state.consentCompleted.consent2 ? '✅' : '⭕';
+        const s = c2.querySelector('.status'); if (s) s.textContent = state.videoConsentDeclined ? '🚫' : (state.consentCompleted.consent2 ? '✅' : '⭕');
         const p = c2.querySelector('p'); if (p) p.textContent = state.videoConsentDeclined ? 'Video consent declined' : 'Consent for video recording';
       }
 
