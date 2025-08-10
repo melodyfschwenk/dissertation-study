@@ -2,19 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spatial Cognition & Sign Language Research Study</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --info: #2196f3;
+      --gray-light: #f8f9fa;
+      --gray-border: #e0e0e0;
+      --text-dark: #333;
+      --text-muted: #666;
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       min-height: 100vh;
       padding: 20px;
+      line-height: 1.6;
     }
+    
     .container {
       max-width: 900px;
       margin: 0 auto;
@@ -23,147 +35,530 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       overflow: hidden;
     }
+    
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       color: white;
       padding: 40px;
       text-align: center;
     }
+    
     .header h1 { font-size: 32px; margin-bottom: 10px; }
     .header p { font-size: 18px; opacity: 0.95; }
+    
     .content { padding: 40px; }
-
-    .welcome-screen { text-align: center; padding: 30px; }
-    .welcome-screen h2 { color: #333; margin-bottom: 20px; }
-    .option-card {
-      background: #f8f9fa; border-radius: 10px; padding: 30px; margin: 20px 0;
-      border: 2px solid #e0e0e0; transition: all 0.3s;
+    
+    /* Screen containers */
+    .screen { display: none; animation: fadeIn 0.3s ease-in; }
+    .screen.active { display: block; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .option-card:hover { border-color: #667eea; box-shadow: 0 5px 15px rgba(102,126,234,0.2); }
-    .option-card h3 { color: #333; margin-bottom: 15px; }
-    .option-card p { color: #666; margin-bottom: 20px; }
-
-    .participant-setup, .resume-section, .progress-overview,
-    .session-info, .task-display, .upload-section, .recording-section { display: none; }
-
-    .participant-setup, .resume-section, .progress-overview,
-    .session-info, .task-display, .upload-section, .recording-section {
-      background: #f8f9fa; padding: 30px; border-radius: 10px; margin-bottom: 30px;
+    
+    /* Cards and panels */
+    .card {
+      background: var(--gray-light);
+      border-radius: 10px;
+      padding: 30px;
+      margin: 20px 0;
+      border: 2px solid var(--gray-border);
+      transition: all 0.3s;
     }
-
-    .participant-setup h2, .resume-section h2, .task-display h2 { color: #333; margin-bottom: 20px; }
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
+    
+    .card:hover {
+      border-color: #667eea;
+      box-shadow: 0 5px 15px rgba(102,126,234,0.2);
+    }
+    
+    .info-banner {
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid;
+    }
+    
+    .info-banner.success {
+      background: #e8f5e9;
+      border-left-color: var(--success);
+      color: #1b5e20;
+    }
+    
+    .info-banner.warning {
+      background: #fff3cd;
+      border-left-color: var(--warning);
+      color: #856404;
+    }
+    
+    .info-banner.info {
+      background: #e3f2fd;
+      border-left-color: var(--info);
+      color: #0d47a1;
+    }
+    
+    /* Forms */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #555;
+    }
+    
     .form-group input {
-      width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--gray-border);
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
     }
-    .form-group input:focus { outline: none; border-color: #667eea; }
-
-    .resume-code-display {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
     }
-    .resume-code-display .code { font-size: 32px; font-weight: bold; letter-spacing: 2px; margin: 10px 0; font-family: monospace; }
-    .save-instructions { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 8px; margin: 20px 0; }
-
-    .consent-status {
-      background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: none;
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
     }
-    .consent-item { display: flex; align-items: center; padding: 10px 0; }
-    .consent-item .status { margin-right: 15px; font-size: 24px; }
-    .consent-item.complete .status { color: #4caf50; }
-    .consent-item.pending .status { color: #ff9800; }
-    .consent-item.declined .status { color: #f44336; }
-
+    
+    /* Buttons */
     .button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold;
-      cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102,126,234,0.4); margin: 10px;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+      margin: 5px;
+      display: inline-block;
     }
-    .button:hover:not(:disabled){ transform: translateY(-2px); box-shadow: 0 7px 20px rgba(102,126,234,0.5); }
-    .button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .button-secondary { background: #6c757d; }
-    .button-success { background: #28a745; }
-
-    .progress-overview h3 { color: #333; margin-bottom: 20px; }
-    .task-list { list-style: none; }
-    .task-list li {
-      padding: 15px; margin: 10px 0; background: white; border-radius: 8px; border-left: 4px solid #e0e0e0;
-      display: flex; align-items: center; justify-content: space-between;
+    
+    .button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 20px rgba(102,126,234,0.5);
     }
-    .task-list li.completed { border-left-color: #4caf50; background: #f1f8f4; }
-    .task-list li.current { border-left-color: #ffc107; background: #fff3cd; font-weight: bold; }
-    .task-list li.locked { opacity: 0.6; }
-    .task-list .task-status { font-size: 20px; margin-left: 10px; }
-
-    .session-info { background: #e8f4f8; border-radius: 10px; padding: 20px; margin-bottom: 20px; display: none; }
-    .session-info h4 { color: #1565c0; margin-bottom: 10px; }
-    .session-detail { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #d1e7f3; }
-    .session-detail:last-child { border-bottom: none; }
-
-    .task-instructions { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-    .task-button { background: #4caf50; color: white; border: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; transition: background 0.3s; }
-    .task-button:hover { background: #45a049; }
-
-    .pause-button {
-      background: #ff9800; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 14px; font-weight: bold;
-      cursor: pointer; position: fixed; top: 20px; right: 20px; z-index: 1000; display: none;
+    
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
-    .pause-button:hover { background: #f57c00; }
-
-    .file-upload {
-      border: 2px dashed #667eea; border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s;
+    
+    .button.secondary {
+      background: #6c757d;
     }
-    .file-upload:hover { background: #f0f4ff; }
-    .file-upload.drag-over { background: #e8ecff; border-color: #4a5fc4; }
-    .file-upload input[type="file"] { display: none; }
-
-    .video-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0; align-items: start; }
-    .image-panel { text-align: center; }
-    .image-panel img {
-      width: 100%; max-width: 500px; height: auto; border-radius: 10px; border: 2px solid #e0e0e0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    
+    .button.success {
+      background: var(--success);
     }
-    .video-panel { text-align: center; }
+    
+    .button.danger {
+      background: var(--danger);
+    }
+    
+    .button.outline {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    
+    .button.outline:hover {
+      background: #667eea;
+      color: white;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    /* Session info widget */
+    .session-widget {
+      background: linear-gradient(135deg, #667eea20, #764ba220);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+      display: none;
+    }
+    
+    .session-widget.active { display: block; }
+    
+    .session-widget h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .session-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .session-detail {
+      background: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+    }
+    
+    .session-detail label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .session-detail .value {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text-dark);
+      margin-top: 3px;
+    }
+    
+    /* Resume code display */
+    .code-display {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .code-display .code {
+      font-size: 36px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      margin: 15px 0;
+      font-family: monospace;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Consent forms section */
+    .consent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .consent-card {
+      background: white;
+      border: 2px solid var(--gray-border);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s;
+      position: relative;
+    }
+    
+    .consent-card.completed {
+      border-color: var(--success);
+      background: #f1f8f4;
+    }
+    
+    .consent-card.declined {
+      border-color: var(--warning);
+      background: #fff9e6;
+    }
+    
+    .consent-card .status-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    
+    .consent-card h4 {
+      color: var(--text-dark);
+      margin-bottom: 10px;
+    }
+    
+    .consent-card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    
+    /* Task list */
+    .task-list {
+      list-style: none;
+      margin: 20px 0;
+    }
+    
+    .task-item {
+      padding: 20px;
+      margin: 10px 0;
+      background: white;
+      border-radius: 10px;
+      border-left: 4px solid var(--gray-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s;
+    }
+    
+    .task-item:hover {
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .task-item.completed {
+      border-left-color: var(--success);
+      background: #f9fdf9;
+    }
+    
+    .task-item.current {
+      border-left-color: var(--warning);
+      background: #fffbf5;
+      font-weight: bold;
+      box-shadow: 0 3px 10px rgba(255,152,0,0.2);
+    }
+    
+    .task-item.locked {
+      opacity: 0.6;
+    }
+    
+    .task-info {
+      flex: 1;
+    }
+    
+    .task-name {
+      font-size: 16px;
+      color: var(--text-dark);
+      margin-bottom: 5px;
+    }
+    
+    .task-description {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    
+    .task-status {
+      font-size: 24px;
+      margin-left: 20px;
+    }
+    
+    /* Progress bar */
+    .progress-bar {
+      background: var(--gray-light);
+      height: 30px;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 20px 0;
+      position: relative;
+    }
+    
+    .progress-fill {
+      background: var(--primary-gradient);
+      height: 100%;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    /* Video recording section */
+    .video-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin: 20px 0;
+    }
+    
+    .video-panel {
+      text-align: center;
+    }
+    
+    .video-panel h3 {
+      color: var(--text-dark);
+      margin-bottom: 15px;
+    }
+    
+    #video-preview, #recorded-video {
+      width: 100%;
+      max-width: 500px;
+      height: 375px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      background: #000;
+    }
+    
     #video-preview {
-      width: 100%; max-width: 500px; height: 375px; background: #000; border-radius: 10px; border: 2px solid #4caf50;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: scaleX(-1); display: none;
+      border: 2px solid var(--success);
+      transform: scaleX(-1);
     }
+    
     #recorded-video {
-      width: 100%; max-width: 500px; height: 375px; border-radius: 10px; border: 2px solid #2196f3; display: none;
+      border: 2px solid var(--info);
     }
-    .recording-controls { margin-top: 20px; padding: 20px; background: white; border-radius: 10px; }
-    .recording-status { margin: 15px 0; font-size: 18px; font-weight: bold; }
-    .recording-status.ready { color: #666; }
-    .recording-status.recording { color: #f44336; animation: pulse 1.5s infinite; }
-    .recording-status.recorded { color: #4caf50; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-    .record-button { background: #f44336; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; transition: all 0.3s; }
-    .record-button:hover { transform: scale(1.05); }
-    .record-button.recording { background: #ff9800; animation: recordPulse 1.5s infinite; }
-    .record-button.re-record { background: #9c27b0; }
-    .save-button { background: #4caf50; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; display: none; }
-    .save-button:hover { background: #45a049; }
-    .image-counter { background: #2196f3; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; margin-bottom: 20px; font-weight: bold; }
-    @keyframes recordPulse { 0%{box-shadow:0 0 0 0 rgba(255,152,0,0.7);} 70%{box-shadow:0 0 0 10px rgba(255,152,0,0);} 100%{box-shadow:0 0 0 0 rgba(255,152,0,0);} }
-
+    
+    .recording-controls {
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--gray-light);
+      border-radius: 10px;
+    }
+    
+    .recording-status {
+      margin: 15px 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .recording-status.ready { color: var(--text-muted); }
+    .recording-status.recording { 
+      color: var(--danger);
+      animation: pulse 1.5s infinite;
+    }
+    .recording-status.recorded { color: var(--success); }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* File upload */
+    .file-upload {
+      border: 2px dashed #667eea;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: white;
+    }
+    
+    .file-upload:hover {
+      background: #f0f4ff;
+      border-color: #4a5fc4;
+    }
+    
+    .file-upload.drag-over {
+      background: #e8ecff;
+      border-color: #4a5fc4;
+    }
+    
+    .file-upload input[type="file"] {
+      display: none;
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background-color: white;
+      padding: 40px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      animation: slideUp 0.3s;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Footer */
+    .footer {
+      background: var(--gray-light);
+      padding: 30px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    /* Floating action button */
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 1000;
+      background: var(--warning);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: none;
+      transition: all 0.3s;
+    }
+    
+    .fab.active { display: block; }
+    .fab:hover { transform: scale(1.05); }
+    
+    /* Responsive */
     @media (max-width: 768px) {
-      .video-container { grid-template-columns: 1fr; }
-      .container { border-radius: 0; margin: 0; }
+      .container {
+        border-radius: 0;
+        margin: 0;
+      }
+      
+      .form-row,
+      .consent-grid,
+      .video-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .session-details {
+        grid-template-columns: 1fr;
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+      
+      .button {
+        width: 100%;
+      }
     }
-
-    .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: white; margin: 10% auto; padding: 40px; border-radius: 15px; width: 90%; max-width: 500px; text-align: center; }
-    .modal-content h3 { color: #333; margin-bottom: 20px; }
-    .modal-content p { color: #666; margin-bottom: 30px; }
-
-    .completion-screen { text-align: center; padding: 50px; }
-    .completion-screen h2 { color: #4caf50; font-size: 36px; margin-bottom: 20px; }
-
-    .footer { background: #f5f5f5; padding: 30px; text-align: center; color: #666; }
-    .banner { background: #fff3cd; border: 1px solid #ffe08a; padding: 12px 14px; border-radius: 8px; margin-bottom: 15px; }
-
+    
+    /* Accessibility */
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+    }
+    
     @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
@@ -175,268 +570,302 @@
     </div>
 
     <div class="content">
-      <div id="live-status" role="status" aria-live="polite" style="position:absolute;left:-9999px;"></div>
+      <div id="live-status" role="status" aria-live="polite" class="sr-only"></div>
 
-      <div class="welcome-screen" id="welcome-screen">
-        <h2>Welcome to Our Research Study</h2>
-        <p style="margin-bottom: 20px; color: #666;">
-          This study can be completed at your own pace. You can pause and resume at any time using your unique code.
-        </p>
-
-        <!-- Local EEG reminder (nudges DC/MD/VA residents) -->
-        <div style="background:#e8f5e9; border:1px solid #a5d6a7; padding:12px 14px; border-radius:8px; margin:16px 0;">
-          <strong>📍 Live in DC, Maryland, or Northern Virginia?</strong>
-          <p style="margin:8px 0 0; color:#1b5e20;">
-            Add a quick in-lab EEG visit for <b>additional compensation</b>. It is non-invasive and takes about 30-45 minutes.
-            Choosing the EEG portion boosts the scientific value, and we really appreciate it.
-          </p>
-          <ul style="margin:10px 0 0 18px; color:#2e7d32; text-align:left;">
-            <li>Flexible scheduling on the Gallaudet campus in DC</li>
-            <li>ASL or spoken English; captions available</li>
-            <li>Do the online tasks first, then add the EEG visit</li>
-          </ul>
-          <div style="margin-top:10px;">
-            <button id="btn-eeg-local" type="button" class="button button-success" onclick="contactEEGLocal()"
-              aria-label="I am local, tell me more about the EEG visit">
-              I am local, tell me more
-            </button>
+      <!-- Session Widget (shows throughout) -->
+      <div class="session-widget" id="session-widget">
+        <h3>📊 Your Session</h3>
+        <div class="session-details">
+          <div class="session-detail">
+            <label>Resume Code</label>
+            <div class="value" id="widget-code">-</div>
           </div>
-        </div>
-
-        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #4caf50;">
-          <strong style="color: #2e7d32;">📅 Zoom task (15-20 minutes, required)</strong>
-          <p style="margin: 10px 0; color: #333;">
-            One short task must be done live on Zoom and cannot be completed asynchronously.
-            Please use the Calendly link inside this portal. <b>You can start the other online tasks now</b>
-            and choose a Zoom time that works for you.
-          </p>
-          <p style="margin: 6px 0 0; color: #333;">
-            We can use <b>ASL</b> or <b>spoken English</b>, Zoom captions are available.
-          </p>
-          <p style="margin: 6px 0 0; color:#333; font-size: 14px;">
-            Times are shown in your local time zone.
-          </p>
-        </div>
-
-        <div id="device-note" style="background:#fff3cd;border:1px solid #ffe08a;padding:12px 16px;border-radius:8px;margin:20px 0;">
-          <strong>📱 Kindly note:</strong>
-          Please use a <strong>computer</strong> if possible. Two tasks
-          (<em>Virtual Campus Navigation</em> and <em>Spatial Navigation</em>) will not work on a phone or iPad
-          unless a mouse and keyboard are connected. We recommend using <strong>Chrome</strong> or <strong>Firefox</strong>.
-        </div>
-
-        <div class="option-card">
-          <h3>🆕 New Participant</h3>
-          <p>Start a new study session. You will receive a unique code to save your progress.</p>
-          <button class="button" id="btn-start-new" type="button" onclick="showNewParticipant()">Start New Session (get your resume code)</button>
-        </div>
-
-        <div class="option-card">
-          <h3>↩️ Returning Participant</h3>
-          <p>Continue your study from where you left off using your resume code.</p>
-          <button class="button button-secondary" id="btn-returning" type="button" onclick="showReturningParticipant()">Resume with Code</button>
+          <div class="session-detail">
+            <label>Progress</label>
+            <div class="value" id="widget-progress">0/9</div>
+          </div>
+          <div class="session-detail">
+            <label>Time Spent</label>
+            <div class="value" id="widget-time">0 min</div>
+          </div>
+          <div class="session-detail">
+            <label>Current Task</label>
+            <div class="value" id="widget-current">-</div>
+          </div>
         </div>
       </div>
 
-      <div class="participant-setup" id="new-participant">
-        <h2>New Participant Registration</h2>
-        <p style="margin-bottom: 20px; color: #666;">Please enter your initials to create your unique session.</p>
+      <!-- Welcome Screen -->
+      <div class="screen active" id="welcome-screen">
+        <h2 style="text-align: center; margin-bottom: 30px;">Welcome to Our Research Study</h2>
+        
+        <div class="info-banner info">
+          <strong>📅 Important: Zoom Task Required</strong>
+          <p style="margin-top: 10px;">One task (15-20 minutes) must be completed live on Zoom. You can start other tasks now and schedule the Zoom meeting at your convenience. We support ASL or spoken English with captions.</p>
+        </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="info-banner success" id="eeg-banner">
+          <strong>📍 Live in DC, Maryland, or Northern Virginia?</strong>
+          <p style="margin-top: 10px;">Add an optional in-lab EEG visit for <strong>additional compensation!</strong> Non-invasive, 30-45 minutes at Gallaudet campus.</p>
+          <ul style="margin: 10px 0 0 20px; text-align: left;">
+            <li>Flexible scheduling at your convenience</li>
+            <li>ASL or spoken English with captions available</li>
+            <li>Complete online tasks first, then add the EEG visit</li>
+            <li>Boosts the scientific value of the research</li>
+          </ul>
+          <button class="button success" onclick="contactEEG()" style="margin-top: 10px;">I am local, tell me more</button>
+        </div>
+
+        <div class="info-banner warning">
+          <strong>📱 Device Recommendation</strong>
+          <p style="margin-top: 10px;">Please use a computer if possible. Some tasks require keyboard/mouse and work best in Chrome or Firefox.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
+          <div class="card">
+            <h3>🆕 New Participant</h3>
+            <p>Start a new study session and receive your unique resume code.</p>
+            <button class="button" onclick="showScreen('new-participant')">Start New Session</button>
+          </div>
+
+          <div class="card">
+            <h3>↩️ Returning Participant</h3>
+            <p>Continue from where you left off using your resume code.</p>
+            <button class="button secondary" onclick="showScreen('returning-participant')">Resume Session</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- New Participant Screen -->
+      <div class="screen" id="new-participant">
+        <h2>New Participant Registration</h2>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Create your unique session to track your progress</p>
+
+        <div class="form-row">
           <div class="form-group">
-            <label for="first-initial">First Name Initial:</label>
+            <label for="first-initial">First Name Initial</label>
             <input type="text" id="first-initial" maxlength="1" placeholder="J" />
           </div>
           <div class="form-group">
-            <label for="last-initial">Last Name Initial:</label>
+            <label for="last-initial">Last Name Initial</label>
             <input type="text" id="last-initial" maxlength="1" placeholder="D" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="email">Email (optional, for a reminder if you pause):</label>
+          <label for="email">Email (optional - for reminders if you pause)</label>
           <input type="email" id="email" placeholder="your.email@example.com" />
         </div>
 
-        <button class="button" id="create-session-btn" type="button" onclick="createNewSession()" disabled>Create Session</button>
-        <button class="button button-secondary" id="btn-back-from-new" type="button" onclick="backToWelcome()">Back</button>
+        <div class="button-group">
+          <button class="button" id="create-session-btn" onclick="createNewSession()" disabled>Create Session</button>
+          <button class="button secondary" onclick="showScreen('welcome-screen')">Back</button>
+        </div>
       </div>
 
-      <div class="resume-section" id="returning-participant">
+      <!-- Returning Participant Screen -->
+      <div class="screen" id="returning-participant">
         <h2>Resume Your Session</h2>
-        <p style="margin-bottom: 20px; color: #666;">Enter your 8-character resume code to continue.</p>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Enter your 8-character code to continue</p>
 
         <div class="form-group">
-          <label for="resume-code">Resume Code:</label>
-          <input
-            type="text"
-            id="resume-code"
-            maxlength="8"
+          <label for="resume-code">Resume Code</label>
+          <input 
+            type="text" 
+            id="resume-code" 
+            maxlength="8" 
             placeholder="ABC12345"
-            style="text-transform: uppercase; font-family: monospace; font-size: 20px; letter-spacing: 2px;"
+            style="text-transform: uppercase; font-family: monospace; font-size: 24px; letter-spacing: 2px; text-align: center;"
           />
         </div>
 
-        <button class="button" id="btn-resume-session" type="button" onclick="resumeSession()">Resume Session</button>
-        <button class="button button-secondary" id="btn-back-from-returning" type="button" onclick="backToWelcome()">Back</button>
+        <div class="button-group">
+          <button class="button" onclick="resumeSession()">Resume Session</button>
+          <button class="button secondary" onclick="showScreen('welcome-screen')">Back</button>
+        </div>
       </div>
 
-      <div class="resume-section" id="code-display" style="display: none;">
-        <h2>Your Session Created!</h2>
-        <div class="resume-code-display">
+      <!-- Session Created Screen -->
+      <div class="screen" id="session-created">
+        <h2>✅ Session Created Successfully!</h2>
+        
+        <div class="code-display">
           <p>Your Resume Code:</p>
-          <div class="code" id="session-code"></div>
-          <button class="button button-secondary" style="margin-top:10px;" id="btn-copy-code" type="button" onclick="copyCode('#session-code', this)">Copy code</button>
-          <p style="font-size: 14px; margin-top: 10px;">Save this code to resume your session later</p>
+          <div class="code" id="display-code">ABC12345</div>
+          <button class="button outline" onclick="copyCode()">📋 Copy Code</button>
+          <p style="font-size: 14px; margin-top: 15px;">Save this code to resume anytime</p>
         </div>
 
-        <div class="save-instructions">
-          <h4>⚠️ Important: Save Your Code!</h4>
-          <ul style="margin-left: 20px; margin-top: 10px;">
-            <li>Write down or screenshot your resume code</li>
-            <li>You can use this code to continue from any device</li>
-            <li>Your progress is automatically saved after each task</li>
-            <li>You can complete the study over multiple sessions</li>
+        <div class="info-banner warning">
+          <strong>⚠️ Important: Save Your Code!</strong>
+          <ul style="margin: 10px 0 0 20px; text-align: left;">
+            <li>Write down or screenshot your code</li>
+            <li>Use this code to continue from any device</li>
+            <li>Progress saves automatically after each task</li>
           </ul>
         </div>
 
-        <button class="button button-success" id="btn-saved-code-continue" type="button" onclick="startConsent()">I have saved my code, continue</button>
+        <button class="button success" onclick="proceedToConsent()" style="display: block; margin: 20px auto;">
+          I've Saved My Code - Continue
+        </button>
       </div>
 
-      <div class="consent-status" id="consent-status">
-        <h3>✅ Zoom Meeting Scheduled, now complete consent forms</h3>
-        <p style="margin: 8px 0 16px; color:#333;"><em>Recording is optional and used only for scoring.</em></p>
-        <p style="margin-bottom: 20px; color: #666;">
-          Now that you have scheduled your Zoom meeting, please complete the consent forms before we meet. If you have already completed these through the screener, please mark them as done here.
-        </p>
+      <!-- Unified Consent Screen -->
+      <div class="screen" id="consent-screen">
+        <h2>📋 Consent Forms</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Please complete both consent forms to participate. If you've already completed these through the screener, mark them as done.</p>
 
-        <div class="consent-item" id="consent-1">
-          <span class="status">⭕</span>
-          <div>
-            <strong>Research Consent Form</strong>
-            <p style="font-size: 14px; color: #666;">General study participation consent</p>
-          </div>
-        </div>
-
-        <div class="consent-item" id="consent-2">
-          <span class="status">⭕</span>
-          <div>
-            <strong>Video Consent Form</strong>
-            <p style="font-size: 14px; color: #666;">Consent for video recording</p>
-          </div>
-        </div>
-
-        <div id="consent-choices" style="text-align:center; margin-top:10px; display:none;">
-          <button class="button button-secondary" id="decline-video-btn" type="button" onclick="declineVideoConsent()">I do not consent to video, continue</button>
-        </div>
-
-        <button class="button" id="consent-btn" type="button" onclick="proceedWithConsent()">Continue</button>
-        <p style="margin-top: 15px; font-size: 14px; color: #666; text-align: center;">
-          If you already completed both forms through the screener, click each form and then click "I have completed this task" to mark them as done.
-        </p>
-      </div>
-
-      <div class="session-info" id="session-info">
-        <h4>📊 Your Session</h4>
-        <div class="session-detail"><span>Resume Code:</span><strong id="info-code"></strong></div>
-        <div class="session-detail"><span>Progress:</span><strong id="info-progress"></strong></div>
-        <div class="session-detail"><span>Time Spent:</span><strong id="info-time"></strong></div>
-        <div class="session-detail"><span>Last Activity:</span><strong id="info-last"></strong></div>
-      </div>
-
-      <div class="progress-overview" id="progress-overview">
-        <h3>Your Study Progress</h3>
-        <ul class="task-list" id="task-list"></ul>
-        <button class="button" id="continue-btn" type="button" onclick="continueToCurrentTask()">Continue to Current Task</button>
-        <button class="button button-secondary" id="btn-save-exit" type="button" onclick="pauseAndSave()">Save & Exit</button>
-      </div>
-
-      <div class="task-display" id="task-display">
-        <h2 id="task-title"></h2>
-        <div class="task-instructions" id="task-instructions"></div>
-        <div id="task-content"></div>
-      </div>
-
-      <div class="upload-section" id="mrt-upload">
-        <h3>Upload MRT Data</h3>
-        <p>After completing the Mental Rotation Task, please upload the CSV file you downloaded.</p>
-        <div class="file-upload" id="file-upload">
-          <div style="font-size: 48px; color: #667eea;">📁</div>
-          <p>Click to select your MRT data file</p>
-          <p style="font-size: 14px; color: #666;">Or drag and drop the CSV file here</p>
-          <input type="file" id="mrt-file" accept=".csv" />
-        </div>
-        <div id="upload-status" style="margin-top:12px;"></div>
-        <button class="button button-success" id="mrt-continue" type="button" style="display: none;" onclick="completeCurrentTask()">Continue to Next Task</button>
-      </div>
-
-      <div class="recording-section" id="recording-section">
-        <div class="banner" id="always-skip-banner" style="display:flex; align-items:center; justify-content:space-between;">
-          <div><strong>This task is voluntary.</strong> You may skip it at any time.</div>
-          <button class="button button-secondary" type="button" onclick="skipTask('ID')">Skip this task</button>
-        </div>
-
-        <h3>Image Description Task - Video Recording</h3>
-        <div class="image-counter" id="image-counter">Image 1 of 2</div>
-
-        <div id="video-consent-banner" class="banner" style="display:none;">
-          <strong>Video consent not completed.</strong>
-          <div style="margin-top:8px;">
-            <button class="button" type="button" onclick="openExternalTask('CONSENT2')">Open Video Consent Form</button>
-            <button class="button button-secondary" type="button" onclick="skipTask('ID')">Skip this task</button>
-          </div>
-        </div>
-
-        <div id="video-declined-banner" class="banner" style="display:none;">
-          <strong>You declined video consent.</strong> This task is optional. You can skip it now.
-          <div style="margin-top:8px;">
-            <button class="button button-secondary" type="button" onclick="skipTask('ID')">Skip this task</button>
-          </div>
-        </div>
-
-        <div class="video-container" id="video-container">
-          <div class="image-panel">
-            <h3>Image to Describe</h3>
-            <img
-              id="current-image"
-              loading="lazy"
-              decoding="async"
-              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E"
-              alt="Current Image"
-            />
-            <p style="margin-top: 15px; color: #666;">Look at this image carefully and describe what you see</p>
+        <div class="consent-grid">
+          <div class="consent-card" id="consent1-card">
+            <div class="status-icon">📄</div>
+            <h4>Research Consent</h4>
+            <p>General study participation consent (required)</p>
+            <button class="button" onclick="openConsent('CONSENT1')">Open Form</button>
+            <button class="button outline" onclick="markConsentDone('consent1')" style="margin-top: 10px;">Mark as Done</button>
           </div>
 
-          <div class="video-panel">
-            <h3>Your Video</h3>
-            <video id="video-preview" autoplay muted playsinline></video>
-            <video id="recorded-video" controls playsinline></video>
-
-            <div class="recording-controls">
-              <div class="recording-status ready" id="recording-status">Ready to record</div>
-              <div id="recording-timer" style="font-size: 24px; color: #f44336; margin: 10px 0; display: none;">00:00</div>
-              <button class="record-button" id="record-button" type="button">Start Recording</button>
-              <button class="record-button re-record" id="re-record-button" type="button" style="display: none;">Re-record Video</button>
-              <button class="save-button" id="save-video-button" type="button">Save & Continue to Next Image</button>
-              <div style="text-align:center; margin-top:8px;">
-                <button class="button button-secondary" type="button" onclick="skipTask('ID')">Skip this task</button>
-              </div>
+          <div class="consent-card" id="consent2-card">
+            <div class="status-icon">🎥</div>
+            <h4>Video Consent</h4>
+            <p>For video recording task (optional)</p>
+            <button class="button" onclick="openConsent('CONSENT2')">Open Form</button>
+            <div class="button-group" style="margin-top: 10px;">
+              <button class="button outline" onclick="markConsentDone('consent2')">Mark as Done</button>
+              <button class="button secondary" onclick="declineVideo()">Decline Video</button>
             </div>
           </div>
         </div>
 
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
-          <strong>What to describe (30-60 seconds):</strong>
-          <ul style="margin: 10px 0 0 20px; text-align: left;">
-            <li>Objects and people you see</li>
-            <li>Where things are located (left, right, front, back, etc.)</li>
-            <li>What is happening in the image</li>
-            <li>Spatial relationships between objects</li>
-          </ul>
+        <div class="info-banner info">
+          <strong>Already completed these forms?</strong>
+          <p style="margin-top: 5px;">If you completed the consent forms through the screener, click "Mark as Done" on each form above.</p>
+        </div>
+
+        <button class="button success" id="continue-from-consent" onclick="proceedToTasks()" disabled style="display: block; margin: 20px auto;">
+          Continue to Study Tasks
+        </button>
+      </div>
+
+      <!-- Progress Overview Screen -->
+      <div class="screen" id="progress-screen">
+        <h2>Your Study Progress</h2>
+        
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width: 0%">
+            <span id="progress-text">0%</span>
+          </div>
+        </div>
+
+        <ul class="task-list" id="task-list"></ul>
+
+        <div class="button-group">
+          <button class="button" id="continue-task-btn" onclick="continueToCurrentTask()">Continue to Current Task</button>
+          <button class="button secondary" onclick="pauseSession()">Save & Exit</button>
         </div>
       </div>
 
-      <button class="button button-success" id="general-continue" type="button" style="display: none;" onclick="completeCurrentTask()">I have completed this task, continue</button>
+      <!-- Task Display Screen -->
+      <div class="screen" id="task-screen">
+        <h2 id="task-title">Task Title</h2>
+        <div id="task-instructions" style="margin: 20px 0;"></div>
+        <div id="task-content"></div>
+      </div>
+
+      <!-- MRT Upload Screen -->
+      <div class="screen" id="mrt-upload-screen">
+        <h2>Upload MRT Results</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Please upload the CSV file from the Mental Rotation Task</p>
+        
+        <div class="file-upload" id="file-upload">
+          <div style="font-size: 48px; color: #667eea;">📁</div>
+          <p>Click to select or drag your CSV file here</p>
+          <input type="file" id="mrt-file" accept=".csv" />
+        </div>
+        
+        <div id="upload-status" style="margin-top: 20px;"></div>
+        
+        <div class="button-group">
+          <button class="button success" id="mrt-continue" onclick="completeMRTUpload()" style="display: none;">Continue</button>
+          <button class="button secondary" onclick="skipMRTUpload()">Skip Upload (Email Later)</button>
+        </div>
+      </div>
+
+      <!-- Recording Screen -->
+      <div class="screen" id="recording-screen">
+        <h2>Image Description Task</h2>
+        
+        <div class="info-banner info" id="recording-consent-check" style="display: none;">
+          <strong>Video consent required</strong>
+          <p>Please complete the video consent form to proceed with this task.</p>
+          <div class="button-group" style="margin-top: 10px;">
+            <button class="button" onclick="openConsent('CONSENT2')">Open Video Consent</button>
+            <button class="button secondary" id="skip-recording-consent-btn">Skip Task</button>
+          </div>
+        </div>
+
+        <div id="recording-content" style="display: none;">
+          <div class="info-banner warning">
+            <strong>Language for descriptions:</strong>
+            <p>If you know ASL, please use ASL. Otherwise, spoken English is fine.</p>
+          </div>
+
+          <div style="text-align: center; margin: 20px 0;">
+            <span style="background: var(--info); color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold;">
+              Image <span id="image-number">1</span> of 2
+            </span>
+          </div>
+
+          <div class="video-container">
+            <div class="video-panel">
+              <h3>Image to Describe</h3>
+              <img id="current-image" src="" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
+            </div>
+
+            <div class="video-panel">
+              <h3>Your Video</h3>
+              <video id="video-preview" autoplay muted playsinline style="display: none;"></video>
+              <video id="recorded-video" controls playsinline style="display: none;"></video>
+              
+              <div class="recording-controls">
+                <div class="recording-status ready" id="recording-status">Ready to record</div>
+                <div id="recording-timer" style="font-size: 24px; color: var(--danger); margin: 10px 0; display: none;">00:00</div>
+                
+                <div class="button-group">
+                  <button class="button danger" id="record-btn" onclick="toggleRecording()">Start Recording</button>
+                  <button class="button secondary" id="rerecord-btn" onclick="reRecord()" style="display: none;">Re-record</button>
+                  <button class="button success" id="save-recording-btn" onclick="saveRecording()" style="display: none;">Save & Continue</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-banner info">
+            <strong>What to describe (30-60 seconds):</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Objects and people you see</li>
+              <li>Where things are located</li>
+              <li>What is happening in the image</li>
+              <li>Spatial relationships between objects</li>
+            </ul>
+          </div>
+
+          <button class="button secondary" id="skip-recording-btn" style="display: block; margin: 20px auto;">Skip This Task</button>
+        </div>
+      </div>
+
+      <!-- Completion Screen -->
+      <div class="screen" id="completion-screen">
+        <div style="text-align: center; padding: 50px;">
+          <h2 style="color: var(--success); font-size: 36px; margin-bottom: 20px;">🎉 Study Complete!</h2>
+          <p style="font-size: 20px; margin: 20px 0;">Thank you for participating in our research!</p>
+          <div class="code-display">
+            <p>Your session code was:</p>
+            <div class="code" id="final-code">ABC12345</div>
+          </div>
+          <p style="margin-top: 20px;">Total time: <strong id="total-time">0</strong> minutes</p>
+          <p style="margin-top: 30px; color: var(--text-muted);">You may now close this window.</p>
+        </div>
+      </div>
     </div>
 
     <div class="footer">
@@ -445,165 +874,130 @@
     </div>
   </div>
 
-  <button class="pause-button" id="pause-button" type="button" onclick="pauseAndSave()">⏸️ Save & Exit</button>
+  <!-- Floating Action Button -->
+  <button class="fab" id="pause-fab" onclick="pauseSession()">⏸️ Save & Exit</button>
 
+  <!-- Modal -->
   <div class="modal" id="pause-modal">
     <div class="modal-content">
       <h3>Session Saved!</h3>
-      <p>Your progress has been saved. Use this code to resume:</p>
-      <div class="resume-code-display" style="margin: 20px 0;">
-        <div class="code" id="modal-code"></div>
+      <p>Your progress has been saved.</p>
+      <div class="code-display">
+        <div class="code" id="modal-code">ABC12345</div>
       </div>
-      <p style="font-size: 14px; color: #666;">You can return at any time to complete the remaining tasks.</p>
-      <button class="button" type="button" onclick="window.location.reload()">Exit Study</button>
+      <p style="font-size: 14px; color: var(--text-muted); margin-top: 20px;">Return anytime to complete remaining tasks.</p>
+      <button class="button" onclick="location.reload()">Exit Study</button>
+    </div>
+  </div>
+
+  <!-- EEG Contact Modal -->
+  <div class="modal" id="eeg-modal">
+    <div class="modal-content">
+      <h3>📍 Local EEG Add-On Information</h3>
+      <div class="info-banner info" style="margin: 20px 0;">
+        <strong>Contact the Action Brain Lab:</strong>
+        <p style="margin-top: 10px;">
+          Email: <strong>action.brain.lab@gallaudet.edu</strong>
+          <button class="button outline" onclick="copyEmail()" style="margin-left: 10px;">Copy Email</button>
+        </p>
+      </div>
+      
+      <div style="text-align: left; background: var(--gray-light); padding: 20px; border-radius: 10px; margin: 20px 0;">
+        <strong>Include in your email:</strong>
+        <ul style="margin: 10px 0 0 20px;">
+          <li>Your session code: <strong id="eeg-session-code">TBD</strong></li>
+          <li>That you're interested in the local EEG add-on</li>
+          <li>Your preferred days/times for the visit</li>
+          <li>Communication preference (ASL or English)</li>
+        </ul>
+      </div>
+      
+      <div class="button-group">
+        <button class="button" onclick="tryMailto()">Open Email Client</button>
+        <button class="button secondary" onclick="closeEEGModal()">Close</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // ===============================================
-    // CONFIGURATION
-    // ===============================================
+    // Configuration
     const CONFIG = {
-      GOOGLE_SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
-      IMAGE_1_URL: 'images/description1.jpg',
-      IMAGE_2_URL: 'images/description2.jpg'
+      SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
+      IMAGE_1: 'images/description1.jpg',
+      IMAGE_2: 'images/description2.jpg'
     };
 
-    // ===============================================
-    // TASK DEFINITIONS
-    // ===============================================
+    // Task definitions
     const TASKS = {
       'ZOOM': {
-        name: 'Schedule Zoom Task (15-20 min, required)',
+        name: 'Schedule Zoom Task',
+        description: '15-20 minute live assessment',
         url: 'https://calendly.com/melodyschwenk/spatialcognitionzoom',
         type: 'external',
-        required: true,
-        instructions: `
-          <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-            <strong style="color: #2e7d32;">📅 Book your Zoom task (15-20 minutes)</strong>
-            <p style="margin:10px 0;">
-              This brief assessment must be completed live on Zoom and cannot be done asynchronously.
-              You may begin the other online tasks now and book a Zoom time that works for you using Calendly.
-            </p>
-            <ul style="margin: 5px 0 10px 20px; text-align: left;">
-              <li>Live assessment (15-20 min), no prep needed</li>
-              <li>We can use ASL or spoken English; Zoom captions available</li>
-              <li>Calendly opens in a new tab; return here after booking</li>
-            </ul>
-            <p style="margin:6px 0 0; font-size:14px;">Times are shown in your local time zone.</p>
-          </div>
-        `
-      },
-
-      'CONSENT1': {
-        name: 'Research Consent Form',
-        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g',
-        type: 'consent',
-        instructions: 'Please complete the research consent form. This is required before participating in the study. If already done in the screener, click "I have completed this task".'
-      },
-      'CONSENT2': {
-        name: 'Video Consent Form',
-        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u',
-        type: 'consent',
-        instructions: 'Please complete the video consent form for the video recording task. If you do not consent to video, you can decline and continue.'
+        required: true
       },
       'MRT': {
         name: 'Mental Rotation Task',
+        description: 'Spatial reasoning assessment',
         url: 'https://psych.hanover.edu/javatest/cle/Cognition_js/exp/mentRot.html',
         type: 'external',
-        requiresUpload: true,
-        uploadOptional: true,
-        instructions: `
-          <strong>Important Instructions:</strong>
-          <ol style="text-align: left; margin: 15px 0;">
-            <li>Click "Open Task"</li>
-            <li>Scroll to the bottom and click "Begin Experiment"</li>
-            <li>Do not change any settings</li>
-            <li>Complete all trials</li>
-            <li>Download your results as a CSV</li>
-            <li>Return to this tab</li>
-          </ol>
-          <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
-            <strong>📁 About the CSV File:</strong>
-            You can upload it now or continue without uploading.
-          </div>
-        `
+        requiresUpload: true
       },
       'ASLCT': {
         name: 'ASL Comprehension Test',
+        description: 'For ASL users only',
         url: 'https://vl2portal.gallaudet.edu/assessment/login.php',
         type: 'external',
-        accessCode: 'NWMTLYMTP',
-        canSkip: true,
-        instructions: `
-          <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-            <strong style="color: #2e7d32;">📌 Who should complete this task:</strong>
-            This is for people who know ASL at any level. If you do not know ASL, you can skip this task.
-          </div>
-        `
+        canSkip: true
       },
       'VCN': {
         name: 'Virtual Campus Navigation',
+        description: 'Navigate virtual environments',
         url: 'http://www.virtualsilcton.com/study/753798747',
-        type: 'external',
-        instructions: `
-          <strong>Instructions:</strong>
-          <ol style="text-align: left; margin: 15px 0;">
-            <li>Click "Open Task"</li>
-            <li>Wait for the virtual environment to load</li>
-            <li>Follow the on-screen navigation instructions</li>
-            <li>Complete all navigation trials</li>
-            <li>Return to this tab</li>
-          </ol>
-        `
+        type: 'external'
       },
       'SN': {
-        name: 'Spatial Navigation Task',
+        name: 'Spatial Navigation',
+        description: 'Maze navigation exercises',
         url: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
-        type: 'external',
-        instructions: `
-          <strong>Instructions:</strong>
-          <ol style="text-align: left; margin: 15px 0;">
-            <li>Click "Open Task"</li>
-            <li>Read the instructions carefully</li>
-            <li>Complete the maze navigation exercises</li>
-            <li>Return to this tab</li>
-          </ol>
-        `
+        type: 'external'
       },
       'ID': {
         name: 'Image Description',
+        description: 'Describe images (video recording)',
         type: 'recording',
-        canSkip: true,
-        instructions: `
-          <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-            <strong style="color: #6a1b9a;">Language for your descriptions:</strong>
-            If you know ASL, please use ASL. If not, spoken English is fine. This task is voluntary.
-          </div>
-        `
+        canSkip: true
       },
       'DEMO': {
-        name: 'Demographics & Language Background',
+        name: 'Demographics Survey',
+        description: 'Background information & payment',
         url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU',
-        type: 'external',
-        instructions: 'Complete the demographics survey. This will also provide payment information.'
+        type: 'external'
       }
     };
 
-    // ===============================================
-    // SEQUENCES
-    // ===============================================
+    // Consent forms (separate from main task sequence)
+    const CONSENTS = {
+      'CONSENT1': {
+        name: 'Research Consent',
+        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g'
+      },
+      'CONSENT2': {
+        name: 'Video Consent',
+        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u'
+      }
+    };
+
+    // Task sequences (without consent forms)
     const SEQUENCES = [
-      ['ZOOM', 'CONSENT1', 'CONSENT2', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
-      ['ZOOM', 'CONSENT1', 'CONSENT2', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
-      ['ZOOM', 'CONSENT1', 'CONSENT2', 'VCN', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
-      ['ZOOM', 'CONSENT1', 'CONSENT2', 'SN', 'ID', 'MRT', 'ASLCT', 'VCN', 'DEMO'],
-      ['ZOOM', 'CONSENT1', 'CONSENT2', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
+      ['ZOOM', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
+      ['ZOOM', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
+      ['ZOOM', 'VCN', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
+      ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'VCN', 'DEMO'],
+      ['ZOOM', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
     ];
 
-    // ===============================================
-    // STATE MANAGEMENT
-    // ===============================================
+    // State management
     let state = {
       sessionCode: '',
       participantID: '',
@@ -615,121 +1009,110 @@
       startTime: null,
       totalTimeSpent: 0,
       lastActivity: null,
-      taskData: {},
-      consentCompleted: { consent1: false, consent2: false },
-      videoConsentDeclined: false,
-      recording: false,
-      mediaRecorder: null,
-      videoChunks: [],
-      currentImageIndex: 0,
-      imageRecordings: [],
-      recordingStartTime: null,
-      recordingTimer: null,
-      currentStream: null
+      consentStatus: {
+        consent1: false,
+        consent2: false,
+        videoDeclined: false
+      },
+      recording: {
+        active: false,
+        mediaRecorder: null,
+        chunks: [],
+        currentImage: 0,
+        recordings: [],
+        stream: null,
+        currentBlob: null
+      }
     };
 
-    // ===============================================
-    // ACCESSIBILITY HELPERS
-    // ===============================================
-    function announce(msg) {
-      const n = document.getElementById('live-status');
-      if (!n) return;
-      n.textContent = '';
-      setTimeout(() => n.textContent = msg, 50);
-    }
-
-    window.addEventListener('beforeunload', (e) => {
-      if (state.recording) { e.preventDefault(); e.returnValue = ''; }
-    });
-    window.addEventListener('pagehide', () => {
-      if (state.currentStream) state.currentStream.getTracks().forEach(t => t.stop());
-    });
-
-    // ===============================================
-    // INITIALIZATION
-    // ===============================================
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
-      const titleEl = document.getElementById('task-title');
-      if (titleEl) titleEl.setAttribute('tabindex', '-1');
-      checkForSavedSession();
+      checkSavedSession();
     });
 
+    // Event listeners
     function setupEventListeners() {
-      const firstEl = document.getElementById('first-initial');
-      const lastEl = document.getElementById('last-initial');
-      const resumeEl = document.getElementById('resume-code');
+      // Input validation
+      document.getElementById('first-initial').addEventListener('input', validateInitials);
+      document.getElementById('last-initial').addEventListener('input', validateInitials);
+      document.getElementById('resume-code').addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase();
+      });
 
-      if (firstEl) firstEl.addEventListener('input', handleInitialInput);
-      if (lastEl) lastEl.addEventListener('input', handleInitialInput);
-      if (resumeEl) resumeEl.addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase(); });
-
-      // Fallback bindings in case inline onclick is blocked by CSP
-      const map = [
-        ['btn-start-new', showNewParticipant],
-        ['btn-returning', showReturningParticipant],
-        ['btn-back-from-new', backToWelcome],
-        ['btn-back-from-returning', backToWelcome],
-        ['create-session-btn', createNewSession],
-        ['btn-saved-code-continue', startConsent],
-        ['consent-btn', proceedWithConsent],
-        ['continue-btn', continueToCurrentTask],
-        ['btn-save-exit', pauseAndSave],
-        ['btn-eeg-local', contactEEGLocal],
-        ['btn-resume-session', resumeSession],       // <-- add
-        ['decline-video-btn', declineVideoConsent],  // <-- add (exists in the DOM)
-      ];
-
-      for (const [id, fn] of map) {
-        const el = document.getElementById(id);
-        if (el && typeof fn === 'function') el.addEventListener('click', fn);
-      }
-
+      // File upload
       const fileUpload = document.getElementById('file-upload');
       const fileInput = document.getElementById('mrt-file');
       if (fileUpload && fileInput) {
         fileUpload.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleMRTUpload);
-        fileUpload.addEventListener('dragover', (e) => { e.preventDefault(); fileUpload.classList.add('drag-over'); });
-        fileUpload.addEventListener('dragleave', () => { fileUpload.classList.remove('drag-over'); });
-        fileUpload.addEventListener('drop', (e) => {
-          e.preventDefault(); fileUpload.classList.remove('drag-over');
+        fileInput.addEventListener('change', handleFileUpload);
+        
+        // Drag and drop
+        fileUpload.addEventListener('dragover', e => {
+          e.preventDefault();
+          fileUpload.classList.add('drag-over');
+        });
+        fileUpload.addEventListener('dragleave', () => {
+          fileUpload.classList.remove('drag-over');
+        });
+        fileUpload.addEventListener('drop', e => {
+          e.preventDefault();
+          fileUpload.classList.remove('drag-over');
           if (e.dataTransfer.files.length > 0) {
-            handleMRTUpload({ target: { files: e.dataTransfer.files } });
+            handleFileUpload({ target: { files: e.dataTransfer.files } });
           }
         });
       }
+
+      // Bind skip buttons explicitly so they work even under strict CSP
+      document.getElementById('skip-recording-btn')?.addEventListener('click', skipRecording);
+      document.getElementById('skip-recording-consent-btn')?.addEventListener('click', skipRecording);
     }
 
-    function handleInitialInput(e) {
-      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,1);
-      const first = (document.getElementById('first-initial')?.value || '').trim();
-      const last = (document.getElementById('last-initial')?.value || '').trim();
-      const btn = document.getElementById('create-session-btn');
-      if (btn) btn.disabled = !(first && last);
+    function validateInitials(e) {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
+      const first = document.getElementById('first-initial').value;
+      const last = document.getElementById('last-initial').value;
+      document.getElementById('create-session-btn').disabled = !(first && last);
     }
 
-    // ===============================================
-    // SESSION MANAGEMENT
-    // ===============================================
-    function generateSessionCode() {
+    // Screen navigation
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const screen = document.getElementById(screenId);
+      if (screen) screen.classList.add('active');
+      
+      // Update session widget visibility
+      const widget = document.getElementById('session-widget');
+      const showWidget = ['progress-screen', 'task-screen', 'consent-screen', 'mrt-upload-screen', 'recording-screen'].includes(screenId);
+      if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
+      
+      // Update FAB visibility
+      const fab = document.getElementById('pause-fab');
+      if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
+    }
+
+    // Session management
+    function generateCode() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let code = '';
-      for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
       return code;
     }
 
     function createNewSession() {
-      const first = (document.getElementById('first-initial')?.value || '').trim().toUpperCase();
-      const last = (document.getElementById('last-initial')?.value || '').trim().toUpperCase();
-      const email = (document.getElementById('email')?.value || '').trim();
+      const first = document.getElementById('first-initial').value.trim().toUpperCase();
+      const last = document.getElementById('last-initial').value.trim().toUpperCase();
+      const email = document.getElementById('email').value.trim();
 
       if (!first || !last) {
-        alert('Please enter your initials.');
+        alert('Please enter your initials');
         return;
       }
 
-      state.sessionCode = generateSessionCode();
+      state.sessionCode = generateCode();
       state.participantID = `${first}${last}_${Date.now().toString().slice(-4)}`;
       state.email = email;
       state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
@@ -738,443 +1121,808 @@
       state.lastActivity = new Date().toISOString();
 
       saveState();
-      sendToGoogleSheets({
+      sendToSheets({
         action: 'session_created',
         sessionCode: state.sessionCode,
         participantID: state.participantID,
         email: state.email,
         sequenceIndex: state.sequenceIndex,
-        totalTasks: state.sequence.length,
         timestamp: new Date().toISOString()
       });
 
-      const np = document.getElementById('new-participant');
-      const cd = document.getElementById('code-display');
-      if (np) np.style.display = 'none';
-      if (cd) cd.style.display = 'block';
-      const sc = document.getElementById('session-code');
-      if (sc) sc.textContent = state.sessionCode;
+      document.getElementById('display-code').textContent = state.sessionCode;
+      showScreen('session-created');
     }
 
-    async function resumeSession() {
-      const code = (document.getElementById('resume-code')?.value || '').toUpperCase();
-      if (code.length !== 8) { alert('Please enter your 8-character resume code.'); return; }
+    function resumeSession() {
+      const code = document.getElementById('resume-code').value.toUpperCase();
+      if (code.length !== 8) {
+        alert('Please enter your 8-character resume code');
+        return;
+      }
+
       try {
-        const savedState = localStorage.getItem(`study_session_${code}`);
-        if (savedState) {
-          state = JSON.parse(savedState);
-          proceedToStudy();
+        const saved = localStorage.getItem(`study_${code}`);
+        if (saved) {
+          state = JSON.parse(saved);
+          updateSessionWidget();
+          
+          if (!state.consentStatus.consent1) {
+            showScreen('consent-screen');
+          } else {
+            showProgressScreen();
+          }
         } else {
-          alert('Session not found locally. In production, this would check the server.');
+          alert('Session not found. Please check your code.');
         }
       } catch (err) {
         console.error(err);
-        alert('Unable to load your saved session on this device.');
+        alert('Error loading session');
       }
     }
 
-    function checkForSavedSession() {
+    function checkSavedSession() {
       try {
-        const recentCode = localStorage.getItem('recent_session_code');
+        const recentCode = localStorage.getItem('recent_session');
         if (!recentCode) return;
-        const savedState = localStorage.getItem(`study_session_${recentCode}`);
-        if (!savedState) return;
-        const saved = JSON.parse(savedState);
-        const daysSinceActivity = (Date.now() - new Date(saved.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceActivity < 30) {
-          if (confirm(`Welcome back! You have an incomplete session (Code: ${recentCode}). Would you like to continue?`)) {
-            state = saved; proceedToStudy();
+        
+        const saved = localStorage.getItem(`study_${recentCode}`);
+        if (!saved) return;
+        
+        const data = JSON.parse(saved);
+        const daysSince = (Date.now() - new Date(data.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (daysSince < 30) {
+          if (confirm(`Welcome back! Resume session ${recentCode}?`)) {
+            state = data;
+            updateSessionWidget();
+            showProgressScreen();
           }
         }
       } catch (e) {
-        console.warn('Saved session check failed', e);
+        console.warn('Could not check saved session', e);
       }
     }
 
     function saveState() {
       try {
         state.lastActivity = new Date().toISOString();
-        const sessionKey = `study_session_${state.sessionCode}`;
-        localStorage.setItem(sessionKey, JSON.stringify(state));
-        localStorage.setItem('recent_session_code', state.sessionCode);
+        localStorage.setItem(`study_${state.sessionCode}`, JSON.stringify(state));
+        localStorage.setItem('recent_session', state.sessionCode);
       } catch (e) {
-        console.warn('Could not save progress', e);
-        announce('Warning: progress could not be saved locally.');
+        console.warn('Could not save state', e);
       }
     }
 
-    // ===============================================
-    // NAVIGATION
-    // ===============================================
-    function showNewParticipant() {
-      const w = document.getElementById('welcome-screen');
-      const n = document.getElementById('new-participant');
-      if (w) w.style.display = 'none';
-      if (n) n.style.display = 'block';
-    }
-    function showReturningParticipant() {
-      const w = document.getElementById('welcome-screen');
-      const r = document.getElementById('returning-participant');
-      if (w) w.style.display = 'none';
-      if (r) r.style.display = 'block';
-    }
-    function backToWelcome() {
-      const w = document.getElementById('welcome-screen');
-      const n = document.getElementById('new-participant');
-      const r = document.getElementById('returning-participant');
-      if (w) w.style.display = 'block';
-      if (n) n.style.display = 'none';
-      if (r) r.style.display = 'none';
-    }
-    function startConsent() {
-      const cd = document.getElementById('code-display');
-      if (cd) cd.style.display = 'none';
-      proceedToStudy();
+    // Consent handling
+    function proceedToConsent() {
+      showScreen('consent-screen');
+      updateConsentDisplay();
     }
 
-    function proceedToStudy() {
-      ['welcome-screen','new-participant','returning-participant','code-display'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = 'none';
-      });
-
-      if (!state.consentCompleted.consent1) {
-        showConsentStatus();
-        return;
-      }
-      setNextTaskIndex();
-      showProgressOverview();
-    }
-
-    function showConsentStatus() {
-      const box = document.getElementById('consent-status');
-      if (!box) return;
-      box.style.display = 'block';
-      const c1 = document.getElementById('consent-1');
-      const c2 = document.getElementById('consent-2');
-
-      if (c1) {
-        c1.className = 'consent-item ' + (state.consentCompleted.consent1 ? 'complete' : 'pending');
-        const s = c1.querySelector('.status'); if (s) s.textContent = state.consentCompleted.consent1 ? '✅' : '⭕';
-      }
-      if (c2) {
-        c2.className = 'consent-item ' + (state.videoConsentDeclined ? 'declined' : (state.consentCompleted.consent2 ? 'complete' : 'pending'));
-        const s = c2.querySelector('.status'); if (s) s.textContent = state.videoConsentDeclined ? '🚫' : (state.consentCompleted.consent2 ? '✅' : '⭕');
-        const p = c2.querySelector('p'); if (p) p.textContent = state.videoConsentDeclined ? 'Video consent declined' : 'Consent for video recording';
-      }
-
-      const choices = document.getElementById('consent-choices');
-      if (choices) choices.style.display = (state.consentCompleted.consent1 && !state.consentCompleted.consent2 && !state.videoConsentDeclined) ? 'block' : 'none';
-
-      const btn = document.getElementById('consent-btn');
-      if (btn) {
-        if (!state.consentCompleted.consent1) btn.textContent = 'Continue to Research Consent Form';
-        else if (!state.consentCompleted.consent2 && !state.videoConsentDeclined) btn.textContent = 'Continue to Video Consent Form';
-        else btn.textContent = 'Continue to Study Tasks';
-      }
-    }
-
-    function proceedWithConsent() {
-      if (!state.consentCompleted.consent1) startTask('CONSENT1');
-      else if (!state.consentCompleted.consent2 && !state.videoConsentDeclined) startTask('CONSENT2');
-      else showProgressOverview();
-    }
-
-    function declineVideoConsent() {
-      state.videoConsentDeclined = true;
-      state.consentCompleted.consent2 = true;
-      saveState();
-      sendToGoogleSheets({
-        action: 'video_consent_declined',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        timestamp: new Date().toISOString()
-      });
-      showProgressOverview();
-    }
-
-    function showProgressOverview() {
-      const cs = document.getElementById('consent-status');
-      if (cs) cs.style.display = 'none';
-      const si = document.getElementById('session-info');
-      const po = document.getElementById('progress-overview');
-      if (si) si.style.display = 'block';
-      if (po) po.style.display = 'block';
-
-      const iCode = document.getElementById('info-code');
-      const iProg = document.getElementById('info-progress');
-      const iTime = document.getElementById('info-time');
-      const iLast = document.getElementById('info-last');
-      if (iCode) iCode.textContent = state.sessionCode;
-      if (iProg) iProg.textContent = `${state.completedTasks.length} of ${state.sequence.length} tasks`;
-      if (iTime) iTime.textContent = `${Math.round(state.totalTimeSpent / 60000)} minutes`;
-      if (iLast) iLast.textContent = new Date(state.lastActivity).toLocaleDateString();
-
-      const taskList = document.getElementById('task-list');
-      if (taskList) {
-        taskList.innerHTML = '';
-        state.sequence.forEach((taskCode, index) => {
-          const task = TASKS[taskCode];
-          const li = document.createElement('li');
-          if (state.completedTasks.includes(taskCode)) {
-            li.classList.add('completed');
-            li.innerHTML = `<span>${task.name}</span><span class="task-status">✅</span>`;
-          } else if (index === state.currentTaskIndex) {
-            li.classList.add('current');
-            li.innerHTML = `<span>${task.name} (Current)</span><span class="task-status">▶️</span>`;
-          } else {
-            li.classList.add('locked');
-            li.innerHTML = `<span>${task.name}</span><span class="task-status">⭕</span>`;
-          }
-          taskList.appendChild(li);
+    function openConsent(type) {
+      const consent = CONSENTS[type];
+      if (consent) {
+        window.open(consent.url, '_blank');
+        sendToSheets({
+          action: 'consent_opened',
+          sessionCode: state.sessionCode,
+          type: type,
+          timestamp: new Date().toISOString()
         });
       }
-
-      const cont = document.getElementById('continue-btn');
-      if (cont) {
-        if (state.currentTaskIndex >= state.sequence.length) {
-          cont.textContent = 'Study Complete!';
-          cont.disabled = true;
-        } else {
-          cont.disabled = false;
-          cont.textContent = 'Continue to Current Task';
-        }
-      }
-      announce('Progress overview loaded');
     }
 
+    function markConsentDone(type) {
+      if (type === 'consent1') {
+        state.consentStatus.consent1 = true;
+        document.getElementById('consent1-card').classList.add('completed');
+        document.querySelector('#consent1-card .status-icon').textContent = '✅';
+      } else if (type === 'consent2') {
+        state.consentStatus.consent2 = true;
+        document.getElementById('consent2-card').classList.add('completed');
+        document.querySelector('#consent2-card .status-icon').textContent = '✅';
+      }
+      
+      saveState();
+      updateConsentDisplay();
+      
+      sendToSheets({
+        action: 'consent_completed',
+        sessionCode: state.sessionCode,
+        type: type,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    function declineVideo() {
+      if (confirm('Decline video consent? You can still participate in other tasks.')) {
+        state.consentStatus.videoDeclined = true;
+        state.consentStatus.consent2 = true;
+        document.getElementById('consent2-card').classList.add('declined');
+        document.querySelector('#consent2-card .status-icon').textContent = '⚠️';
+        saveState();
+        updateConsentDisplay();
+        
+        sendToSheets({
+          action: 'video_declined',
+          sessionCode: state.sessionCode,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    function updateConsentDisplay() {
+      const btn = document.getElementById('continue-from-consent');
+      const ready = state.consentStatus.consent1 && (state.consentStatus.consent2 || state.consentStatus.videoDeclined);
+      btn.disabled = !ready;
+      
+      if (state.consentStatus.consent1) {
+        document.getElementById('consent1-card').classList.add('completed');
+        document.querySelector('#consent1-card .status-icon').textContent = '✅';
+      }
+      
+      if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) {
+        const card = document.getElementById('consent2-card');
+        card.classList.add(state.consentStatus.videoDeclined ? 'declined' : 'completed');
+        document.querySelector('#consent2-card .status-icon').textContent = 
+          state.consentStatus.videoDeclined ? '⚠️' : '✅';
+      }
+    }
+
+    function proceedToTasks() {
+      if (!state.consentStatus.consent1) {
+        alert('Please complete the research consent form');
+        return;
+      }
+      showProgressScreen();
+    }
+
+    // Progress management
+    function showProgressScreen() {
+      updateTaskList();
+      updateProgressBar();
+      updateSessionWidget();
+      showScreen('progress-screen');
+    }
+
+    function updateTaskList() {
+      const list = document.getElementById('task-list');
+      list.innerHTML = '';
+      
+      state.sequence.forEach((taskCode, index) => {
+        const task = TASKS[taskCode];
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        
+        const isCompleted = state.completedTasks.includes(taskCode);
+        const isCurrent = index === state.currentTaskIndex && !isCompleted;
+        
+        if (isCompleted) li.classList.add('completed');
+        else if (isCurrent) li.classList.add('current');
+        else li.classList.add('locked');
+        
+        li.innerHTML = `
+          <div class="task-info">
+            <div class="task-name">${task.name}</div>
+            <div class="task-description">${task.description}</div>
+          </div>
+          <div class="task-status">
+            ${isCompleted ? '✅' : (isCurrent ? '▶️' : '⭕')}
+          </div>
+        `;
+        
+        list.appendChild(li);
+      });
+    }
+
+    function updateProgressBar() {
+      const progress = (state.completedTasks.length / state.sequence.length) * 100;
+      document.getElementById('progress-fill').style.width = `${progress}%`;
+      document.getElementById('progress-text').textContent = `${Math.round(progress)}%`;
+    }
+
+    function updateSessionWidget() {
+      if (!state.sessionCode) return;
+      
+      document.getElementById('widget-code').textContent = state.sessionCode;
+      document.getElementById('widget-progress').textContent = 
+        `${state.completedTasks.length}/${state.sequence.length}`;
+      document.getElementById('widget-time').textContent = 
+        `${Math.round(state.totalTimeSpent / 60000)} min`;
+      
+      const currentTask = state.sequence[state.currentTaskIndex];
+      document.getElementById('widget-current').textContent = 
+        currentTask ? TASKS[currentTask].name : 'Complete';
+    }
+
+    // Task management
     function continueToCurrentTask() {
-      if (state.currentTaskIndex < state.sequence.length) {
-        const taskCode = state.sequence[state.currentTaskIndex];
-        startTask(taskCode);
+      if (state.currentTaskIndex >= state.sequence.length) {
+        showCompletionScreen();
+        return;
       }
+      
+      const taskCode = state.sequence[state.currentTaskIndex];
+      startTask(taskCode);
     }
 
-    // ===============================================
-    // TASK MANAGEMENT
-    // ===============================================
     function startTask(taskCode) {
       const task = TASKS[taskCode];
-      if (!task) return;
-
-      ['consent-status','progress-overview','session-info'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = 'none';
-      });
-      const pauseBtn = document.getElementById('pause-button');
-      if (pauseBtn) pauseBtn.style.display = 'block';
-
-      const taskStartTime = Date.now();
-      state.taskData[taskCode] = { startTime: new Date().toISOString(), startTimestamp: taskStartTime };
-      displayTask(taskCode, task);
-
-      sendToGoogleSheets({
+      
+      if (!task) {
+        console.error('Task not found:', taskCode);
+        return;
+      }
+      
+      if (!state.taskData) {
+        state.taskData = {};
+      }
+      
+      state.taskData[taskCode] = {
+        startTime: Date.now()
+      };
+      
+      if (task.type === 'recording') {
+        showRecordingTask();
+      } else if (task.requiresUpload && taskCode === 'MRT') {
+        showMRTTask();
+      } else {
+        showExternalTask(taskCode);
+      }
+      
+      sendToSheets({
         action: 'task_started',
         sessionCode: state.sessionCode,
-        participantID: state.participantID,
         task: task.name,
         timestamp: new Date().toISOString()
       });
-      announce(`Task "${task.name}" opened`);
     }
 
-    function displayTask(taskCode, task) {
-  const taskDisplay = document.getElementById('task-display');
-  const taskTitle = document.getElementById('task-title');
-  const taskInstructions = document.getElementById('task-instructions');
-  const taskContent = document.getElementById('task-content');
-
-  const mrtUp = document.getElementById('mrt-upload');
-  const recSec = document.getElementById('recording-section');
-  const genCont = document.getElementById('general-continue');
-
-  if (mrtUp) mrtUp.style.display = 'none';
-  if (recSec) recSec.style.display = 'none';
-  if (genCont) genCont.style.display = 'none';
-
-  if (taskDisplay) taskDisplay.style.display = 'block';
-  if (taskTitle) { taskTitle.textContent = task.name; taskTitle.focus(); }
-  if (taskInstructions) taskInstructions.innerHTML = task.instructions || '';
-  if (taskContent) taskContent.innerHTML = '';
-
-  // helper to add a button
-  const addBtn = (text, className, onClick) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = className || 'button';
-    b.textContent = text;
-    b.addEventListener('click', onClick);
-    taskContent.appendChild(b);
-    return b;
-  };
-
-  // helper: small note under buttons
-  const addNote = (html) => {
-    const p = document.createElement('p');
-    p.style.marginTop = '15px';
-    p.style.color = '#666';
-    p.innerHTML = html;
-    taskContent.appendChild(p);
-  };
-
-  if (task.type === 'external' || task.type === 'consent') {
-    // Open task / consent (no inline onclick)
-    addBtn(
-      taskCode === 'ZOOM'
-        ? 'Schedule Zoom Task (15-20 min)'
-        : (task.type === 'consent' ? 'Open Consent Form' : 'Open Task'),
-      'task-button',
-      () => openExternalTask(taskCode)
-    );
-
-    // Optional ASLCT skip button
-    if (taskCode === 'ASLCT') {
-      const skip = addBtn('Skip This Task - I Do Not Know ASL', 'button button-secondary', skipASLCT);
-      skip.style.marginTop = '20px';
-      skip.style.display = 'block';
-      skip.style.marginLeft = 'auto';
-      skip.style.marginRight = 'auto';
+    function showExternalTask(taskCode) {
+      const task = TASKS[taskCode];
+      
+      document.getElementById('task-title').textContent = task.name;
+      document.getElementById('task-instructions').innerHTML = `
+        <p>${task.description}</p>
+        <div class="info-banner info">
+          <strong>Instructions:</strong>
+          <ol style="margin: 10px 0 0 20px; text-align: left;">
+            <li>Click "Open Task" to launch in a new tab</li>
+            <li>Complete the task as instructed</li>
+            <li>Return to this tab when finished</li>
+            <li>Click "Mark Complete" to continue</li>
+          </ol>
+        </div>
+      `;
+      
+      const content = document.getElementById('task-content');
+      content.innerHTML = `
+        <div class="button-group">
+          <button class="button" onclick="window.open('${task.url}', '_blank')">Open Task</button>
+          <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
+        </div>
+      `;
+      
+      if (task.canSkip) {
+        content.innerHTML += `
+          <button class="button secondary" onclick="skipTask('${taskCode}')" style="display: block; margin: 20px auto;">
+            ${taskCode === 'ASLCT' ? 'Skip - I Do Not Know ASL' : 'Skip This Task'}
+          </button>
+        `;
+      }
+      
+      showScreen('task-screen');
     }
 
-    // Video consent decline option
-    if (taskCode === 'CONSENT2' && !state.videoConsentDeclined && !state.consentCompleted.consent2) {
-      const wrap = document.createElement('div');
-      wrap.style.marginTop = '10px';
-      wrap.style.textAlign = 'center';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'button button-secondary';
-      btn.textContent = 'I do not consent to video, continue';
-      btn.addEventListener('click', declineVideoConsent);
-      wrap.appendChild(btn);
-      taskContent.appendChild(wrap);
-    }
-
-    // Info note
-    addNote(
-      taskCode === 'ZOOM'
-        ? 'Calendly will open in a new tab. Schedule the Zoom task, then return here.'
-        : 'The task will open in a new tab. Return here when complete.'
-    );
-
-    // Upload or continue
-    if (task.requiresUpload) {
+    function showMRTTask() {
+      showExternalTask('MRT');
+      
       setTimeout(() => {
-        const up = document.getElementById('mrt-upload');
-        if (up) up.style.display = 'block';
-        const existingButton = document.getElementById('mrt-continue');
-        if (existingButton) { existingButton.textContent = 'Continue to Next Task'; existingButton.style.display = 'block'; }
-        const uploadStatus = document.getElementById('upload-status');
-        if (uploadStatus && !uploadStatus.classList.contains('success')) {
-          uploadStatus.innerHTML = `
-            <div style="background:#e3f2fd; padding:10px; border-radius:5px;">
-              📌 <strong>Optional:</strong> You can upload your CSV file now or email it later.
-              <br>Click "Continue to Next Task" when ready.
-            </div>
-          `;
-          uploadStatus.style.display = 'block';
-        }
-      }, 300);
-    } else {
-      const continueBtn = document.getElementById('general-continue');
-      if (continueBtn) {
-        continueBtn.textContent = taskCode === 'ZOOM'
-          ? 'I have scheduled my meeting, continue'
-          : 'I have completed this task, continue';
-        continueBtn.style.display = 'block';
+        const content = document.getElementById('task-content');
+        content.innerHTML += `
+          <div class="info-banner warning" style="margin-top: 20px;">
+            <strong>After completing the task:</strong>
+            <p>Upload your CSV results file or email it later</p>
+            <button class="button" onclick="showScreen('mrt-upload-screen')" style="margin-top: 10px;">
+              Upload Results
+            </button>
+          </div>
+        `;
+      }, 3000);
+    }
+
+    function showRecordingTask() {
+      // Initialize recording state
+      state.recording.currentImage = 0;
+      state.recording.recordings = [];
+      state.recording.currentBlob = null;
+      
+      // Check video consent
+      if (!state.consentStatus.consent2 || state.consentStatus.videoDeclined) {
+        document.getElementById('recording-consent-check').style.display = 'block';
+        document.getElementById('recording-content').style.display = 'none';
+      } else {
+        document.getElementById('recording-consent-check').style.display = 'none';
+        document.getElementById('recording-content').style.display = 'block';
+        updateRecordingImage();
+      }
+      
+      showScreen('recording-screen');
+    }
+
+    function revokeRecordedURL() {
+      const recorded = document.getElementById('recorded-video');
+      if (recorded && recorded.src) {
+        try { URL.revokeObjectURL(recorded.src); } catch(e) {}
+        recorded.removeAttribute('src');
+        recorded.load();
       }
     }
-  } else if (task.type === 'recording') {
-    showRecordingTask();
-  }
 
-  if (task.canSkip && taskContent) {
-    const skipWrap = document.createElement('div');
-    skipWrap.style.textAlign = 'center';
-    skipWrap.style.marginTop = '10px';
-    const skipBtn = document.createElement('button');
-    skipBtn.type = 'button';
-    skipBtn.className = 'button button-secondary';
-    skipBtn.textContent = 'Skip this task';
-    skipBtn.addEventListener('click', () => skipTask(taskCode));
-    skipWrap.appendChild(skipBtn);
-    taskContent.appendChild(skipWrap);
-  }
-}
+    function updateRecordingImage() {
+      const imageNum = state.recording.currentImage + 1;
+      document.getElementById('image-number').textContent = imageNum;
+      document.getElementById('current-image').src = 
+        imageNum === 1 ? CONFIG.IMAGE_1 : CONFIG.IMAGE_2;
+      
+      // Reset UI
+      const preview = document.getElementById('video-preview');
+      const recorded = document.getElementById('recorded-video');
+      preview.style.display = 'none';
+      recorded.style.display = 'none';
+      revokeRecordedURL();
+      state.recording.currentBlob = null;
 
-
-    function setNextTaskIndex() {
-      const uncompleted = state.sequence.filter(code => !state.completedTasks.includes(code));
-      const nonZoom = uncompleted.find(code => code !== 'ZOOM');
-      state.currentTaskIndex = nonZoom
-        ? state.sequence.indexOf(nonZoom)
-        : (uncompleted[0] ? state.sequence.indexOf(uncompleted[0]) : state.sequence.length);
+      document.getElementById('record-btn').style.display = 'inline-block';
+      document.getElementById('rerecord-btn').style.display = 'none';
+      document.getElementById('save-recording-btn').style.display = 'none';
+      document.getElementById('recording-status').textContent = 'Ready to record';
+      document.getElementById('recording-status').className = 'recording-status ready';
     }
 
-    function skipASLCT() {
-      if (!confirm("Skip ASL Comprehension Test?")) return;
-      state.taskData.ASLCT = { skipped: true, reason: "Does not know ASL", timestamp: new Date().toISOString() };
-      sendToGoogleSheets({
-        action: 'task_skipped',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        task: 'ASL Comprehension Test',
-        reason: 'Does not know ASL',
+    async function toggleRecording() {
+      const btn = document.getElementById('record-btn');
+      const status = document.getElementById('recording-status');
+      const preview = document.getElementById('video-preview');
+      
+      if (!state.recording.active) {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera access not available in this environment');
+          }
+          
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 },
+            audio: true
+          });
+          
+          state.recording.stream = stream;
+          preview.srcObject = stream;
+          preview.style.display = 'block';
+          
+          if (!window.MediaRecorder) {
+            throw new Error('MediaRecorder not supported in this browser');
+          }
+          
+          let options = {};
+          if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+            options.mimeType = 'video/webm;codecs=vp9,opus';
+          } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+            options.mimeType = 'video/webm;codecs=vp8,opus';
+          }
+          
+          state.recording.mediaRecorder = new MediaRecorder(stream, options);
+          state.recording.chunks = [];
+          
+          state.recording.mediaRecorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) state.recording.chunks.push(e.data);
+          };
+          
+          state.recording.mediaRecorder.onstop = () => {
+            try {
+              const blob = new Blob(state.recording.chunks, { type: (options.mimeType || 'video/webm') });
+              const url = URL.createObjectURL(blob);
+              const recordedEl = document.getElementById('recorded-video');
+              recordedEl.src = url;
+              recordedEl.style.display = 'block';
+              preview.style.display = 'none';
+              
+              document.getElementById('record-btn').style.display = 'none';
+              document.getElementById('rerecord-btn').style.display = 'inline-block';
+              document.getElementById('save-recording-btn').style.display = 'inline-block';
+              
+              status.textContent = 'Recording complete';
+              status.className = 'recording-status recorded';
+              
+              state.recording.currentBlob = blob;
+            } catch (e) {
+              console.error('Error finalizing recording:', e);
+              alert('There was an issue finalizing the recording.');
+            }
+          };
+          
+          state.recording.mediaRecorder.start();
+          state.recording.active = true;
+          
+          btn.textContent = 'Stop Recording';
+          btn.className = 'button danger';
+          status.textContent = '🔴 Recording...';
+          status.className = 'recording-status recording';
+          
+          startRecordingTimer();
+          
+        } catch (err) {
+          console.error('Recording error:', err);
+          
+          let errorMsg = 'Could not access camera/microphone.\n\n';
+          
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            errorMsg += 'Please allow camera and microphone access when prompted.\n';
+            errorMsg += 'You may need to click the camera icon in your browser\'s address bar.';
+          } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            errorMsg += 'No camera or microphone found.\n';
+            errorMsg += 'Please ensure your device has a camera and microphone connected.';
+          } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            errorMsg += 'Your camera or microphone is already in use.\n';
+            errorMsg += 'Please close other applications using the camera.';
+          } else if (err.message.includes('not available in this environment')) {
+            errorMsg = 'Camera access is blocked in this preview environment.\n\n';
+            errorMsg += 'This will work normally on your actual website.\n';
+            errorMsg += 'The preview environment blocks camera access for security.';
+            
+            status.textContent = '⚠️ Preview Mode - Camera blocked';
+            status.className = 'recording-status';
+            status.style.color = 'var(--warning)';
+            
+            const demoNote = document.createElement('div');
+            demoNote.className = 'info-banner warning';
+            demoNote.style.marginTop = '20px';
+            demoNote.setAttribute('data-demo', 'true');
+            demoNote.innerHTML = `
+              <strong>Preview Environment Limitation</strong>
+              <p style="margin-top: 10px;">Camera access is blocked in this preview for security reasons.</p>
+              <p>On your actual website, participants will be able to grant permissions and record normally.</p>
+              <button class="button secondary" id="skip-demo-btn" style="margin-top: 10px;">Skip Task (Demo)</button>
+            `;
+            
+            const container = document.getElementById('recording-content');
+            if (!container.querySelector('#skip-demo-btn')) {
+              container.insertBefore(demoNote, container.querySelector('.video-container'));
+              document.getElementById('skip-demo-btn')?.addEventListener('click', skipRecording);
+            }
+            return;
+          } else if (err.message && err.message.includes('MediaRecorder not supported')) {
+            errorMsg += 'Your browser does not support in-browser recording. You may proceed by skipping this task.';
+          } else {
+            errorMsg += 'Error: ' + err.message;
+          }
+          
+          alert(errorMsg);
+        }
+      } else {
+        try {
+          if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
+            state.recording.mediaRecorder.stop();
+          }
+        } catch(e) {
+          console.warn('Stop error:', e);
+        } finally {
+          if (state.recording.stream) {
+            try { state.recording.stream.getTracks().forEach(track => track.stop()); } catch(e){}
+          }
+          state.recording.active = false;
+          btn.textContent = 'Start Recording';
+          btn.className = 'button danger';
+          stopRecordingTimer();
+        }
+      }
+    }
+
+    function reRecord() {
+      // Clean up any leftover stream, timer, and previous blob url
+      cleanupRecording(true).finally(() => {
+        updateRecordingImage();
+      });
+    }
+
+    function saveRecording() {
+      if (!state.recording.currentBlob) {
+        alert('Please record a video first.');
+        return;
+      }
+      state.recording.recordings.push({
+        image: state.recording.currentImage + 1,
+        blob: state.recording.currentBlob,
         timestamp: new Date().toISOString()
       });
-      completeCurrentTask();
+      
+      sendToSheets({
+        action: 'image_recorded',
+        sessionCode: state.sessionCode,
+        imageNumber: state.recording.currentImage + 1,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (state.recording.currentImage === 0) {
+        state.recording.currentImage = 1;
+        updateRecordingImage();
+      } else {
+        completeTask('ID');
+      }
+    }
+
+    // New: robust cleanup for streams, recorder, timer, and URLs
+    function cleanupRecording(keepPreviewUI = false) {
+      return new Promise(resolve => {
+        try {
+          if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
+            state.recording.mediaRecorder.addEventListener('stop', () => resolve(), { once: true });
+            try { state.recording.mediaRecorder.stop(); } catch(e) { resolve(); }
+          } else {
+            resolve();
+          }
+        } catch(e) {
+          resolve();
+        }
+      }).finally(() => {
+        try {
+          if (state.recording.stream) {
+            state.recording.stream.getTracks().forEach(t => t.stop());
+          }
+        } catch(e){}
+        state.recording.stream = null;
+        state.recording.active = false;
+        state.recording.chunks = [];
+        stopRecordingTimer();
+        if (!keepPreviewUI) {
+          const preview = document.getElementById('video-preview');
+          if (preview) {
+            preview.pause?.();
+            preview.removeAttribute('srcObject');
+            preview.style.display = 'none';
+          }
+          revokeRecordedURL();
+          const recorded = document.getElementById('recorded-video');
+          if (recorded) recorded.style.display = 'none';
+        }
+      });
+    }
+
+    function ensureTaskPointer(taskCode) {
+      if (!state.sequence || !state.sequence.length) return;
+      if (state.sequence[state.currentTaskIndex] !== taskCode) {
+        const idx = state.sequence.indexOf(taskCode);
+        if (idx !== -1) state.currentTaskIndex = idx;
+      }
+    }
+
+    async function skipRecording() {
+      if (!confirm('Skip the image description task?')) return;
+      try {
+        await cleanupRecording();
+      } catch(e) {
+        console.warn('Cleanup on skip failed silently:', e);
+      }
+      ensureTaskPointer('ID');
+      skipTask('ID');
+    }
+
+    let recordingTimer;
+    function startRecordingTimer() {
+      const timer = document.getElementById('recording-timer');
+      timer.style.display = 'block';
+      let seconds = 0;
+      
+      recordingTimer = setInterval(() => {
+        seconds++;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        timer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function stopRecordingTimer() {
+      clearInterval(recordingTimer);
+      const timer = document.getElementById('recording-timer');
+      if (timer) timer.style.display = 'none';
+    }
+
+    // File upload
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please upload a CSV file');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const uploadStatus = document.getElementById('upload-status');
+        uploadStatus.innerHTML = `
+          <div class="info-banner success">
+            ✅ File uploaded successfully!
+            <br><small>${file.name}</small>
+          </div>
+        `;
+        
+        document.getElementById('mrt-continue').style.display = 'inline-block';
+        
+        sendToSheets({
+          action: 'file_uploaded',
+          sessionCode: state.sessionCode,
+          filename: file.name,
+          timestamp: new Date().toISOString()
+        });
+      };
+      reader.readAsText(file);
+    }
+
+    function completeMRTUpload() {
+      completeTask('MRT');
+    }
+
+    function skipMRTUpload() {
+      if (confirm('Skip upload? You can email the file later.')) {
+        completeTask('MRT');
+      }
+    }
+
+    // Task completion
+    function completeTask(taskCode) {
+      const task = TASKS[taskCode];
+      
+      if (!task) {
+        console.error('Task not found:', taskCode);
+        return;
+      }
+      
+      const startTime = state.taskData && state.taskData[taskCode]?.startTime || Date.now();
+      const timeSpent = Date.now() - startTime;
+      state.totalTimeSpent += timeSpent;
+      
+      if (!state.completedTasks.includes(taskCode)) {
+        state.completedTasks.push(taskCode);
+      }
+      
+      state.currentTaskIndex++;
+      
+      while (state.currentTaskIndex < state.sequence.length && 
+             state.completedTasks.includes(state.sequence[state.currentTaskIndex])) {
+        state.currentTaskIndex++;
+      }
+      
+      saveState();
+      
+      sendToSheets({
+        action: 'task_completed',
+        sessionCode: state.sessionCode,
+        task: task.name,
+        duration: Math.round(timeSpent / 1000),
+        timestamp: new Date().toISOString()
+      });
+      
+      if (state.currentTaskIndex >= state.sequence.length) {
+        showCompletionScreen();
+      } else {
+        showProgressScreen();
+      }
     }
 
     function skipTask(taskCode) {
       const task = TASKS[taskCode];
-      const reason = taskCode === 'ID'
-        ? (state.videoConsentDeclined ? 'Video consent declined' : 'Participant chose not to record')
-        : 'Participant chose to skip';
-      if (!confirm(`Skip "${task.name}"?`)) return;
-
-      state.taskData[taskCode] = state.taskData[taskCode] || {};
-      state.taskData[taskCode].skipped = true;
-      state.taskData[taskCode].reason = reason;
-      state.taskData[taskCode].timestamp = new Date().toISOString();
-
-      sendToGoogleSheets({
+      if (!task) {
+        console.error('Task not found:', taskCode);
+        return;
+      }
+      
+      if (taskCode === 'ID') {
+        // Extra defensive cleanup if skipping from recording
+        if (state.recording && (state.recording.stream || state.recording.active)) {
+          try { state.recording.stream?.getTracks().forEach(t => t.stop()); } catch(e){}
+          state.recording.active = false;
+          state.recording.chunks = [];
+          stopRecordingTimer();
+        }
+      }
+      
+      if (!state.completedTasks.includes(taskCode)) {
+        state.completedTasks.push(taskCode);
+      }
+      
+      state.currentTaskIndex++;
+      
+      while (state.currentTaskIndex < state.sequence.length && 
+             state.completedTasks.includes(state.sequence[state.currentTaskIndex])) {
+        state.currentTaskIndex++;
+      }
+      
+      saveState();
+      
+      sendToSheets({
         action: 'task_skipped',
         sessionCode: state.sessionCode,
-        participantID: state.participantID,
         task: task.name,
-        reason,
+        reason: taskCode === 'ASLCT' ? 'Does not know ASL' : 
+                taskCode === 'ID' ? 
+                  (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 
+                  'User chose to skip',
         timestamp: new Date().toISOString()
       });
-      completeCurrentTask();
+      
+      if (state.currentTaskIndex >= state.sequence.length) {
+        showCompletionScreen();
+      } else {
+        showProgressScreen();
+      }
     }
 
-    // Expose for inline handlers and external environments
-    window.showNewParticipant = showNewParticipant;
-    window.showReturningParticipant = showReturningParticipant;
-    window.backToWelcome = backToWelcome;
-    window.createNewSession = createNewSession;
-    window.resumeSession = resumeSession;
-    window.startConsent = startConsent;
-    window.proceedWithConsent = proceedWithConsent;
-    window.continueToCurrentTask = continueToCurrentTask;
-    window.pauseAndSave = pauseAndSave;
-    window.skipASLCT = skipASLCT;
-    window.openExternalTask = openExternalTask;
-    window.completeCurrentTask = completeCurrentTask;
-    window.declineVideoConsent = declineVideoConsent;
-    window.skipTask = skipTask;
+    // Completion
+    function showCompletionScreen() {
+      document.getElementById('final-code').textContent = state.sessionCode;
+      document.getElementById('total-time').textContent = Math.round(state.totalTimeSpent / 60000);
+      
+      sendToSheets({
+        action: 'study_completed',
+        sessionCode: state.sessionCode,
+        totalDuration: Math.round(state.totalTimeSpent / 60000),
+        timestamp: new Date().toISOString()
+      });
+      
+      showScreen('completion-screen');
+      document.getElementById('pause-fab').classList.remove('active');
+    }
 
-    // New: Local EEG contact helper (prefills email with session code)
-    function contactEEGLocal() {
-      // Encourage creating a session so we can include their code
+    // Utilities
+    function pauseSession() {
+      saveState();
+      document.getElementById('modal-code').textContent = state.sessionCode;
+      document.getElementById('pause-modal').classList.add('active');
+      
+      sendToSheets({
+        action: 'session_paused',
+        sessionCode: state.sessionCode,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    function copyCode() {
+      const code = document.getElementById('display-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target;
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = original, 2000);
+      });
+    }
+
+    function contactEEG() {
       if (!state.sessionCode) {
-        const go = confirm('We can include your session code in the email. Create your session now?');
-        if (go && typeof showNewParticipant === 'function') {
-          showNewParticipant();
+        const proceed = confirm('Would you like to create your session first? This will give you a code we can reference for the EEG scheduling.');
+        if (proceed) {
+          showScreen('new-participant');
           return;
         }
       }
+      
+      const modal = document.getElementById('eeg-modal');
+      const codeEl = document.getElementById('eeg-session-code');
+      if (codeEl) codeEl.textContent = state.sessionCode || 'TBD';
+      if (modal) modal.classList.add('active');
+      
+      sendToSheets({
+        action: 'eeg_interest_clicked',
+        sessionCode: state.sessionCode || 'none',
+        participantID: state.participantID || 'none',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    function tryMailto() {
       const code = state.sessionCode || 'TBD';
-      const emailInput = document.getElementById('email');
-      const participantEmail = emailInput && emailInput.value ? `Participant email: ${emailInput.value}\n` : '';
+      const participantEmail = state.email ? `\nParticipant email: ${state.email}` : '';
       const subject = `Local EEG add-on interest - Session ${code}`;
       const body = [
         'Hello Action Brain Lab,',
@@ -1182,386 +1930,88 @@
         'I live in DC/MD/VA and would like to add the EEG visit for additional compensation.',
         '',
         `Session code: ${code}`,
-        participantEmail ? participantEmail.trim() : '',
+        participantEmail,
+        '',
         'Preferred days or times:',
         'Accessibility or communication preferences: ASL, spoken English, captions',
         '',
         'Thank you.'
       ].join('\n');
-
-      // Log click (optional analytics)
+      
       try {
-        sendToGoogleSheets({
-          action: 'eeg_interest_clicked',
-          sessionCode: state.sessionCode || 'none',
-          participantID: state.participantID || 'none',
-          timestamp: new Date().toISOString()
-        });
-      } catch (_) {}
-
-      const mailto = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-    }
-    window.contactEEGLocal = contactEEGLocal;
-
-    function openExternalTask(taskCode) {
-      const task = TASKS[taskCode];
-      if (!task) return;
-      const win = window.open(task.url, '_blank', 'noopener,noreferrer');
-      if (win) win.opener = null;
-      if (taskCode === 'ZOOM') {
-        sendToGoogleSheets({ action: 'calendly_opened', sessionCode: state.sessionCode, participantID: state.participantID, timestamp: new Date().toISOString() });
+        window.location.href = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      } catch (e) {
+        alert('Could not open email client. Please manually email: action.brain.lab@gallaudet.edu');
       }
     }
-
-    function showRecordingTask() {
-      const section = document.getElementById('recording-section');
-      const bannerNoConsent = document.getElementById('video-consent-banner');
-      const bannerDeclined = document.getElementById('video-declined-banner');
-      const videoContainer = document.getElementById('video-container');
-      const counter = document.getElementById('image-counter');
-      if (!section) return;
-      section.style.display = 'block';
-
-      if (videoContainer) videoContainer.style.display = 'none';
-      if (counter) counter.style.display = 'none';
-      if (bannerNoConsent) bannerNoConsent.style.display = 'none';
-      if (bannerDeclined) bannerDeclined.style.display = 'none';
-
-      if (state.videoConsentDeclined) {
-        if (bannerDeclined) bannerDeclined.style.display = 'block';
-        return;
-      }
-      if (!state.consentCompleted.consent2) {
-        if (bannerNoConsent) bannerNoConsent.style.display = 'block';
-        return;
-      }
-
-      if (videoContainer) videoContainer.style.display = 'grid';
-      if (counter) counter.style.display = 'inline-block';
-
-      state.currentImageIndex = 0;
-      state.imageRecordings = [];
-      updateCurrentImage();
-
-      const rb = document.getElementById('record-button');
-      const rr = document.getElementById('re-record-button');
-      const sv = document.getElementById('save-video-button');
-      if (rb) rb.onclick = toggleRecording;
-      if (rr) rr.onclick = reRecord;
-      if (sv) sv.onclick = saveAndContinue;
-    }
-
-    function updateCurrentImage() {
-      const imageUrl = state.currentImageIndex === 0 ? CONFIG.IMAGE_1_URL : CONFIG.IMAGE_2_URL;
-      const img = document.getElementById('current-image');
-      const counter = document.getElementById('image-counter');
-      const vp = document.getElementById('video-preview');
-      const rv = document.getElementById('recorded-video');
-      const rb = document.getElementById('record-button');
-      const rrb = document.getElementById('re-record-button');
-      const sb = document.getElementById('save-video-button');
-      const rs = document.getElementById('recording-status');
-      const rt = document.getElementById('recording-timer');
-
-      if (img) img.src = imageUrl;
-      if (counter) counter.textContent = `Image ${state.currentImageIndex + 1} of 2`;
-
-      if (vp) vp.style.display = 'none';
-      if (rv) rv.style.display = 'none';
-      if (rb) { rb.style.display = 'block'; rb.textContent = 'Start Recording'; rb.classList.remove('recording'); }
-      if (rrb) rrb.style.display = 'none';
-      if (sb) sb.style.display = 'none';
-      if (rs) { rs.textContent = 'Ready to record'; rs.className = 'recording-status ready'; }
-      if (rt) rt.style.display = 'none';
-    }
-
-    async function toggleRecording() {
-      const button = document.getElementById('record-button');
-      const status = document.getElementById('recording-status');
-      const timer = document.getElementById('recording-timer');
-      const videoPreview = document.getElementById('video-preview');
-
-      if (!state.recording) {
-        try {
-          const stream = state.currentStream || await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }, audio: true
-          });
-          state.currentStream = stream;
-          if (videoPreview) {
-            videoPreview.srcObject = stream;
-            videoPreview.style.display = 'block';
-          }
-
-          state.mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
-          state.videoChunks = [];
-          state.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) state.videoChunks.push(e.data); };
-          state.mediaRecorder.onstop = () => {
-            const blob = new Blob(state.videoChunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const recordedVideo = document.getElementById('recorded-video');
-            if (recordedVideo) {
-              recordedVideo.src = url;
-              recordedVideo.style.display = 'block';
-            }
-            if (videoPreview) videoPreview.style.display = 'none';
-            if (button) button.style.display = 'none';
-            const rrb = document.getElementById('re-record-button'); if (rrb) rrb.style.display = 'block';
-            const sb = document.getElementById('save-video-button'); if (sb) sb.style.display = 'block';
-            if (status) { status.textContent = '✅ Recording complete! Review your video below.'; status.className = 'recording-status recorded'; }
-            state.currentRecording = blob;
-            state.currentRecordingURL = url;
-          };
-
-          state.mediaRecorder.start();
-          state.recording = true;
-          state.recordingStartTime = Date.now();
-          if (button) { button.textContent = 'Stop Recording'; button.classList.add('recording'); }
-          if (status) { status.textContent = '🔴 Recording in progress...'; status.className = 'recording-status recording'; }
-          if (timer) { timer.style.display = 'block'; }
-          state.recordingTimer = setInterval(updateRecordingTimer, 1000);
-        } catch (err) {
-          alert('Could not start recording. Please ensure you have granted camera and microphone permissions.');
-          console.error('Recording error:', err);
-        }
-      } else {
-        state.mediaRecorder.stop();
-        state.recording = false;
-        if (button) { button.textContent = 'Start Recording'; button.classList.remove('recording'); }
-        clearInterval(state.recordingTimer);
-        if (timer) timer.style.display = 'none';
-      }
-    }
-
-    function updateRecordingTimer() {
-      const elapsed = Math.floor((Date.now() - state.recordingStartTime) / 1000);
-      const minutes = Math.floor(elapsed / 60);
-      const seconds = elapsed % 60;
-      const el = document.getElementById('recording-timer');
-      if (el) el.textContent =
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    function reRecord() {
-      const vp = document.getElementById('video-preview');
-      const rv = document.getElementById('recorded-video');
-      const rb = document.getElementById('record-button');
-      const rrb = document.getElementById('re-record-button');
-      const sb = document.getElementById('save-video-button');
-      const rs = document.getElementById('recording-status');
-      if (vp) vp.style.display = 'block';
-      if (rv) rv.style.display = 'none';
-      if (rb) { rb.style.display = 'block'; rb.textContent = 'Start Recording'; rb.classList.remove('recording'); }
-      if (rrb) rrb.style.display = 'none';
-      if (sb) sb.style.display = 'none';
-      if (rs) { rs.textContent = 'Ready to record'; rs.className = 'recording-status ready'; }
-      if (state.currentRecordingURL) URL.revokeObjectURL(state.currentRecordingURL);
-    }
-
-    function saveAndContinue() {
-      state.imageRecordings.push({
-        imageNumber: state.currentImageIndex + 1,
-        blob: state.currentRecording,
-        url: state.currentRecordingURL,
-        timestamp: new Date().toISOString()
+    
+    function copyEmail() {
+      navigator.clipboard.writeText('action.brain.lab@gallaudet.edu').then(() => {
+        const btn = event.target;
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = original, 2000);
+      }).catch(() => {
+        alert('Email: action.brain.lab@gallaudet.edu');
       });
-      sendToGoogleSheets({
-        action: 'video_recorded',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        imageNumber: state.currentImageIndex + 1,
-        timestamp: new Date().toISOString()
-      });
-      if (state.currentImageIndex === 0) {
-        state.currentImageIndex = 1;
-        updateCurrentImage();
-        const sb = document.getElementById('save-video-button');
-        if (sb) sb.textContent = 'Save & Complete Task';
-      } else {
-        cleanupVideoRecording();
-        completeCurrentTask();
-      }
+    }
+    
+    function closeEEGModal() {
+      document.getElementById('eeg-modal').classList.remove('active');
     }
 
-    function cleanupVideoRecording() {
-      if (state.currentStream) {
-        state.currentStream.getTracks().forEach(track => track.stop());
-        state.currentStream = null;
-      }
-      if (state.recordingTimer) { clearInterval(state.recordingTimer); state.recordingTimer = null; }
-      state.taskData.ID = state.taskData.ID || {};
-      state.taskData.ID.recordings = state.imageRecordings;
-      state.taskData.ID.recordingComplete = true;
-    }
-
-    function handleMRTUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const looksCSV = (file.type && file.type === 'text/csv') || file.name.toLowerCase().endsWith('.csv');
-      if (!looksCSV) { alert('Please upload a CSV file.'); return; }
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result || '';
-        const firstLine = (text.split('\n')[0] || '').toLowerCase();
-        if (!firstLine.includes('rt') && !firstLine.includes('reaction')) {
-          if (!confirm('This file may not be the MRT results. Continue anyway?')) return;
-        }
-        state.taskData.MRT = state.taskData.MRT || {};
-        state.taskData.MRT.fileContent = text;
-        state.taskData.MRT.fileName = file.name;
-
-        const uploadStatus = document.getElementById('upload-status');
-        if (uploadStatus) {
-          uploadStatus.className = 'upload-status success';
-          uploadStatus.innerHTML = `✅ File uploaded successfully!<br><small>File: ${file.name}</small>`;
-        }
-        const continueBtn = document.getElementById('mrt-continue');
-        if (continueBtn) continueBtn.textContent = 'Continue to Next Task ✓';
-        sendToGoogleSheets({
-          action: 'mrt_uploaded',
-          sessionCode: state.sessionCode,
-          participantID: state.participantID,
-          fileName: file.name,
-          timestamp: new Date().toISOString()
-        });
-      };
-      reader.readAsText(file);
-    }
-
-    function completeCurrentTask() {
-      const taskCode = state.sequence[state.currentTaskIndex];
-      const task = TASKS[taskCode];
-      const td = state.taskData[taskCode] || {};
-      const startStamp = td.startTimestamp || Date.now();
-      const timeSpent = Math.max(0, Date.now() - startStamp);
-
-      td.endTime = new Date().toISOString();
-      td.duration = timeSpent;
-      state.taskData[taskCode] = td;
-
-      state.totalTimeSpent += timeSpent;
-      if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
-      if (taskCode === 'CONSENT1') state.consentCompleted.consent1 = true;
-      else if (taskCode === 'CONSENT2' && !state.videoConsentDeclined) state.consentCompleted.consent2 = true;
-
-      saveState();
-      sendToGoogleSheets({
-        action: 'task_completed',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        task: task.name,
-        duration: Math.round(timeSpent / 1000),
-        timestamp: new Date().toISOString()
-      });
-
-      state.currentTaskIndex++;
-      ['task-display','mrt-upload','recording-section','general-continue','pause-button'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = 'none';
-      });
-
-      if (taskCode === 'ZOOM') {
-        showConsentStatus();
-      } else if (taskCode === 'CONSENT1' && !state.consentCompleted.consent2 && !state.videoConsentDeclined) {
-        showConsentStatus();
-      } else {
-        setNextTaskIndex();
-        if (state.currentTaskIndex >= state.sequence.length) completeStudy();
-        else showProgressOverview();
-      }
-    }
-
-    function completeStudy() {
-      sendToGoogleSheets({
-        action: 'study_completed',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        totalDuration: Math.round(state.totalTimeSpent / 60000),
-        timestamp: new Date().toISOString()
-      });
-      const content = document.querySelector('.content');
-      if (content) {
-        content.innerHTML = `
-          <div class="completion-screen">
-            <h2>🎉 Study Complete!</h2>
-            <p style="font-size: 20px; margin: 20px 0;">Thank you for participating in our research!</p>
-            <p>Your session code was: <strong>${state.sessionCode}</strong></p>
-            <p>Total time: ${Math.round(state.totalTimeSpent / 60000)} minutes</p>
-            <p style="margin-top: 30px; color: #666;">You may now close this window.</p>
-          </div>
-        `;
-      }
-      announce('Study complete');
-    }
-
-    function pauseAndSave() {
-      saveState();
-      const mc = document.getElementById('modal-code');
-      if (mc) mc.textContent = state.sessionCode;
-      const pm = document.getElementById('pause-modal');
-      if (pm) pm.style.display = 'block';
-      const btn = document.querySelector('#pause-modal .button');
-      if (btn) btn.focus();
-
-      sendToGoogleSheets({
-        action: 'session_paused',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        progress: `${state.completedTasks.length}/${state.sequence.length}`,
-        timestamp: new Date().toISOString()
-      });
-      announce('Session saved');
-    }
-
-    // ===============================================
-    // UTILITIES
-    // ===============================================
     function hashCode(str) {
       let hash = 0;
-      for (let i = 0; i < str.length; i++) { const char = str.charCodeAt(i); hash = ((hash << 5) - hash) + char; hash = hash & hash; }
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
       return hash;
     }
 
-    async function sendToGoogleSheets(data) {
-      if (!CONFIG.GOOGLE_SHEETS_URL || CONFIG.GOOGLE_SHEETS_URL === 'YOUR_GOOGLE_SHEETS_WEB_APP_URL_HERE') {
-        console.log('Google Sheets not configured:', data); return;
+    async function sendToSheets(data) {
+      if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) {
+        console.log('Sheets not configured:', data);
+        return;
       }
+      
       try {
-        await fetch(CONFIG.GOOGLE_SHEETS_URL, {
-          method: 'POST', mode: 'no-cors',
+        await fetch(CONFIG.SHEETS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
       } catch (error) {
-        console.error('Error sending to Google Sheets:', error);
+        console.error('Error sending to sheets:', error);
       }
     }
 
-    function copyCode(selector, btnEl) {
-      const el = document.querySelector(selector);
-      if (!el) return;
-      const text = el.textContent.trim();
-      const done = () => {
-        if (btnEl) {
-          const orig = btnEl.textContent;
-          btnEl.textContent = 'Copied ✓';
-          setTimeout(() => btnEl.textContent = orig, 1200);
-        }
-      };
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(done, done);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done();
-      }
-    }
+    // Expose functions to global scope for onclick handlers
+    window.showScreen = showScreen;
+    window.createNewSession = createNewSession;
+    window.resumeSession = resumeSession;
+    window.proceedToConsent = proceedToConsent;
+    window.openConsent = openConsent;
+    window.markConsentDone = markConsentDone;
+    window.declineVideo = declineVideo;
+    window.proceedToTasks = proceedToTasks;
+    window.continueToCurrentTask = continueToCurrentTask;
+    window.pauseSession = pauseSession;
     window.copyCode = copyCode;
+    window.contactEEG = contactEEG;
+    window.tryMailto = tryMailto;
+    window.copyEmail = copyEmail;
+    window.closeEEGModal = closeEEGModal;
+    window.completeTask = completeTask;
+    window.skipTask = skipTask;
+    window.toggleRecording = toggleRecording;
+    window.reRecord = reRecord;
+    window.saveRecording = saveRecording;
+    window.completeMRTUpload = completeMRTUpload;
+    window.skipMRTUpload = skipMRTUpload;
+    window.skipRecording = skipRecording;
   </script>
 </body>
 </html>
-
