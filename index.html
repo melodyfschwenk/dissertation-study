@@ -114,7 +114,7 @@
     .session-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
     .session-detail { background: white; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #667eea; }
     .session-detail label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .session-detail .value { font-size: 16px; font-weight: bold; color: var(--text-dark); margin-top: 3px; }
+    .session-detail .value { font-size: 16px; font-weight: bold; color: #333; margin-top: 3px; }
     
     /* Code display */
     .code-display { background: var(--primary-gradient); color: white; padding: 30px; border-radius: 10px; text-align: center; margin: 20px 0; }
@@ -213,7 +213,7 @@
           </div>
           <div class="session-detail">
             <label>Progress</label>
-            <div class="value" id="widget-progress">0/9</div>
+            <div class="value" id="widget-progress">0/7</div>
           </div>
           <div class="session-detail">
             <label>Time Spent</label>
@@ -600,7 +600,7 @@
       },
       'SN': {
         name: 'Spatial Navigation',
-        description: 'Maze navigation exercises',
+        description: 'Choose the first step from the player to the stop sign',
         url: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
         type: 'external'
       },
@@ -850,7 +850,8 @@
         const li = document.createElement('li');
         li.className = 'task-item';
         const isCompleted = state.completedTasks.includes(taskCode);
-        const isCurrent = index === state.currentTaskIndex && !isCompleted;
+        theIsCurrent = index === state.currentTaskIndex && !isCompleted;
+        const isCurrent = theIsCurrent;
         if (isCompleted) li.classList.add('completed');
         else if (isCurrent) li.classList.add('current');
         else li.classList.add('locked');
@@ -957,9 +958,52 @@
       } else if (taskCode === 'SN') {
         extra = `
           <div class="info-banner info" style="margin-top: 10px;">
-            <strong>Goal:</strong>
-            <p style="margin-top: 6px;">Navigate mazes efficiently. Use keyboard (arrow keys or WASD). Try to minimize backtracking. If stuck, explore systematically.</p>
-          </div>`;
+            <strong>What you'll do</strong>
+            <p style="margin-top: 6px;">
+              In each mini-maze, move from the <strong>gray player</strong> to the <strong>red stop sign</strong> while avoiding blue walls.
+              You press <em>one</em> arrow key for the <em>first</em> step the player should take.
+            </p>
+          </div>
+
+          <div class="info-banner success" style="margin-top: 10px;">
+            <strong>PLAYER VIEW (egocentric)</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>UP = move <em>forward</em> (the direction the player is facing)</li>
+              <li>DOWN = move backward</li>
+              <li>LEFT = move to the player’s left</li>
+              <li>RIGHT = move to the player’s right</li>
+            </ul>
+            <p style="margin-top: 8px;">Example: UP moves you forward in whatever direction the triangle is pointing.</p>
+          </div>
+
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>MAP VIEW (allocentric)</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>UP = toward the <em>top</em> of the screen</li>
+              <li>DOWN = toward the <em>bottom</em> of the screen</li>
+              <li>LEFT = toward the <em>left</em> side of the screen</li>
+              <li>RIGHT = toward the <em>right</em> side of the screen</li>
+            </ul>
+            <p style="margin-top: 8px;">The player’s facing direction does not matter here—UP is always “toward the top”.</p>
+          </div>
+
+          <div class="info-banner warning" style="margin-top: 10px;">
+            <strong>ARROW FOLLOWING (control)</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Press the arrow key that matches the <em>first arrow</em> shown from the player.</li>
+              <li>UP if the first arrow points up; DOWN if it points down; LEFT if left; RIGHT if right.</li>
+            </ul>
+          </div>
+
+          <div class="info-banner" style="border-left-color:#667eea; margin-top: 10px;">
+            <strong>Timing & tips</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Choose the <em>first</em> step toward the stop sign—just one key press per trial.</li>
+              <li>Respond <em>quickly and correctly</em>. If unsure, make your best quick choice.</li>
+              <li>Use a keyboard (desktop/laptop recommended).</li>
+            </ul>
+          </div>
+        `;
       }
 
       document.getElementById('task-title').textContent = task.name;
@@ -1030,7 +1074,8 @@
       const recorded = document.getElementById('recorded-video');
       if (recorded && recorded.src) {
         try { URL.revokeObjectURL(recorded.src); } catch(e) {}
-        recorded.removeAttribute('src'); recorded.load();
+        recorded.removeAttribute('src');
+        recorded.load?.();
       }
     }
 
@@ -1137,16 +1182,26 @@
           state.recording.mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) state.recording.chunks.push(e.data); };
           state.recording.mediaRecorder.onstop = () => {
             try {
+              // Clear any previous blob URL before setting a new one
+              revokeRecordedURL();
+
               const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/webm' });
               const url = URL.createObjectURL(blob);
               const recordedEl = document.getElementById('recorded-video');
-              recordedEl.src = url; recordedEl.style.display = 'block'; preview.style.display = 'none';
+              recordedEl.src = url; 
+              recordedEl.style.display = 'block'; 
+              preview.style.display = 'none';
+
               document.getElementById('record-btn').style.display = 'none';
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
-              status.textContent = 'Recording complete'; status.className = 'recording-status recorded';
+              status.textContent = 'Recording complete'; 
+              status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
-            } catch (e) { console.error('Finalize error:', e); alert('There was an issue finalizing the recording.'); }
+            } catch (e) { 
+              console.error('Finalize error:', e); 
+              alert('There was an issue finalizing the recording.'); 
+            }
           };
 
           state.recording.mediaRecorder.start();
@@ -1212,11 +1267,25 @@
         } catch(e) { resolve(); }
       }).finally(() => {
         try { if (state.recording.stream) state.recording.stream.getTracks().forEach(t => t.stop()); } catch(e){}
-        state.recording.stream = null; state.recording.active = false; state.recording.chunks = []; stopRecordingTimer();
+        state.recording.stream = null; 
+        state.recording.active = false; 
+        state.recording.chunks = []; 
+        stopRecordingTimer();
+
         if (!keepPreviewUI) {
           const preview = document.getElementById('video-preview');
-          if (preview) { preview.pause?.(); preview.removeAttribute('srcObject'); preview.style.display = 'none'; }
-          revokeRecordedURL(); const recorded = document.getElementById('recorded-video'); if (recorded) recorded.style.display = 'none';
+          if (preview) {
+            preview.pause?.();
+            preview.srcObject = null;   // detach the stream
+            preview.style.display = 'none';
+          }
+          // Hide and revoke any recorded preview URL
+          const recorded = document.getElementById('recorded-video');
+          if (recorded) {
+            revokeRecordedURL();
+            recorded.style.display = 'none';
+          }
+          state.recording.mediaRecorder = null;
         }
       });
     }
