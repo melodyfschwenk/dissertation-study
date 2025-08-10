@@ -48,7 +48,7 @@
     
     .content { padding: 40px; }
     
-    /* Screen containers */
+    /* Screens */
     .screen { display: none; animation: fadeIn 0.3s ease-in; }
     .screen.active { display: block; }
     
@@ -57,7 +57,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Cards and panels */
+    /* Cards / banners */
     .card {
       background: var(--gray-light);
       border-radius: 10px;
@@ -66,11 +66,7 @@
       border: 2px solid var(--gray-border);
       transition: all 0.3s;
     }
-    
-    .card:hover {
-      border-color: #667eea;
-      box-shadow: 0 5px 15px rgba(102,126,234,0.2);
-    }
+    .card:hover { border-color: #667eea; box-shadow: 0 5px 15px rgba(102,126,234,0.2); }
     
     .info-banner {
       padding: 15px 20px;
@@ -78,488 +74,123 @@
       margin: 20px 0;
       border-left: 4px solid;
     }
-    
-    .info-banner.success {
-      background: #e8f5e9;
-      border-left-color: var(--success);
-      color: #1b5e20;
-    }
-    
-    .info-banner.warning {
-      background: #fff3cd;
-      border-left-color: var(--warning);
-      color: #856404;
-    }
-    
-    .info-banner.info {
-      background: #e3f2fd;
-      border-left-color: var(--info);
-      color: #0d47a1;
-    }
+    .info-banner.success { background: #e8f5e9; border-left-color: var(--success); color: #1b5e20; }
+    .info-banner.warning { background: #fff3cd; border-left-color: var(--warning); color: #856404; }
+    .info-banner.info { background: #e3f2fd; border-left-color: var(--info); color: #0d47a1; }
     
     /* Forms */
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #555;
-    }
-    
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
     .form-group input {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid var(--gray-border);
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border-color 0.3s;
+      width: 100%; padding: 12px; border: 2px solid var(--gray-border);
+      border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
     }
-    
-    .form-group input:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-    
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
+    .form-group input:focus { outline: none; border-color: #667eea; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     
     /* Buttons */
     .button {
-      background: var(--primary-gradient);
-      color: white;
-      border: none;
-      padding: 15px 40px;
-      border-radius: 50px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
-      margin: 5px;
-      display: inline-block;
+      background: var(--primary-gradient); color: white; border: none;
+      padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold;
+      cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+      margin: 5px; display: inline-block;
     }
+    .button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 20px rgba(102,126,234,0.5); }
+    .button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .button.secondary { background: #6c757d; }
+    .button.success { background: var(--success); }
+    .button.danger { background: var(--danger); }
+    .button.outline { background: white; color: #667eea; border: 2px solid #667eea; }
+    .button.outline:hover { background: #667eea; color: white; }
+    .button-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
     
-    .button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(102,126,234,0.5);
-    }
-    
-    .button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .button.secondary {
-      background: #6c757d;
-    }
-    
-    .button.success {
-      background: var(--success);
-    }
-    
-    .button.danger {
-      background: var(--danger);
-    }
-    
-    .button.outline {
-      background: white;
-      color: #667eea;
-      border: 2px solid #667eea;
-    }
-    
-    .button.outline:hover {
-      background: #667eea;
-      color: white;
-    }
-    
-    .button-group {
-      display: flex;
-      gap: 10px;
-      margin: 20px 0;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    
-    /* Session info widget */
+    /* Session widget */
     .session-widget {
       background: linear-gradient(135deg, #667eea20, #764ba220);
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 30px;
-      display: none;
+      border-radius: 10px; padding: 20px; margin-bottom: 30px; display: none;
     }
-    
     .session-widget.active { display: block; }
+    .session-widget h3 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
+    .session-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .session-detail { background: white; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #667eea; }
+    .session-detail label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .session-detail .value { font-size: 16px; font-weight: bold; color: var(--text-dark); margin-top: 3px; }
     
-    .session-widget h3 {
-      color: #667eea;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
+    /* Code display */
+    .code-display { background: var(--primary-gradient); color: white; padding: 30px; border-radius: 10px; text-align: center; margin: 20px 0; }
+    .code-display .code { font-size: 36px; font-weight: bold; letter-spacing: 3px; margin: 15px 0; font-family: monospace; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
     
-    .session-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-    }
+    /* Consent grid */
+    .consent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+    .consent-card { background: white; border: 2px solid var(--gray-border); border-radius: 10px; padding: 20px; text-align: center; transition: all 0.3s; position: relative; }
+    .consent-card.completed { border-color: var(--success); background: #f1f8f4; }
+    .consent-card.declined { border-color: var(--warning); background: #fff9e6; }
+    .consent-card .status-icon { font-size: 48px; margin-bottom: 15px; }
+    .consent-card h4 { color: var(--text-dark); margin-bottom: 10px; }
+    .consent-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
     
-    .session-detail {
-      background: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      border-left: 3px solid #667eea;
-    }
-    
-    .session-detail label {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .session-detail .value {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--text-dark);
-      margin-top: 3px;
-    }
-    
-    /* Resume code display */
-    .code-display {
-      background: var(--primary-gradient);
-      color: white;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-      margin: 20px 0;
-    }
-    
-    .code-display .code {
-      font-size: 36px;
-      font-weight: bold;
-      letter-spacing: 3px;
-      margin: 15px 0;
-      font-family: monospace;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    /* Consent forms section */
-    .consent-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin: 20px 0;
-    }
-    
-    .consent-card {
-      background: white;
-      border: 2px solid var(--gray-border);
-      border-radius: 10px;
-      padding: 20px;
-      text-align: center;
-      transition: all 0.3s;
-      position: relative;
-    }
-    
-    .consent-card.completed {
-      border-color: var(--success);
-      background: #f1f8f4;
-    }
-    
-    .consent-card.declined {
-      border-color: var(--warning);
-      background: #fff9e6;
-    }
-    
-    .consent-card .status-icon {
-      font-size: 48px;
-      margin-bottom: 15px;
-    }
-    
-    .consent-card h4 {
-      color: var(--text-dark);
-      margin-bottom: 10px;
-    }
-    
-    .consent-card p {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-bottom: 15px;
-    }
-    
-    /* Task list */
-    .task-list {
-      list-style: none;
-      margin: 20px 0;
-    }
-    
-    .task-item {
-      padding: 20px;
-      margin: 10px 0;
-      background: white;
-      border-radius: 10px;
-      border-left: 4px solid var(--gray-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: all 0.3s;
-    }
-    
-    .task-item:hover {
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    }
-    
-    .task-item.completed {
-      border-left-color: var(--success);
-      background: #f9fdf9;
-    }
-    
-    .task-item.current {
-      border-left-color: var(--warning);
-      background: #fffbf5;
-      font-weight: bold;
-      box-shadow: 0 3px 10px rgba(255,152,0,0.2);
-    }
-    
-    .task-item.locked {
-      opacity: 0.6;
-    }
-    
-    .task-info {
-      flex: 1;
-    }
-    
-    .task-name {
-      font-size: 16px;
-      color: var(--text-dark);
-      margin-bottom: 5px;
-    }
-    
-    .task-description {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-    
-    .task-status {
-      font-size: 24px;
-      margin-left: 20px;
-    }
+    /* Tasks list */
+    .task-list { list-style: none; margin: 20px 0; }
+    .task-item { padding: 20px; margin: 10px 0; background: white; border-radius: 10px; border-left: 4px solid var(--gray-border); display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
+    .task-item:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    .task-item.completed { border-left-color: var(--success); background: #f9fdf9; }
+    .task-item.current { border-left-color: var(--warning); background: #fffbf5; font-weight: bold; box-shadow: 0 3px 10px rgba(255,152,0,0.2); }
+    .task-item.locked { opacity: 0.6; }
+    .task-info { flex: 1; }
+    .task-name { font-size: 16px; color: var(--text-dark); margin-bottom: 5px; }
+    .task-description { font-size: 13px; color: var(--text-muted); }
+    .task-status { font-size: 24px; margin-left: 20px; }
     
     /* Progress bar */
-    .progress-bar {
-      background: var(--gray-light);
-      height: 30px;
-      border-radius: 15px;
-      overflow: hidden;
-      margin: 20px 0;
-      position: relative;
-    }
+    .progress-bar { background: var(--gray-light); height: 30px; border-radius: 15px; overflow: hidden; margin: 20px 0; position: relative; }
+    .progress-fill { background: var(--primary-gradient); height: 100%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
     
-    .progress-fill {
-      background: var(--primary-gradient);
-      height: 100%;
-      transition: width 0.5s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 14px;
-    }
-    
-    /* Video recording section */
-    .video-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin: 20px 0;
-    }
-    
-    .video-panel {
-      text-align: center;
-    }
-    
-    .video-panel h3 {
-      color: var(--text-dark);
-      margin-bottom: 15px;
-    }
-    
-    #video-preview, #recorded-video {
-      width: 100%;
-      max-width: 500px;
-      height: 375px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      background: #000;
-    }
-    
-    #video-preview {
-      border: 2px solid var(--success);
-      transform: scaleX(-1);
-    }
-    
-    #recorded-video {
-      border: 2px solid var(--info);
-    }
-    
-    .recording-controls {
-      margin-top: 20px;
-      padding: 20px;
-      background: var(--gray-light);
-      border-radius: 10px;
-    }
-    
-    .recording-status {
-      margin: 15px 0;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    
+    /* Video section */
+    .video-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0; }
+    .video-panel { text-align: center; }
+    .video-panel h3 { color: var(--text-dark); margin-bottom: 15px; }
+    #video-preview, #recorded-video { width: 100%; max-width: 500px; height: 375px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); background: #000; }
+    #video-preview { border: 2px solid var(--success); transform: scaleX(-1); }
+    #recorded-video { border: 2px solid var(--info); }
+    .recording-controls { margin-top: 20px; padding: 20px; background: var(--gray-light); border-radius: 10px; }
+    .recording-status { margin: 15px 0; font-size: 18px; font-weight: bold; }
     .recording-status.ready { color: var(--text-muted); }
-    .recording-status.recording { 
-      color: var(--danger);
-      animation: pulse 1.5s infinite;
-    }
+    .recording-status.recording { color: var(--danger); animation: pulse 1.5s infinite; }
     .recording-status.recorded { color: var(--success); }
+    @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:.5} }
     
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
+    /* File upload box */
+    .file-upload { border: 2px dashed #667eea; border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: white; }
+    .file-upload:hover { background: #f0f4ff; border-color: #4a5fc4; }
+    .file-upload.drag-over { background: #e8ecff; border-color: #4a5fc4; }
+    .file-upload input[type="file"] { display: none; }
     
-    /* File upload */
-    .file-upload {
-      border: 2px dashed #667eea;
-      border-radius: 10px;
-      padding: 40px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s;
-      background: white;
-    }
-    
-    .file-upload:hover {
-      background: #f0f4ff;
-      border-color: #4a5fc4;
-    }
-    
-    .file-upload.drag-over {
-      background: #e8ecff;
-      border-color: #4a5fc4;
-    }
-    
-    .file-upload input[type="file"] {
-      display: none;
-    }
-    
-    /* Modal */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      animation: fadeIn 0.3s;
-    }
-    
-    .modal.active {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .modal-content {
-      background-color: white;
-      padding: 40px;
-      border-radius: 15px;
-      width: 90%;
-      max-width: 500px;
-      text-align: center;
-      animation: slideUp 0.3s;
-    }
-    
-    @keyframes slideUp {
-      from { transform: translateY(50px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+    /* Modals */
+    .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background-color: white; padding: 40px; border-radius: 15px; width: 90%; max-width: 500px; text-align: center; animation: slideUp 0.3s; }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     
     /* Footer */
-    .footer {
-      background: var(--gray-light);
-      padding: 30px;
-      text-align: center;
-      color: var(--text-muted);
-    }
+    .footer { background: var(--gray-light); padding: 30px; text-align: center; color: var(--text-muted); }
     
-    /* Floating action button */
-    .fab {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      z-index: 1000;
-      background: var(--warning);
-      color: white;
-      border: none;
-      padding: 15px 25px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      display: none;
-      transition: all 0.3s;
-    }
-    
+    /* FAB */
+    .fab { position: fixed; bottom: 30px; right: 30px; z-index: 1000; background: var(--warning); color: white; border: none; padding: 15px 25px; border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: none; transition: all 0.3s; }
     .fab.active { display: block; }
     .fab:hover { transform: scale(1.05); }
     
     /* Responsive */
     @media (max-width: 768px) {
-      .container {
-        border-radius: 0;
-        margin: 0;
-      }
-      
-      .form-row,
-      .consent-grid,
-      .video-container {
-        grid-template-columns: 1fr;
-      }
-      
-      .session-details {
-        grid-template-columns: 1fr;
-      }
-      
-      .button-group {
-        flex-direction: column;
-      }
-      
-      .button {
-        width: 100%;
-      }
+      .container { border-radius: 0; margin: 0; }
+      .form-row, .consent-grid, .video-container { grid-template-columns: 1fr; }
+      .session-details { grid-template-columns: 1fr; }
+      .button-group { flex-direction: column; }
+      .button { width: 100%; }
     }
     
     /* Accessibility */
-    .sr-only {
-      position: absolute;
-      left: -9999px;
-    }
-    
-    @media (prefers-reduced-motion: reduce) {
-      * {
-        animation: none !important;
-        transition: none !important;
-      }
-    }
+    .sr-only { position: absolute; left: -9999px; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   </style>
 </head>
 <body>
@@ -572,7 +203,7 @@
     <div class="content">
       <div id="live-status" role="status" aria-live="polite" class="sr-only"></div>
 
-      <!-- Session Widget (shows throughout) -->
+      <!-- Session Widget -->
       <div class="session-widget" id="session-widget">
         <h3>📊 Your Session</h3>
         <div class="session-details">
@@ -595,7 +226,7 @@
         </div>
       </div>
 
-      <!-- Welcome Screen -->
+      <!-- Welcome -->
       <div class="screen active" id="welcome-screen">
         <h2 style="text-align: center; margin-bottom: 30px;">Welcome to Our Research Study</h2>
         
@@ -636,7 +267,7 @@
         </div>
       </div>
 
-      <!-- New Participant Screen -->
+      <!-- New Participant -->
       <div class="screen" id="new-participant">
         <h2>New Participant Registration</h2>
         <p style="color: var(--text-muted); margin-bottom: 30px;">Create your unique session to track your progress</p>
@@ -663,7 +294,7 @@
         </div>
       </div>
 
-      <!-- Returning Participant Screen -->
+      <!-- Returning Participant -->
       <div class="screen" id="returning-participant">
         <h2>Resume Your Session</h2>
         <p style="color: var(--text-muted); margin-bottom: 30px;">Enter your 8-character code to continue</p>
@@ -685,14 +316,14 @@
         </div>
       </div>
 
-      <!-- Session Created Screen -->
+      <!-- Session Created -->
       <div class="screen" id="session-created">
         <h2>✅ Session Created Successfully!</h2>
         
         <div class="code-display">
           <p>Your Resume Code:</p>
           <div class="code" id="display-code">ABC12345</div>
-          <button class="button outline" onclick="copyCode()">📋 Copy Code</button>
+          <button class="button outline" onclick="copyCode(this)">📋 Copy Code</button>
           <p style="font-size: 14px; margin-top: 15px;">Save this code to resume anytime</p>
         </div>
 
@@ -710,7 +341,7 @@
         </button>
       </div>
 
-      <!-- Unified Consent Screen -->
+      <!-- Consent Screen -->
       <div class="screen" id="consent-screen">
         <h2>📋 Consent Forms</h2>
         <p style="color: var(--text-muted); margin-bottom: 20px;">Please complete both consent forms to participate. If you've already completed these through the screener, mark them as done.</p>
@@ -746,7 +377,7 @@
         </button>
       </div>
 
-      <!-- Progress Overview Screen -->
+      <!-- Progress -->
       <div class="screen" id="progress-screen">
         <h2>Your Study Progress</h2>
         
@@ -764,14 +395,14 @@
         </div>
       </div>
 
-      <!-- Task Display Screen -->
+      <!-- Task Host -->
       <div class="screen" id="task-screen">
         <h2 id="task-title">Task Title</h2>
         <div id="task-instructions" style="margin: 20px 0;"></div>
         <div id="task-content"></div>
       </div>
 
-      <!-- MRT Upload Screen -->
+      <!-- MRT Upload -->
       <div class="screen" id="mrt-upload-screen">
         <h2>Upload MRT Results</h2>
         <p style="color: var(--text-muted); margin-bottom: 20px;">Please upload the CSV file from the Mental Rotation Task</p>
@@ -790,7 +421,7 @@
         </div>
       </div>
 
-      <!-- Recording Screen -->
+      <!-- Recording -->
       <div class="screen" id="recording-screen">
         <h2>Image Description Task</h2>
         
@@ -843,15 +474,28 @@
             <strong>What to describe (30-60 seconds):</strong>
             <ul style="margin: 10px 0 0 20px; text-align: left;">
               <li>Objects and people you see</li>
+              <li>Where things are located</li>
               <li>What is happening in the image</li>
+              <li>Spatial relationships between objects</li>
             </ul>
+          </div>
+
+          <div id="recording-error" class="info-banner warning" style="display:none; margin-top: 15px;"></div>
+
+          <div class="card" id="video-upload-fallback" style="margin-top: 15px; display:none;">
+            <h3>Upload a short video instead</h3>
+            <p>Record 30–60 seconds describing the image on your device, then upload the file here.</p>
+            <input type="file" id="video-file-input" accept="video/*" />
+            <div class="button-group">
+              <button class="button success" id="upload-save-btn" style="display:none;">Use this upload</button>
+            </div>
           </div>
 
           <button class="button secondary" id="skip-recording-btn" style="display: block; margin: 20px auto;">Skip This Task</button>
         </div>
       </div>
 
-      <!-- Completion Screen -->
+      <!-- Completion -->
       <div class="screen" id="completion-screen">
         <div style="text-align: center; padding: 50px;">
           <h2 style="color: var(--success); font-size: 36px; margin-bottom: 20px;">🎉 Study Complete!</h2>
@@ -872,10 +516,10 @@
     </div>
   </div>
 
-  <!-- Floating Action Button -->
+  <!-- FAB -->
   <button class="fab" id="pause-fab" onclick="pauseSession()">⏸️ Save & Exit</button>
 
-  <!-- Modal -->
+  <!-- Pause Modal -->
   <div class="modal" id="pause-modal">
     <div class="modal-content">
       <h3>Session Saved!</h3>
@@ -888,7 +532,7 @@
     </div>
   </div>
 
-  <!-- EEG Contact Modal -->
+  <!-- EEG Modal -->
   <div class="modal" id="eeg-modal">
     <div class="modal-content">
       <h3>📍 Local EEG Add-On Information</h3>
@@ -896,7 +540,7 @@
         <strong>Contact the Action Brain Lab:</strong>
         <p style="margin-top: 10px;">
           Email: <strong>action.brain.lab@gallaudet.edu</strong>
-          <button class="button outline" onclick="copyEmail()" style="margin-left: 10px;">Copy Email</button>
+          <button class="button outline" onclick="copyEmail(this)" style="margin-left: 10px;">Copy Email</button>
         </p>
       </div>
       
@@ -918,14 +562,14 @@
   </div>
 
   <script>
-    // Configuration
+    // ----- Configuration -----
     const CONFIG = {
       SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
       IMAGE_1: 'images/description1.jpg',
       IMAGE_2: 'images/description2.jpg'
     };
 
-    // Task definitions
+    // ----- Tasks -----
     const TASKS = {
       'ZOOM': {
         name: 'Schedule Zoom Task',
@@ -950,7 +594,7 @@
       },
       'VCN': {
         name: 'Virtual Campus Navigation',
-        description: 'Navigate virtual environments',
+        description: 'Virtual SILC Test of Navigation (SILCton)',
         url: 'http://www.virtualsilcton.com/study/753798747',
         type: 'external'
       },
@@ -974,7 +618,7 @@
       }
     };
 
-    // Consent forms (separate from main task sequence)
+    // ----- Consents -----
     const CONSENTS = {
       'CONSENT1': {
         name: 'Research Consent',
@@ -986,7 +630,7 @@
       }
     };
 
-    // Task sequences (without consent forms)
+    // ----- Sequences -----
     const SEQUENCES = [
       ['ZOOM', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
       ['ZOOM', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
@@ -995,7 +639,7 @@
       ['ZOOM', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
     ];
 
-    // State management
+    // ----- State -----
     let state = {
       sessionCode: '',
       participantID: '',
@@ -1023,48 +667,34 @@
       }
     };
 
-    // Initialize
+    // ----- Init -----
     document.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
       checkSavedSession();
     });
 
-    // Event listeners
     function setupEventListeners() {
-      // Input validation
       document.getElementById('first-initial').addEventListener('input', validateInitials);
       document.getElementById('last-initial').addEventListener('input', validateInitials);
-      document.getElementById('resume-code').addEventListener('input', e => {
-        e.target.value = e.target.value.toUpperCase();
-      });
+      document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 
-      // File upload
+      // Upload (MRT)
       const fileUpload = document.getElementById('file-upload');
       const fileInput = document.getElementById('mrt-file');
       if (fileUpload && fileInput) {
         fileUpload.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileUpload);
-        
-        // Drag and drop
-        fileUpload.addEventListener('dragover', e => {
-          e.preventDefault();
-          fileUpload.classList.add('drag-over');
-        });
-        fileUpload.addEventListener('dragleave', () => {
-          fileUpload.classList.remove('drag-over');
-        });
+        fileUpload.addEventListener('dragover', e => { e.preventDefault(); fileUpload.classList.add('drag-over'); });
+        fileUpload.addEventListener('dragleave', () => fileUpload.classList.remove('drag-over'));
         fileUpload.addEventListener('drop', e => {
-          e.preventDefault();
-          fileUpload.classList.remove('drag-over');
-          if (e.dataTransfer.files.length > 0) {
-            handleFileUpload({ target: { files: e.dataTransfer.files } });
-          }
+          e.preventDefault(); fileUpload.classList.remove('drag-over');
+          if (e.dataTransfer.files.length > 0) handleFileUpload({ target: { files: e.dataTransfer.files } });
         });
       }
 
-      // Bind skip buttons explicitly so they work even under strict CSP
-      document.getElementById('skip-recording-btn')?.addEventListener('click', skipRecording);
-      document.getElementById('skip-recording-consent-btn')?.addEventListener('click', skipRecording);
+      // Recording skip buttons + fallback uploader
+      bindRecordingSkips();
+      bindUploadFallback();
     }
 
     function validateInitials(e) {
@@ -1074,29 +704,23 @@
       document.getElementById('create-session-btn').disabled = !(first && last);
     }
 
-    // Screen navigation
+    // ----- Screens -----
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const screen = document.getElementById(screenId);
       if (screen) screen.classList.add('active');
-      
-      // Update session widget visibility
       const widget = document.getElementById('session-widget');
-      const showWidget = ['progress-screen', 'task-screen', 'consent-screen', 'mrt-upload-screen', 'recording-screen'].includes(screenId);
+      const showWidget = ['progress-screen','task-screen','consent-screen','mrt-upload-screen','recording-screen'].includes(screenId);
       if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
-      
-      // Update FAB visibility
       const fab = document.getElementById('pause-fab');
       if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
     }
 
-    // Session management
+    // ----- Session -----
     function generateCode() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let code = '';
-      for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+      for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
       return code;
     }
 
@@ -1104,11 +728,7 @@
       const first = document.getElementById('first-initial').value.trim().toUpperCase();
       const last = document.getElementById('last-initial').value.trim().toUpperCase();
       const email = document.getElementById('email').value.trim();
-
-      if (!first || !last) {
-        alert('Please enter your initials');
-        return;
-      }
+      if (!first || !last) { alert('Please enter your initials'); return; }
 
       state.sessionCode = generateCode();
       state.participantID = `${first}${last}_${Date.now().toString().slice(-4)}`;
@@ -1119,14 +739,7 @@
       state.lastActivity = new Date().toISOString();
 
       saveState();
-      sendToSheets({
-        action: 'session_created',
-        sessionCode: state.sessionCode,
-        participantID: state.participantID,
-        email: state.email,
-        sequenceIndex: state.sequenceIndex,
-        timestamp: new Date().toISOString()
-      });
+      sendToSheets({ action: 'session_created', sessionCode: state.sessionCode, participantID: state.participantID, email: state.email, sequenceIndex: state.sequenceIndex, timestamp: new Date().toISOString() });
 
       document.getElementById('display-code').textContent = state.sessionCode;
       showScreen('session-created');
@@ -1134,52 +747,33 @@
 
     function resumeSession() {
       const code = document.getElementById('resume-code').value.toUpperCase();
-      if (code.length !== 8) {
-        alert('Please enter your 8-character resume code');
-        return;
-      }
-
+      if (code.length !== 8) { alert('Please enter your 8-character resume code'); return; }
       try {
         const saved = localStorage.getItem(`study_${code}`);
         if (saved) {
           state = JSON.parse(saved);
           updateSessionWidget();
-          
-          if (!state.consentStatus.consent1) {
-            showScreen('consent-screen');
-          } else {
-            showProgressScreen();
-          }
+          if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
         } else {
           alert('Session not found. Please check your code.');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Error loading session');
-      }
+      } catch (err) { console.error(err); alert('Error loading session'); }
     }
 
     function checkSavedSession() {
       try {
         const recentCode = localStorage.getItem('recent_session');
         if (!recentCode) return;
-        
         const saved = localStorage.getItem(`study_${recentCode}`);
         if (!saved) return;
-        
         const data = JSON.parse(saved);
-        const daysSince = (Date.now() - new Date(data.lastActivity).getTime()) / (1000 * 60 * 60 * 24);
-        
+        const daysSince = (Date.now() - new Date(data.lastActivity).getTime()) / (1000*60*60*24);
         if (daysSince < 30) {
           if (confirm(`Welcome back! Resume session ${recentCode}?`)) {
-            state = data;
-            updateSessionWidget();
-            showProgressScreen();
+            state = data; updateSessionWidget(); showProgressScreen();
           }
         }
-      } catch (e) {
-        console.warn('Could not check saved session', e);
-      }
+      } catch (e) { console.warn('Could not check saved session', e); }
     }
 
     function saveState() {
@@ -1187,27 +781,17 @@
         state.lastActivity = new Date().toISOString();
         localStorage.setItem(`study_${state.sessionCode}`, JSON.stringify(state));
         localStorage.setItem('recent_session', state.sessionCode);
-      } catch (e) {
-        console.warn('Could not save state', e);
-      }
+      } catch (e) { console.warn('Could not save state', e); }
     }
 
-    // Consent handling
-    function proceedToConsent() {
-      showScreen('consent-screen');
-      updateConsentDisplay();
-    }
+    // ----- Consent -----
+    function proceedToConsent() { showScreen('consent-screen'); updateConsentDisplay(); }
 
     function openConsent(type) {
       const consent = CONSENTS[type];
       if (consent) {
-        window.open(consent.url, '_blank');
-        sendToSheets({
-          action: 'consent_opened',
-          sessionCode: state.sessionCode,
-          type: type,
-          timestamp: new Date().toISOString()
-        });
+        window.open(consent.url, '_blank', 'noopener');
+        sendToSheets({ action: 'consent_opened', sessionCode: state.sessionCode, type, timestamp: new Date().toISOString() });
       }
     }
 
@@ -1221,16 +805,8 @@
         document.getElementById('consent2-card').classList.add('completed');
         document.querySelector('#consent2-card .status-icon').textContent = '✅';
       }
-      
-      saveState();
-      updateConsentDisplay();
-      
-      sendToSheets({
-        action: 'consent_completed',
-        sessionCode: state.sessionCode,
-        type: type,
-        timestamp: new Date().toISOString()
-      });
+      saveState(); updateConsentDisplay();
+      sendToSheets({ action: 'consent_completed', sessionCode: state.sessionCode, type, timestamp: new Date().toISOString() });
     }
 
     function declineVideo() {
@@ -1239,77 +815,52 @@
         state.consentStatus.consent2 = true;
         document.getElementById('consent2-card').classList.add('declined');
         document.querySelector('#consent2-card .status-icon').textContent = '⚠️';
-        saveState();
-        updateConsentDisplay();
-        
-        sendToSheets({
-          action: 'video_declined',
-          sessionCode: state.sessionCode,
-          timestamp: new Date().toISOString()
-        });
+        saveState(); updateConsentDisplay();
+        sendToSheets({ action: 'video_declined', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
       }
     }
 
     function updateConsentDisplay() {
-      const btn = document.getElementById('continue-from-consent');
       const ready = state.consentStatus.consent1 && (state.consentStatus.consent2 || state.consentStatus.videoDeclined);
-      btn.disabled = !ready;
-      
+      document.getElementById('continue-from-consent').disabled = !ready;
       if (state.consentStatus.consent1) {
         document.getElementById('consent1-card').classList.add('completed');
         document.querySelector('#consent1-card .status-icon').textContent = '✅';
       }
-      
       if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) {
         const card = document.getElementById('consent2-card');
         card.classList.add(state.consentStatus.videoDeclined ? 'declined' : 'completed');
-        document.querySelector('#consent2-card .status-icon').textContent = 
-          state.consentStatus.videoDeclined ? '⚠️' : '✅';
+        document.querySelector('#consent2-card .status-icon').textContent = state.consentStatus.videoDeclined ? '⚠️' : '✅';
       }
     }
 
     function proceedToTasks() {
-      if (!state.consentStatus.consent1) {
-        alert('Please complete the research consent form');
-        return;
-      }
+      if (!state.consentStatus.consent1) { alert('Please complete the research consent form'); return; }
       showProgressScreen();
     }
 
-    // Progress management
-    function showProgressScreen() {
-      updateTaskList();
-      updateProgressBar();
-      updateSessionWidget();
-      showScreen('progress-screen');
-    }
+    // ----- Progress -----
+    function showProgressScreen() { updateTaskList(); updateProgressBar(); updateSessionWidget(); showScreen('progress-screen'); }
 
     function updateTaskList() {
       const list = document.getElementById('task-list');
       list.innerHTML = '';
-      
       state.sequence.forEach((taskCode, index) => {
         const task = TASKS[taskCode];
         const li = document.createElement('li');
         li.className = 'task-item';
-        
         const isCompleted = state.completedTasks.includes(taskCode);
         const isCurrent = index === state.currentTaskIndex && !isCompleted;
-        
         if (isCompleted) li.classList.add('completed');
         else if (isCurrent) li.classList.add('current');
         else li.classList.add('locked');
-        
         li.innerHTML = `
           <div class="task-info">
             <div class="task-name">${task.name}</div>
             <div class="task-description">${task.description}</div>
           </div>
-          <div class="task-status">
-            ${isCompleted ? '✅' : (isCurrent ? '▶️' : '⭕')}
-          </div>
+          <div class="task-status">${isCompleted ? '✅' : (isCurrent ? '▶️' : '⭕')}</div>
         `;
-        
         list.appendChild(li);
       });
     }
@@ -1322,86 +873,118 @@
 
     function updateSessionWidget() {
       if (!state.sessionCode) return;
-      
       document.getElementById('widget-code').textContent = state.sessionCode;
-      document.getElementById('widget-progress').textContent = 
-        `${state.completedTasks.length}/${state.sequence.length}`;
-      document.getElementById('widget-time').textContent = 
-        `${Math.round(state.totalTimeSpent / 60000)} min`;
-      
+      document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
+      document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
       const currentTask = state.sequence[state.currentTaskIndex];
-      document.getElementById('widget-current').textContent = 
-        currentTask ? TASKS[currentTask].name : 'Complete';
+      document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';
     }
 
-    // Task management
+    // ----- Task flow -----
     function continueToCurrentTask() {
-      if (state.currentTaskIndex >= state.sequence.length) {
-        showCompletionScreen();
-        return;
-      }
-      
-      const taskCode = state.sequence[state.currentTaskIndex];
-      startTask(taskCode);
+      if (state.currentTaskIndex >= state.sequence.length) { showCompletionScreen(); return; }
+      startTask(state.sequence[state.currentTaskIndex]);
     }
 
     function startTask(taskCode) {
       const task = TASKS[taskCode];
-      
-      if (!task) {
-        console.error('Task not found:', taskCode);
-        return;
-      }
-      
-      if (!state.taskData) {
-        state.taskData = {};
-      }
-      
-      state.taskData[taskCode] = {
-        startTime: Date.now()
-      };
-      
-      if (task.type === 'recording') {
-        showRecordingTask();
-      } else if (task.requiresUpload && taskCode === 'MRT') {
-        showMRTTask();
-      } else {
-        showExternalTask(taskCode);
-      }
-      
-      sendToSheets({
-        action: 'task_started',
-        sessionCode: state.sessionCode,
-        task: task.name,
-        timestamp: new Date().toISOString()
-      });
+      if (!task) { console.error('Task not found:', taskCode); return; }
+      if (!state.taskData) state.taskData = {};
+      state.taskData[taskCode] = { startTime: Date.now() };
+      if (task.type === 'recording') showRecordingTask();
+      else if (task.requiresUpload && taskCode === 'MRT') showMRTTask();
+      else showExternalTask(taskCode);
+      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: task.name, timestamp: new Date().toISOString() });
     }
 
     function showExternalTask(taskCode) {
       const task = TASKS[taskCode];
-      
+
+      // Tailored guidance
+      let extra = '';
+      if (taskCode === 'MRT') {
+        extra = `
+          <div class="info-banner warning" style="margin-top: 10px;">
+            <strong>Heads up:</strong>
+            <p style="margin-top: 6px;">
+              This version does not show a progress bar and runs about <strong>5–6 minutes</strong>.
+              Please work <strong>quickly and steadily</strong> from start to finish (no built-in breaks).
+              When you finish, return here to upload the CSV (or skip upload and email it later).
+            </p>
+          </div>`;
+      } else if (taskCode === 'VCN') {
+        extra = `
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>Virtual SILC Test of Navigation (SILCton) — What you'll do</strong>
+            <p style="margin-top: 6px;">
+              Learn a small virtual campus during a brief <em>Learning</em> phase, then answer quick questions in a
+              <em>Test</em> phase that check your sense of where places are.
+            </p>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li><strong>Controls:</strong> Move with <em>WASD</em> or <em>arrow keys</em>. Look around with your mouse/trackpad.</li>
+              <li><strong>Desktop/laptop recommended:</strong> Use Chrome or Firefox. Keep this page open; SILCton opens in a new tab.</li>
+              <li><strong>Do not refresh</strong> the SILCton tab (you may lose progress). When finished, just return here.</li>
+            </ul>
+          </div>
+
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>Learning phase (explore)</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Follow paths and look around slowly to notice buildings/landmarks.</li>
+              <li>Make a rough mental map: where things are and how paths connect.</li>
+              <li>You can stop and spin in place to scan the environment before moving on.</li>
+            </ul>
+          </div>
+
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>Test phase (quick judgments)</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>You’ll answer short questions based on the layout you learned.</li>
+              <li>Examples include: pointing toward a location, judging which place is closer, or choosing a direction from your current spot.</li>
+              <li>If unsure, make your <em>best quick guess</em> and continue—speed and steady progress are fine.</li>
+            </ul>
+          </div>
+
+          <div class="info-banner warning" style="margin-top: 10px;">
+            <strong>Tips & troubleshooting</strong>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>If the mouse cursor seems “locked,” click once inside the SILCton window to regain look control.</li>
+              <li>If motion feels uncomfortable, make smaller mouse movements and walk at a steady pace.</li>
+              <li>If the page seems unresponsive, wait a moment—avoid using the browser back/refresh inside SILCton.</li>
+            </ul>
+            <p style="margin-top: 8px;"><strong>When you finish:</strong> close or leave the SILCton tab, come back here, and click <em>Mark Complete</em>.</p>
+          </div>`;
+      } else if (taskCode === 'SN') {
+        extra = `
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>Goal:</strong>
+            <p style="margin-top: 6px;">Navigate mazes efficiently. Use keyboard (arrow keys or WASD). Try to minimize backtracking. If stuck, explore systematically.</p>
+          </div>`;
+      }
+
       document.getElementById('task-title').textContent = task.name;
       document.getElementById('task-instructions').innerHTML = `
         <p>${task.description}</p>
-        <div class="info-banner info">
+        ${extra}
+        <div class="info-banner info" style="margin-top: 10px;">
           <strong>Instructions:</strong>
           <ol style="margin: 10px 0 0 20px; text-align: left;">
-            <li>Click "Open Task" to launch in a new tab</li>
-            <li>Complete the task as instructed</li>
-            <li>Return to this tab when finished</li>
-            <li>Click "Mark Complete" to continue</li>
+            <li>Click "Open Task" to launch in a new tab.</li>
+            <li>Complete the task as instructed.</li>
+            <li>Return to this tab when finished.</li>
+            <li>Click "Mark Complete" to continue.</li>
           </ol>
         </div>
       `;
-      
+
       const content = document.getElementById('task-content');
       content.innerHTML = `
         <div class="button-group">
-          <button class="button" onclick="window.open('${task.url}', '_blank')">Open Task</button>
+          <button class="button" onclick="window.open('${task.url}', '_blank', 'noopener')">Open Task</button>
           <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
         </div>
       `;
-      
+
       if (task.canSkip) {
         content.innerHTML += `
           <button class="button secondary" onclick="skipTask('${taskCode}')" style="display: block; margin: 20px auto;">
@@ -1409,34 +992,29 @@
           </button>
         `;
       }
-      
+
       showScreen('task-screen');
     }
 
     function showMRTTask() {
       showExternalTask('MRT');
-      
       setTimeout(() => {
         const content = document.getElementById('task-content');
         content.innerHTML += `
           <div class="info-banner warning" style="margin-top: 20px;">
-            <strong>After completing the task:</strong>
-            <p>Upload your CSV results file or email it later</p>
-            <button class="button" onclick="showScreen('mrt-upload-screen')" style="margin-top: 10px;">
-              Upload Results
-            </button>
+            <strong>After completing MRT:</strong>
+            <p>Upload your CSV results file or email it later.</p>
+            <button class="button" onclick="showScreen('mrt-upload-screen')" style="margin-top: 10px;">Upload Results</button>
           </div>
         `;
-      }, 3000);
+      }, 2000);
     }
 
+    // ----- Recording task -----
     function showRecordingTask() {
-      // Initialize recording state
       state.recording.currentImage = 0;
       state.recording.recordings = [];
       state.recording.currentBlob = null;
-      
-      // Check video consent
       if (!state.consentStatus.consent2 || state.consentStatus.videoDeclined) {
         document.getElementById('recording-consent-check').style.display = 'block';
         document.getElementById('recording-content').style.display = 'none';
@@ -1445,7 +1023,6 @@
         document.getElementById('recording-content').style.display = 'block';
         updateRecordingImage();
       }
-      
       showScreen('recording-screen');
     }
 
@@ -1453,162 +1030,160 @@
       const recorded = document.getElementById('recorded-video');
       if (recorded && recorded.src) {
         try { URL.revokeObjectURL(recorded.src); } catch(e) {}
-        recorded.removeAttribute('src');
-        recorded.load();
+        recorded.removeAttribute('src'); recorded.load();
       }
     }
 
     function updateRecordingImage() {
       const imageNum = state.recording.currentImage + 1;
       document.getElementById('image-number').textContent = imageNum;
-      document.getElementById('current-image').src = 
-        imageNum === 1 ? CONFIG.IMAGE_1 : CONFIG.IMAGE_2;
-      
-      // Reset UI
+      document.getElementById('current-image').src = imageNum === 1 ? CONFIG.IMAGE_1 : CONFIG.IMAGE_2;
       const preview = document.getElementById('video-preview');
       const recorded = document.getElementById('recorded-video');
       preview.style.display = 'none';
       recorded.style.display = 'none';
       revokeRecordedURL();
       state.recording.currentBlob = null;
-
       document.getElementById('record-btn').style.display = 'inline-block';
       document.getElementById('rerecord-btn').style.display = 'none';
       document.getElementById('save-recording-btn').style.display = 'none';
-      document.getElementById('recording-status').textContent = 'Ready to record';
-      document.getElementById('recording-status').className = 'recording-status ready';
+      const status = document.getElementById('recording-status');
+      status.textContent = 'Ready to record';
+      status.className = 'recording-status ready';
+      document.getElementById('recording-error').style.display = 'none';
+      document.getElementById('video-upload-fallback').style.display = 'none';
+    }
+
+    function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+
+    async function checkSecureAndPermissions() {
+      if (!window.isSecureContext) {
+        const hint = location.protocol === 'http:' ? 'This page must be served over https.' : 'This page cannot run from a local file.';
+        throw { code: 'NOT_SECURE', message: hint };
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw { code: 'NO_MEDIADEVICES', message: 'This browser does not support in-page recording.' };
+      }
+      let cam = 'unknown', mic = 'unknown';
+      try {
+        const camPerm = await navigator.permissions.query({ name: 'camera' });
+        const micPerm = await navigator.permissions.query({ name: 'microphone' });
+        cam = camPerm?.state || 'unknown';
+        mic = micPerm?.state || 'unknown';
+      } catch(e) {}
+      return { cam, mic };
+    }
+
+    function showRecordingError(html, showFallback = true) {
+      const box = document.getElementById('recording-error');
+      if (!box) return;
+      box.style.display = 'block';
+      box.innerHTML = html;
+      if (showFallback) {
+        const fb = document.getElementById('video-upload-fallback');
+        if (fb) fb.style.display = 'block';
+      }
+    }
+
+    function bindUploadFallback() {
+      const input = document.getElementById('video-file-input');
+      const btn = document.getElementById('upload-save-btn');
+      if (!input || !btn) return;
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        if (!f) return;
+        if (!f.type.startsWith('video/')) { alert('Please select a video file'); input.value = ''; return; }
+        state.recording.currentBlob = f;
+        btn.style.display = 'inline-block';
+      });
+      btn.addEventListener('click', saveRecording);
+    }
+
+    function bindRecordingSkips() {
+      document.getElementById('skip-recording-btn')?.addEventListener('click', skipRecording);
+      document.getElementById('skip-recording-consent-btn')?.addEventListener('click', skipRecording);
     }
 
     async function toggleRecording() {
       const btn = document.getElementById('record-btn');
       const status = document.getElementById('recording-status');
       const preview = document.getElementById('video-preview');
-      
+
       if (!state.recording.active) {
         try {
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('Camera access not available in this environment');
+          const perm = await checkSecureAndPermissions();
+          if (perm.cam === 'denied' || perm.mic === 'denied') {
+            const how = isIOS()
+              ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.'
+              : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+            showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
+            return;
           }
-          
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480 },
-            audio: true
-          });
-          
-          state.recording.stream = stream;
-          preview.srcObject = stream;
-          preview.style.display = 'block';
-          
+
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
+          state.recording.stream = stream; preview.srcObject = stream; preview.style.display = 'block';
+
           if (!window.MediaRecorder) {
-            throw new Error('MediaRecorder not supported in this browser');
+            showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please use Chrome, Edge, or Firefox, or upload a short video below.</p>`);
+            return;
           }
-          
+
           let options = {};
-          if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
-            options.mimeType = 'video/webm;codecs=vp9,opus';
-          } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-            options.mimeType = 'video/webm;codecs=vp8,opus';
-          }
-          
+          if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) options.mimeType = 'video/webm;codecs=vp9,opus';
+          else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) options.mimeType = 'video/webm;codecs=vp8,opus';
+
           state.recording.mediaRecorder = new MediaRecorder(stream, options);
           state.recording.chunks = [];
-          
-          state.recording.mediaRecorder.ondataavailable = e => {
-            if (e.data && e.data.size > 0) state.recording.chunks.push(e.data);
-          };
-          
+          state.recording.mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) state.recording.chunks.push(e.data); };
           state.recording.mediaRecorder.onstop = () => {
             try {
-              const blob = new Blob(state.recording.chunks, { type: (options.mimeType || 'video/webm') });
+              const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/webm' });
               const url = URL.createObjectURL(blob);
               const recordedEl = document.getElementById('recorded-video');
-              recordedEl.src = url;
-              recordedEl.style.display = 'block';
-              preview.style.display = 'none';
-              
+              recordedEl.src = url; recordedEl.style.display = 'block'; preview.style.display = 'none';
               document.getElementById('record-btn').style.display = 'none';
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
-              
-              status.textContent = 'Recording complete';
-              status.className = 'recording-status recorded';
-              
+              status.textContent = 'Recording complete'; status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
-            } catch (e) {
-              console.error('Error finalizing recording:', e);
-              alert('There was an issue finalizing the recording.');
-            }
+            } catch (e) { console.error('Finalize error:', e); alert('There was an issue finalizing the recording.'); }
           };
-          
+
           state.recording.mediaRecorder.start();
           state.recording.active = true;
-          
           btn.textContent = 'Stop Recording';
           btn.className = 'button danger';
           status.textContent = '🔴 Recording...';
           status.className = 'recording-status recording';
-          
           startRecordingTimer();
-          
+
         } catch (err) {
           console.error('Recording error:', err);
-          
-          let errorMsg = 'Could not access camera/microphone.\n\n';
-          
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            errorMsg += 'Please allow camera and microphone access when prompted.\n';
-            errorMsg += 'You may need to click the camera icon in your browser\'s address bar.';
-          } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-            errorMsg += 'No camera or microphone found.\n';
-            errorMsg += 'Please ensure your device has a camera and microphone connected.';
-          } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-            errorMsg += 'Your camera or microphone is already in use.\n';
-            errorMsg += 'Please close other applications using the camera.';
-          } else if (err.message.includes('not available in this environment')) {
-            errorMsg = 'Camera access is blocked in this preview environment.\n\n';
-            errorMsg += 'This will work normally on your actual website.\n';
-            errorMsg += 'The preview environment blocks camera access for security.';
-            
-            status.textContent = '⚠️ Preview Mode - Camera blocked';
-            status.className = 'recording-status';
-            status.style.color = 'var(--warning)';
-            
-            const demoNote = document.createElement('div');
-            demoNote.className = 'info-banner warning';
-            demoNote.style.marginTop = '20px';
-            demoNote.setAttribute('data-demo', 'true');
-            demoNote.innerHTML = `
-              <strong>Preview Environment Limitation</strong>
-              <p style="margin-top: 10px;">Camera access is blocked in this preview for security reasons.</p>
-              <p>On your actual website, participants will be able to grant permissions and record normally.</p>
-              <button class="button secondary" id="skip-demo-btn" style="margin-top: 10px;">Skip Task (Demo)</button>
-            `;
-            
-            const container = document.getElementById('recording-content');
-            if (!container.querySelector('#skip-demo-btn')) {
-              container.insertBefore(demoNote, container.querySelector('.video-container'));
-              document.getElementById('skip-demo-btn')?.addEventListener('click', skipRecording);
-            }
-            return;
-          } else if (err.message && err.message.includes('MediaRecorder not supported')) {
-            errorMsg += 'Your browser does not support in-browser recording. You may proceed by skipping this task.';
+          const name = err?.name || err?.code || 'Unknown';
+          if (name === 'NOT_SECURE') {
+            const suggest = location.protocol === 'http:' ? `Please reload over https: ${location.href.replace('http:', 'https:')}` : 'This page cannot run from a local file. Please host it or use a local https server.';
+            showRecordingError(`<strong>Secure context required</strong><p style="margin-top: 6px;">${suggest}</p>`);
+          } else if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            const how = isIOS()
+              ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.'
+              : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+            showRecordingError(`<strong>Permission not granted</strong><p style="margin-top: 6px;">Please allow camera and microphone access for this site. ${how}</p>`);
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            showRecordingError(`<strong>No camera or microphone found</strong><p style="margin-top: 6px;">Please connect a camera and microphone or use the upload option below.</p>`);
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            showRecordingError(`<strong>Camera or microphone in use</strong><p style="margin-top: 6px;">Please close other apps using the camera, then try again. You can also upload a video below.</p>`);
           } else {
-            errorMsg += 'Error: ' + err.message;
+            showRecordingError(`<strong>Could not access camera</strong><p style="margin-top: 6px;">${err?.message || 'Unknown error'}</p>`);
           }
-          
-          alert(errorMsg);
         }
       } else {
         try {
           if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
             state.recording.mediaRecorder.stop();
           }
-        } catch(e) {
-          console.warn('Stop error:', e);
-        } finally {
-          if (state.recording.stream) {
-            try { state.recording.stream.getTracks().forEach(track => track.stop()); } catch(e){}
-          }
+        } catch(e) { console.warn('Stop error:', e); }
+        finally {
+          if (state.recording.stream) { try { state.recording.stream.getTracks().forEach(track => track.stop()); } catch(e){} }
           state.recording.active = false;
           btn.textContent = 'Start Recording';
           btn.className = 'button danger';
@@ -1617,72 +1192,31 @@
       }
     }
 
-    function reRecord() {
-      // Clean up any leftover stream, timer, and previous blob url
-      cleanupRecording(true).finally(() => {
-        updateRecordingImage();
-      });
-    }
+    function reRecord() { cleanupRecording(true).finally(() => updateRecordingImage()); }
 
     function saveRecording() {
-      if (!state.recording.currentBlob) {
-        alert('Please record a video first.');
-        return;
-      }
-      state.recording.recordings.push({
-        image: state.recording.currentImage + 1,
-        blob: state.recording.currentBlob,
-        timestamp: new Date().toISOString()
-      });
-      
-      sendToSheets({
-        action: 'image_recorded',
-        sessionCode: state.sessionCode,
-        imageNumber: state.recording.currentImage + 1,
-        timestamp: new Date().toISOString()
-      });
-      
-      if (state.recording.currentImage === 0) {
-        state.recording.currentImage = 1;
-        updateRecordingImage();
-      } else {
-        completeTask('ID');
-      }
+      if (!state.recording.currentBlob) { alert('Please record or upload a video first.'); return; }
+      state.recording.recordings.push({ image: state.recording.currentImage + 1, blob: state.recording.currentBlob, timestamp: new Date().toISOString() });
+      sendToSheets({ action: 'image_recorded', sessionCode: state.sessionCode, imageNumber: state.recording.currentImage + 1, timestamp: new Date().toISOString() });
+      if (state.recording.currentImage === 0) { state.recording.currentImage = 1; updateRecordingImage(); }
+      else { completeTask('ID'); }
     }
 
-    // New: robust cleanup for streams, recorder, timer, and URLs
     function cleanupRecording(keepPreviewUI = false) {
       return new Promise(resolve => {
         try {
           if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
             state.recording.mediaRecorder.addEventListener('stop', () => resolve(), { once: true });
             try { state.recording.mediaRecorder.stop(); } catch(e) { resolve(); }
-          } else {
-            resolve();
-          }
-        } catch(e) {
-          resolve();
-        }
+          } else { resolve(); }
+        } catch(e) { resolve(); }
       }).finally(() => {
-        try {
-          if (state.recording.stream) {
-            state.recording.stream.getTracks().forEach(t => t.stop());
-          }
-        } catch(e){}
-        state.recording.stream = null;
-        state.recording.active = false;
-        state.recording.chunks = [];
-        stopRecordingTimer();
+        try { if (state.recording.stream) state.recording.stream.getTracks().forEach(t => t.stop()); } catch(e){}
+        state.recording.stream = null; state.recording.active = false; state.recording.chunks = []; stopRecordingTimer();
         if (!keepPreviewUI) {
           const preview = document.getElementById('video-preview');
-          if (preview) {
-            preview.pause?.();
-            preview.removeAttribute('srcObject');
-            preview.style.display = 'none';
-          }
-          revokeRecordedURL();
-          const recorded = document.getElementById('recorded-video');
-          if (recorded) recorded.style.display = 'none';
+          if (preview) { preview.pause?.(); preview.removeAttribute('srcObject'); preview.style.display = 'none'; }
+          revokeRecordedURL(); const recorded = document.getElementById('recorded-video'); if (recorded) recorded.style.display = 'none';
         }
       });
     }
@@ -1697,225 +1231,110 @@
 
     async function skipRecording() {
       if (!confirm('Skip the image description task?')) return;
-      try {
-        await cleanupRecording();
-      } catch(e) {
-        console.warn('Cleanup on skip failed silently:', e);
-      }
-      ensureTaskPointer('ID');
-      skipTask('ID');
+      try { await cleanupRecording(); } catch(e) { console.warn('Cleanup on skip failed silently:', e); }
+      ensureTaskPointer('ID'); skipTask('ID');
     }
 
     let recordingTimer;
     function startRecordingTimer() {
-      const timer = document.getElementById('recording-timer');
-      timer.style.display = 'block';
+      const timer = document.getElementById('recording-timer'); timer.style.display = 'block';
       let seconds = 0;
-      
       recordingTimer = setInterval(() => {
-        seconds++;
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        timer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        seconds++; const mins = Math.floor(seconds/60); const secs = seconds % 60;
+        timer.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
       }, 1000);
     }
+    function stopRecordingTimer() { clearInterval(recordingTimer); const t = document.getElementById('recording-timer'); if (t) t.style.display = 'none'; }
 
-    function stopRecordingTimer() {
-      clearInterval(recordingTimer);
-      const timer = document.getElementById('recording-timer');
-      if (timer) timer.style.display = 'none';
-    }
-
-    // File upload
+    // ----- MRT upload handlers -----
     function handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      if (!file.name.toLowerCase().endsWith('.csv')) {
-        alert('Please upload a CSV file');
-        return;
-      }
-      
+      const file = event.target.files[0]; if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.csv')) { alert('Please upload a CSV file'); return; }
       const reader = new FileReader();
       reader.onload = function(e) {
-        const uploadStatus = document.getElementById('upload-status');
-        uploadStatus.innerHTML = `
+        document.getElementById('upload-status').innerHTML = `
           <div class="info-banner success">
             ✅ File uploaded successfully!
             <br><small>${file.name}</small>
-          </div>
-        `;
-        
+          </div>`;
         document.getElementById('mrt-continue').style.display = 'inline-block';
-        
-        sendToSheets({
-          action: 'file_uploaded',
-          sessionCode: state.sessionCode,
-          filename: file.name,
-          timestamp: new Date().toISOString()
-        });
+        sendToSheets({ action: 'file_uploaded', sessionCode: state.sessionCode, filename: file.name, timestamp: new Date().toISOString() });
       };
       reader.readAsText(file);
     }
 
-    function completeMRTUpload() {
-      completeTask('MRT');
-    }
+    function completeMRTUpload() { completeTask('MRT'); }
+    function skipMRTUpload() { if (confirm('Skip upload? You can email the file later.')) completeTask('MRT'); }
 
-    function skipMRTUpload() {
-      if (confirm('Skip upload? You can email the file later.')) {
-        completeTask('MRT');
-      }
-    }
-
-    // Task completion
+    // ----- Complete/Skip -----
     function completeTask(taskCode) {
-      const task = TASKS[taskCode];
-      
-      if (!task) {
-        console.error('Task not found:', taskCode);
-        return;
-      }
-      
+      const task = TASKS[taskCode]; if (!task) { console.error('Task not found:', taskCode); return; }
       const startTime = state.taskData && state.taskData[taskCode]?.startTime || Date.now();
-      const timeSpent = Date.now() - startTime;
-      state.totalTimeSpent += timeSpent;
-      
-      if (!state.completedTasks.includes(taskCode)) {
-        state.completedTasks.push(taskCode);
-      }
-      
+      const timeSpent = Date.now() - startTime; state.totalTimeSpent += timeSpent;
+      if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
       state.currentTaskIndex++;
-      
-      while (state.currentTaskIndex < state.sequence.length && 
-             state.completedTasks.includes(state.sequence[state.currentTaskIndex])) {
-        state.currentTaskIndex++;
-      }
-      
+      while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
-      
-      sendToSheets({
-        action: 'task_completed',
-        sessionCode: state.sessionCode,
-        task: task.name,
-        duration: Math.round(timeSpent / 1000),
-        timestamp: new Date().toISOString()
-      });
-      
-      if (state.currentTaskIndex >= state.sequence.length) {
-        showCompletionScreen();
-      } else {
-        showProgressScreen();
-      }
+      sendToSheets({ action: 'task_completed', sessionCode: state.sessionCode, task: task.name, duration: Math.round(timeSpent/1000), timestamp: new Date().toISOString() });
+      if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
 
     function skipTask(taskCode) {
-      const task = TASKS[taskCode];
-      if (!task) {
-        console.error('Task not found:', taskCode);
-        return;
-      }
-      
+      const task = TASKS[taskCode]; if (!task) { console.error('Task not found:', taskCode); return; }
       if (taskCode === 'ID') {
-        // Extra defensive cleanup if skipping from recording
         if (state.recording && (state.recording.stream || state.recording.active)) {
           try { state.recording.stream?.getTracks().forEach(t => t.stop()); } catch(e){}
-          state.recording.active = false;
-          state.recording.chunks = [];
-          stopRecordingTimer();
+          state.recording.active = false; state.recording.chunks = []; stopRecordingTimer();
         }
       }
-      
-      if (!state.completedTasks.includes(taskCode)) {
-        state.completedTasks.push(taskCode);
-      }
-      
+      if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
       state.currentTaskIndex++;
-      
-      while (state.currentTaskIndex < state.sequence.length && 
-             state.completedTasks.includes(state.sequence[state.currentTaskIndex])) {
-        state.currentTaskIndex++;
-      }
-      
+      while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
-      
       sendToSheets({
         action: 'task_skipped',
         sessionCode: state.sessionCode,
         task: task.name,
-        reason: taskCode === 'ASLCT' ? 'Does not know ASL' : 
-                taskCode === 'ID' ? 
-                  (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 
-                  'User chose to skip',
+        reason: taskCode === 'ASLCT' ? 'Does not know ASL' : taskCode === 'ID' ? (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 'User chose to skip',
         timestamp: new Date().toISOString()
       });
-      
-      if (state.currentTaskIndex >= state.sequence.length) {
-        showCompletionScreen();
-      } else {
-        showProgressScreen();
-      }
+      if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
 
-    // Completion
+    // ----- Completion -----
     function showCompletionScreen() {
       document.getElementById('final-code').textContent = state.sessionCode;
       document.getElementById('total-time').textContent = Math.round(state.totalTimeSpent / 60000);
-      
-      sendToSheets({
-        action: 'study_completed',
-        sessionCode: state.sessionCode,
-        totalDuration: Math.round(state.totalTimeSpent / 60000),
-        timestamp: new Date().toISOString()
-      });
-      
+      sendToSheets({ action: 'study_completed', sessionCode: state.sessionCode, totalDuration: Math.round(state.totalTimeSpent / 60000), timestamp: new Date().toISOString() });
       showScreen('completion-screen');
       document.getElementById('pause-fab').classList.remove('active');
     }
 
-    // Utilities
+    // ----- Utilities -----
     function pauseSession() {
       saveState();
       document.getElementById('modal-code').textContent = state.sessionCode;
       document.getElementById('pause-modal').classList.add('active');
-      
-      sendToSheets({
-        action: 'session_paused',
-        sessionCode: state.sessionCode,
-        timestamp: new Date().toISOString()
-      });
+      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
     }
 
-    function copyCode() {
+    function copyCode(btnEl) {
       const code = document.getElementById('display-code').textContent;
       navigator.clipboard.writeText(code).then(() => {
-        const btn = event.target;
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => btn.textContent = original, 2000);
+        if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
       });
     }
 
     function contactEEG() {
       if (!state.sessionCode) {
         const proceed = confirm('Would you like to create your session first? This will give you a code we can reference for the EEG scheduling.');
-        if (proceed) {
-          showScreen('new-participant');
-          return;
-        }
+        if (proceed) { showScreen('new-participant'); return; }
       }
-      
       const modal = document.getElementById('eeg-modal');
       const codeEl = document.getElementById('eeg-session-code');
       if (codeEl) codeEl.textContent = state.sessionCode || 'TBD';
       if (modal) modal.classList.add('active');
-      
-      sendToSheets({
-        action: 'eeg_interest_clicked',
-        sessionCode: state.sessionCode || 'none',
-        participantID: state.participantID || 'none',
-        timestamp: new Date().toISOString()
-      });
+      sendToSheets({ action: 'eeg_interest_clicked', sessionCode: state.sessionCode || 'none', participantID: state.participantID || 'none', timestamp: new Date().toISOString() });
     }
     
     function tryMailto() {
@@ -1935,58 +1354,31 @@
         '',
         'Thank you.'
       ].join('\n');
-      
-      try {
-        window.location.href = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      } catch (e) {
-        alert('Could not open email client. Please manually email: action.brain.lab@gallaudet.edu');
-      }
+      try { window.location.href = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
+      catch (e) { alert('Could not open email client. Please manually email: action.brain.lab@gallaudet.edu'); }
     }
     
-    function copyEmail() {
+    function copyEmail(btnEl) {
       navigator.clipboard.writeText('action.brain.lab@gallaudet.edu').then(() => {
-        const btn = event.target;
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => btn.textContent = original, 2000);
-      }).catch(() => {
-        alert('Email: action.brain.lab@gallaudet.edu');
-      });
+        if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
+      }).catch(() => { alert('Email: action.brain.lab@gallaudet.edu'); });
     }
     
-    function closeEEGModal() {
-      document.getElementById('eeg-modal').classList.remove('active');
-    }
+    function closeEEGModal() { document.getElementById('eeg-modal').classList.remove('active'); }
 
-    function hashCode(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return hash;
-    }
+    function hashCode(str) { let hash = 0; for (let i=0;i<str.length;i++){const c=str.charCodeAt(i); hash=((hash<<5)-hash)+c; hash|=0;} return hash; }
 
     async function sendToSheets(data) {
-      if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) {
-        console.log('Sheets not configured:', data);
-        return;
-      }
-      
+      if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) { console.log('Sheets not configured:', data); return; }
       try {
         await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-      } catch (error) {
-        console.error('Error sending to sheets:', error);
-      }
+      } catch (error) { console.error('Error sending to sheets:', error); }
     }
 
-    // Expose functions to global scope for onclick handlers
+    // Expose to window
     window.showScreen = showScreen;
     window.createNewSession = createNewSession;
     window.resumeSession = resumeSession;
@@ -2013,4 +1405,3 @@
   </script>
 </body>
 </html>
-
