@@ -159,12 +159,6 @@
     .recording-status.recorded { color: var(--success); }
     @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:.5} }
     
-    /* File upload box */
-    .file-upload { border: 2px dashed #667eea; border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: white; }
-    .file-upload:hover { background: #f0f4ff; border-color: #4a5fc4; }
-    .file-upload.drag-over { background: #e8ecff; border-color: #4a5fc4; }
-    .file-upload input[type="file"] { display: none; }
-    
     /* Modals */
     .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
     .modal.active { display: flex; align-items: center; justify-content: center; }
@@ -179,6 +173,14 @@
     .fab.active { display: block; }
     .fab:hover { transform: scale(1.05); }
     
+    /* Embed */
+    .embed-shell { background: #0b0b0b; border: 2px solid var(--gray-border); border-radius: 12px; overflow: hidden; margin-top: 16px; }
+    .embed-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #111827; color: #e5e7eb; font-size: 14px; }
+    .embed-toolbar .actions { display: flex; gap: 8px; }
+    .embed-toolbar .actions .button { padding: 8px 14px; border-radius: 999px; font-size: 13px; box-shadow: none; }
+    .embed-frame { width: 100%; height: 75vh; border: none; display: block; background: #000; }
+    .embed-note { color: #6b7280; font-size: 12px; padding: 8px 12px; background: #0f172a; }
+    
     /* Responsive */
     @media (max-width: 768px) {
       .container { border-radius: 0; margin: 0; }
@@ -186,6 +188,7 @@
       .session-details { grid-template-columns: 1fr; }
       .button-group { flex-direction: column; }
       .button { width: 100%; }
+      .embed-frame { height: 70vh; }
     }
     
     /* Accessibility */
@@ -402,25 +405,6 @@
         <div id="task-content"></div>
       </div>
 
-      <!-- MRT Upload -->
-      <div class="screen" id="mrt-upload-screen">
-        <h2>Upload MRT Results</h2>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Please upload the CSV file from the Mental Rotation Task</p>
-        
-        <div class="file-upload" id="file-upload">
-          <div style="font-size: 48px; color: #667eea;">📁</div>
-          <p>Click to select or drag your CSV file here</p>
-          <input type="file" id="mrt-file" accept=".csv" />
-        </div>
-        
-        <div id="upload-status" style="margin-top: 20px;"></div>
-        
-        <div class="button-group">
-          <button class="button success" id="mrt-continue" onclick="completeMRTUpload()" style="display: none;">Continue</button>
-          <button class="button secondary" onclick="skipMRTUpload()">Skip Upload (Email Later)</button>
-        </div>
-      </div>
-
       <!-- Recording -->
       <div class="screen" id="recording-screen">
         <h2>Image Description Task</h2>
@@ -580,10 +564,9 @@
       },
       'MRT': {
         name: 'Mental Rotation Task',
-        description: 'Spatial reasoning assessment',
-        url: 'https://psych.hanover.edu/javatest/cle/Cognition_js/exp/mentRot.html',
-        type: 'external',
-        requiresUpload: true
+        description: 'Decide if two images are the same or not',
+        type: 'embed',
+        embedUrl: 'https://melodyfschwenk.github.io/mrt/'
       },
       'ASLCT': {
         name: 'ASL Comprehension Test',
@@ -600,9 +583,9 @@
       },
       'SN': {
         name: 'Spatial Navigation',
-        description: 'Choose the first step from the player to the stop sign',
-        url: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
-        type: 'external'
+        description: 'Choose the first step from the player to the stop sign (embedded below)',
+        type: 'embed',
+        embedUrl: 'https://melodyfschwenk.github.io/spatial-navigation-web/'
       },
       'ID': {
         name: 'Image Description',
@@ -678,20 +661,6 @@
       document.getElementById('last-initial').addEventListener('input', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 
-      // Upload (MRT)
-      const fileUpload = document.getElementById('file-upload');
-      const fileInput = document.getElementById('mrt-file');
-      if (fileUpload && fileInput) {
-        fileUpload.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleFileUpload);
-        fileUpload.addEventListener('dragover', e => { e.preventDefault(); fileUpload.classList.add('drag-over'); });
-        fileUpload.addEventListener('dragleave', () => fileUpload.classList.remove('drag-over'));
-        fileUpload.addEventListener('drop', e => {
-          e.preventDefault(); fileUpload.classList.remove('drag-over');
-          if (e.dataTransfer.files.length > 0) handleFileUpload({ target: { files: e.dataTransfer.files } });
-        });
-      }
-
       // Recording skip buttons + fallback uploader
       bindRecordingSkips();
       bindUploadFallback();
@@ -710,7 +679,7 @@
       const screen = document.getElementById(screenId);
       if (screen) screen.classList.add('active');
       const widget = document.getElementById('session-widget');
-      const showWidget = ['progress-screen','task-screen','consent-screen','mrt-upload-screen','recording-screen'].includes(screenId);
+      const showWidget = ['progress-screen','task-screen','consent-screen','recording-screen'].includes(screenId);
       if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
       const fab = document.getElementById('pause-fab');
       if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
@@ -850,8 +819,7 @@
         const li = document.createElement('li');
         li.className = 'task-item';
         const isCompleted = state.completedTasks.includes(taskCode);
-        theIsCurrent = index === state.currentTaskIndex && !isCompleted;
-        const isCurrent = theIsCurrent;
+        const isCurrent = index === state.currentTaskIndex && !isCompleted;
         if (isCompleted) li.classList.add('completed');
         else if (isCurrent) li.classList.add('current');
         else li.classList.add('locked');
@@ -892,10 +860,72 @@
       if (!task) { console.error('Task not found:', taskCode); return; }
       if (!state.taskData) state.taskData = {};
       state.taskData[taskCode] = { startTime: Date.now() };
-      if (task.type === 'recording') showRecordingTask();
-      else if (task.requiresUpload && taskCode === 'MRT') showMRTTask();
-      else showExternalTask(taskCode);
+
+      if (task.type === 'recording') {
+        showRecordingTask();
+      } else if (task.type === 'embed') {
+        showEmbeddedTask(taskCode);
+      } else {
+        showExternalTask(taskCode);
+      }
+
       sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: task.name, timestamp: new Date().toISOString() });
+    }
+
+    function showEmbeddedTask(taskCode) {
+      const task = TASKS[taskCode];
+      const url = task.embedUrl;
+
+      let extra = '';
+      if (taskCode === 'SN') {
+        extra = `
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>What you'll do</strong>
+            <p style="margin-top: 6px;">
+              In each mini-maze, press <em>one</em> arrow key for the <em>first</em> step from the gray player to the red stop sign.
+            </p>
+          </div>`;
+      } else if (taskCode === 'MRT') {
+        extra = `
+          <div class="info-banner warning" style="margin-top: 10px;">
+            <strong>Heads up:</strong>
+            <p style="margin-top: 6px;">Runs about <strong>5–6 minutes</strong>. Work quickly and steadily from start to finish.</p>
+          </div>`;
+      }
+
+      document.getElementById('task-title').textContent = task.name;
+      document.getElementById('task-instructions').innerHTML = `
+        <p>${task.description}</p>
+        ${extra}
+        <div class="info-banner info" style="margin-top: 10px;">
+          <strong>How this works:</strong>
+          <ol style="margin: 10px 0 0 20px; text-align: left;">
+            <li>Use the embedded window below to complete the task (or open in a new tab).</li>
+            <li>When finished, click <em>Mark Complete</em> here.</li>
+          </ol>
+        </div>
+      `;
+
+      const content = document.getElementById('task-content');
+      const iframeId = `embed-${taskCode.toLowerCase()}`;
+      content.innerHTML = `
+        <div class="embed-shell">
+          <div class="embed-toolbar">
+            <div>Embedded: ${task.name}</div>
+            <div class="actions">
+              <button class="button outline" onclick="openEmbedInNewTab('${taskCode}')">Open in new tab</button>
+              <button class="button outline" onclick="reloadEmbed('${iframeId}')">Reload frame</button>
+            </div>
+          </div>
+          <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking"></iframe>
+          <div class="embed-note">If the embed doesn’t respond, use “Open in new tab.”</div>
+        </div>
+        <div class="button-group" style="margin-top: 16px;">
+          <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
+        </div>
+      `;
+
+      showScreen('task-screen');
     }
 
     function showExternalTask(taskCode) {
@@ -903,107 +933,42 @@
 
       // Tailored guidance
       let extra = '';
-      if (taskCode === 'MRT') {
+      if (taskCode === 'ASLCT') {
         extra = `
-          <div class="info-banner warning" style="margin-top: 10px;">
-            <strong>Heads up:</strong>
+          <div class="info-banner success" style="margin-top: 10px;">
+            <strong>ASLCT Access Code</strong>
             <p style="margin-top: 6px;">
-              This version does not show a progress bar and runs about <strong>5–6 minutes</strong>.
-              Please work <strong>quickly and steadily</strong> from start to finish (no built-in breaks).
-              When you finish, return here to upload the CSV (or skip upload and email it later).
+              On the login page, enter access code: <span class="code" style="font-size:22px; background:#fff; color:#333; padding:4px 8px; border-radius:6px; display:inline-block;">NWMTLYMTP</span>
             </p>
+            <button class="button outline" onclick="copyASLCTCode(this)">Copy Access Code</button>
+          </div>
+          <div class="info-banner info" style="margin-top: 10px;">
+            <strong>Instructions:</strong>
+            <ol style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Click “Open Task”.</li>
+              <li>On the ASLCT portal, paste the access code <em>NWMTLYMTP</em> and follow the prompts.</li>
+              <li>Return here when finished and click “Mark Complete”.</li>
+            </ol>
           </div>`;
       } else if (taskCode === 'VCN') {
         extra = `
           <div class="info-banner info" style="margin-top: 10px;">
             <strong>Virtual SILC Test of Navigation (SILCton) — What you'll do</strong>
             <p style="margin-top: 6px;">
-              Learn a small virtual campus during a brief <em>Learning</em> phase, then answer quick questions in a
-              <em>Test</em> phase that check your sense of where places are.
+              Learn a small virtual campus (Learning phase), then answer quick questions (Test phase).
             </p>
             <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li><strong>Controls:</strong> Move with <em>WASD</em> or <em>arrow keys</em>. Look around with your mouse/trackpad.</li>
-              <li><strong>Desktop/laptop recommended:</strong> Use Chrome or Firefox. Keep this page open; SILCton opens in a new tab.</li>
-              <li><strong>Do not refresh</strong> the SILCton tab (you may lose progress). When finished, just return here.</li>
+              <li><strong>Controls:</strong> Move with WASD/arrow keys; look around with the mouse.</li>
+              <li>Desktop/laptop recommended (Chrome/Firefox). Keep this page open.</li>
             </ul>
-          </div>
-
-          <div class="info-banner info" style="margin-top: 10px;">
-            <strong>Learning phase (explore)</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Follow paths and look around slowly to notice buildings/landmarks.</li>
-              <li>Make a rough mental map: where things are and how paths connect.</li>
-              <li>You can stop and spin in place to scan the environment before moving on.</li>
-            </ul>
-          </div>
-
-          <div class="info-banner info" style="margin-top: 10px;">
-            <strong>Test phase (quick judgments)</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>You’ll answer short questions based on the layout you learned.</li>
-              <li>Examples include: pointing toward a location, judging which place is closer, or choosing a direction from your current spot.</li>
-              <li>If unsure, make your <em>best quick guess</em> and continue—speed and steady progress are fine.</li>
-            </ul>
-          </div>
-
-          <div class="info-banner warning" style="margin-top: 10px;">
-            <strong>Tips & troubleshooting</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>If the mouse cursor seems “locked,” click once inside the SILCton window to regain look control.</li>
-              <li>If motion feels uncomfortable, make smaller mouse movements and walk at a steady pace.</li>
-              <li>If the page seems unresponsive, wait a moment—avoid using the browser back/refresh inside SILCton.</li>
-            </ul>
-            <p style="margin-top: 8px;"><strong>When you finish:</strong> close or leave the SILCton tab, come back here, and click <em>Mark Complete</em>.</p>
           </div>`;
       } else if (taskCode === 'SN') {
+        // Only used if SN is ever external again
         extra = `
           <div class="info-banner info" style="margin-top: 10px;">
             <strong>What you'll do</strong>
-            <p style="margin-top: 6px;">
-              In each mini-maze, move from the <strong>gray player</strong> to the <strong>red stop sign</strong> while avoiding blue walls.
-              You press <em>one</em> arrow key for the <em>first</em> step the player should take.
-            </p>
-          </div>
-
-          <div class="info-banner success" style="margin-top: 10px;">
-            <strong>PLAYER VIEW (egocentric)</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>UP = move <em>forward</em> (the direction the player is facing)</li>
-              <li>DOWN = move backward</li>
-              <li>LEFT = move to the player’s left</li>
-              <li>RIGHT = move to the player’s right</li>
-            </ul>
-            <p style="margin-top: 8px;">Example: UP moves you forward in whatever direction the triangle is pointing.</p>
-          </div>
-
-          <div class="info-banner info" style="margin-top: 10px;">
-            <strong>MAP VIEW (allocentric)</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>UP = toward the <em>top</em> of the screen</li>
-              <li>DOWN = toward the <em>bottom</em> of the screen</li>
-              <li>LEFT = toward the <em>left</em> side of the screen</li>
-              <li>RIGHT = toward the <em>right</em> side of the screen</li>
-            </ul>
-            <p style="margin-top: 8px;">The player’s facing direction does not matter here—UP is always “toward the top”.</p>
-          </div>
-
-          <div class="info-banner warning" style="margin-top: 10px;">
-            <strong>ARROW FOLLOWING (control)</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Press the arrow key that matches the <em>first arrow</em> shown from the player.</li>
-              <li>UP if the first arrow points up; DOWN if it points down; LEFT if left; RIGHT if right.</li>
-            </ul>
-          </div>
-
-          <div class="info-banner" style="border-left-color:#667eea; margin-top: 10px;">
-            <strong>Timing & tips</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Choose the <em>first</em> step toward the stop sign—just one key press per trial.</li>
-              <li>Respond <em>quickly and correctly</em>. If unsure, make your best quick choice.</li>
-              <li>Use a keyboard (desktop/laptop recommended).</li>
-            </ul>
-          </div>
-        `;
+            <p>Press one arrow key for the first step toward the red stop sign.</p>
+          </div>`;
       }
 
       document.getElementById('task-title').textContent = task.name;
@@ -1038,20 +1003,6 @@
       }
 
       showScreen('task-screen');
-    }
-
-    function showMRTTask() {
-      showExternalTask('MRT');
-      setTimeout(() => {
-        const content = document.getElementById('task-content');
-        content.innerHTML += `
-          <div class="info-banner warning" style="margin-top: 20px;">
-            <strong>After completing MRT:</strong>
-            <p>Upload your CSV results file or email it later.</p>
-            <button class="button" onclick="showScreen('mrt-upload-screen')" style="margin-top: 10px;">Upload Results</button>
-          </div>
-        `;
-      }, 2000);
     }
 
     // ----- Recording task -----
@@ -1182,7 +1133,6 @@
           state.recording.mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) state.recording.chunks.push(e.data); };
           state.recording.mediaRecorder.onstop = () => {
             try {
-              // Clear any previous blob URL before setting a new one
               revokeRecordedURL();
 
               const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/webm' });
@@ -1276,10 +1226,9 @@
           const preview = document.getElementById('video-preview');
           if (preview) {
             preview.pause?.();
-            preview.srcObject = null;   // detach the stream
+            preview.srcObject = null;
             preview.style.display = 'none';
           }
-          // Hide and revoke any recorded preview URL
           const recorded = document.getElementById('recorded-video');
           if (recorded) {
             revokeRecordedURL();
@@ -1314,26 +1263,6 @@
       }, 1000);
     }
     function stopRecordingTimer() { clearInterval(recordingTimer); const t = document.getElementById('recording-timer'); if (t) t.style.display = 'none'; }
-
-    // ----- MRT upload handlers -----
-    function handleFileUpload(event) {
-      const file = event.target.files[0]; if (!file) return;
-      if (!file.name.toLowerCase().endsWith('.csv')) { alert('Please upload a CSV file'); return; }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById('upload-status').innerHTML = `
-          <div class="info-banner success">
-            ✅ File uploaded successfully!
-            <br><small>${file.name}</small>
-          </div>`;
-        document.getElementById('mrt-continue').style.display = 'inline-block';
-        sendToSheets({ action: 'file_uploaded', sessionCode: state.sessionCode, filename: file.name, timestamp: new Date().toISOString() });
-      };
-      reader.readAsText(file);
-    }
-
-    function completeMRTUpload() { completeTask('MRT'); }
-    function skipMRTUpload() { if (confirm('Skip upload? You can email the file later.')) completeTask('MRT'); }
 
     // ----- Complete/Skip -----
     function completeTask(taskCode) {
@@ -1392,6 +1321,21 @@
       navigator.clipboard.writeText(code).then(() => {
         if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
       });
+    }
+
+    function copyASLCTCode(btnEl) {
+      navigator.clipboard.writeText('NWMTLYMTP').then(() => {
+        if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
+      }).catch(() => { alert('Access code: NWMTLYMTP'); });
+    }
+
+    function openEmbedInNewTab(taskCode) {
+      const task = TASKS[taskCode];
+      if (task?.embedUrl) window.open(task.embedUrl, '_blank', 'noopener');
+    }
+    function reloadEmbed(iframeId) {
+      const f = document.getElementById(iframeId);
+      if (f) f.src = f.src;
     }
 
     function contactEEG() {
@@ -1459,6 +1403,7 @@
     window.continueToCurrentTask = continueToCurrentTask;
     window.pauseSession = pauseSession;
     window.copyCode = copyCode;
+    window.copyASLCTCode = copyASLCTCode;
     window.contactEEG = contactEEG;
     window.tryMailto = tryMailto;
     window.copyEmail = copyEmail;
@@ -1468,9 +1413,9 @@
     window.toggleRecording = toggleRecording;
     window.reRecord = reRecord;
     window.saveRecording = saveRecording;
-    window.completeMRTUpload = completeMRTUpload;
-    window.skipMRTUpload = skipMRTUpload;
     window.skipRecording = skipRecording;
+    window.openEmbedInNewTab = openEmbedInNewTab;
+    window.reloadEmbed = reloadEmbed;
   </script>
 </body>
 </html>
