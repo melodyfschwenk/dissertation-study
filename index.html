@@ -570,13 +570,14 @@
         description: '15-20 minute live assessment',
         url: 'https://calendly.com/melodyschwenk/spatialcognitionzoom',
         type: 'external',
-        required: true
+        canSkip: true
       },
       'MRT': {
         name: 'Mental Rotation Task',
         description: 'Decide if two images are the same or not',
-        type: 'embed',
-        embedUrl: 'https://melodyfschwenk.github.io/mrt/'
+        type: 'embed,
+        embedUrl: 'https://melodyfschwenk.github.io/mrt/',
+      canSkip: true
       },
       'ASLCT': {
         name: 'ASL Comprehension Test',
@@ -589,13 +590,15 @@
         name: 'Virtual Campus Navigation',
         description: 'Virtual SILC Test of Navigation (SILCton)',
         url: 'http://www.virtualsilcton.com/study/753798747',
-        type: 'external'
+        type: 'external',
+          canSkip: true,
       },
       'SN': {
         name: 'Spatial Navigation',
         description: 'Choose the first step from the player to the stop sign (embedded below)',
         type: 'embed',
-        embedUrl: 'https://melodyfschwenk.github.io/spatial-navigation-web/'
+        embedUrl: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
+          canSkip: true
       },
       'ID': {
         name: 'Image Description',
@@ -1526,3 +1529,4 @@
   </script>
 </body>
 </html>
+
