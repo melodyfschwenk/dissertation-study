@@ -260,7 +260,7 @@
           <button class="button success" onclick="contactEEG()" style="margin-top: 10px;">I am local, tell me more</button>
         </div>
 
-        <div class="info-banner warning">
+        <div class="info-banner warning" id="device-warning">
           <strong>📱 Device Recommendation</strong>
           <p style="margin-top: 10px;">Please use a computer if possible. Some tasks require keyboard/mouse and work best in Chrome or Firefox.</p>
         </div>
@@ -558,7 +558,7 @@
   <script>
     // ----- Configuration -----
     const CONFIG = {
-      SHEETS_URL: 'https://script.google.com/macros/s/AKfycbzDGf-cwvjmZuieeOKNleKLd38pLyWAw-k8nsTLYOX7RiSHSKJJmihOXo7u711oyD80nA/exec',
+      SHEETS_URL: 'https://script.google.com/macros/s/AKfycbx2aB_Dlatm1DN39z_klK6MwRAsd4Ip1FYwxbdE98alXCkNr2L9sqqFeWKUSSNG0RDXfw/exec',
       IMAGE_1: 'images/description1.jpg',
       IMAGE_2: 'images/description2.jpg'
     };
@@ -575,7 +575,7 @@
       'MRT': {
         name: 'Mental Rotation Task',
         description: 'Decide if two images are the same or not',
-        type: 'embed,
+        type: 'embed',
         embedUrl: 'https://melodyfschwenk.github.io/mrt/',
       canSkip: true
       },
@@ -635,6 +635,18 @@
       ['ZOOM', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
     ];
 
+    // Mobile-specific sequence (reduced tasks)
+const MOBILE_SEQUENCE = ['MRT', 'SN', 'ID', 'DEMO'];
+
+// Detect if mobile/tablet
+function isMobileDevice() {
+  const hasTouch = ('ontouchstart' in window) || 
+                  (navigator.maxTouchPoints > 0) || 
+                  (navigator.msMaxTouchPoints > 0);
+  const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+  const isSmallScreen = window.innerWidth <= 1024;
+  return hasTouch && (mobileUA || isSmallScreen);
+}
     // ----- State -----
     let state = {
       sessionCode: '',
@@ -668,6 +680,31 @@
       setupEventListeners();
       checkSavedSession();
     });
+
+    // Enhanced mobile warning
+document.addEventListener('DOMContentLoaded', () => {
+  setupEventListeners();
+  checkSavedSession();
+  
+  // Add mobile-specific warning
+  if (isMobileDevice()) {
+    const warning = document.getElementById('device-warning');
+    if (warning) {
+      warning.className = 'info-banner danger'; // Make it red
+      warning.innerHTML = `
+        <strong>⚠️ Mobile/Tablet Detected - Limited Tasks Available</strong>
+        <p style="margin-top: 10px;"><strong>We strongly recommend using a computer for the full study.</strong></p>
+        <ul style="margin: 10px 0 0 20px; text-align: left;">
+          <li>You'll only get 4 tasks instead of 7 on mobile</li>
+          <li>Some tasks work poorly on touchscreens</li>
+          <li>You'll miss the Virtual Campus Navigation and ASL Comprehension Test</li>
+          <li>The Zoom scheduling task is also unavailable on mobile</li>
+        </ul>
+        <p style="margin-top: 10px;"><strong>Continue on mobile only if you cannot access a computer.</strong></p>
+      `;
+    }
+  }
+});
 
     function setupEventListeners() {
       document.getElementById('first-initial').addEventListener('input', validateInitials);
@@ -712,16 +749,43 @@
       const email = document.getElementById('email').value.trim();
       if (!first || !last) { alert('Please enter your initials'); return; }
 
+      if (isMobileDevice()) {
+    const proceed = confirm(
+      'IMPORTANT: You are on a mobile device.\n\n' +
+      '• You will only receive 4 tasks instead of 7\n' +
+      '• We STRONGLY recommend using a computer for the full experience\n' +
+      '• Some tasks may not work well on mobile\n\n' +
+      'Do you want to continue on mobile anyway?'
+    );
+    if (!proceed) return;
+  }
+
       state.sessionCode = generateCode();
       state.participantID = `${first}${last}_${Date.now().toString().slice(-4)}`;
       state.email = email;
-      state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
-      state.sequence = SEQUENCES[state.sequenceIndex].slice();
+      // Check if mobile and use appropriate sequence
+if (isMobileDevice()) {
+  state.sequenceIndex = -1; // Special index for mobile
+  state.sequence = MOBILE_SEQUENCE.slice();
+  state.isMobile = true;
+} else {
+  state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
+  state.sequence = SEQUENCES[state.sequenceIndex].slice();
+  state.isMobile = false;
+}
       state.startTime = Date.now();
       state.lastActivity = new Date().toISOString();
 
       saveState();
-      sendToSheets({ action: 'session_created', sessionCode: state.sessionCode, participantID: state.participantID, email: state.email, sequenceIndex: state.sequenceIndex, timestamp: new Date().toISOString() });
+      sendToSheets({ 
+  action: 'session_created', 
+  sessionCode: state.sessionCode, 
+  participantID: state.participantID, 
+  email: state.email, 
+  sequenceIndex: state.sequenceIndex,
+  deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',  // ADD THIS LINE
+  timestamp: new Date().toISOString() 
+});
 
       document.getElementById('display-code').textContent = state.sessionCode;
       showScreen('session-created');
@@ -854,13 +918,19 @@
     }
 
     function updateSessionWidget() {
-      if (!state.sessionCode) return;
-      document.getElementById('widget-code').textContent = state.sessionCode;
-      document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
-      document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
-      const currentTask = state.sequence[state.currentTaskIndex];
-      document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';
-    }
+  if (!state.sessionCode) return;
+  document.getElementById('widget-code').textContent = state.sessionCode;
+  document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
+  document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
+  const currentTask = state.sequence[state.currentTaskIndex];
+  document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';
+  
+  // Add device indicator if mobile
+  if (state.isMobile) {
+    const codeEl = document.getElementById('widget-code');
+    codeEl.textContent = state.sessionCode + ' (Mobile)';
+  }
+}
 
     // ----- Task flow -----
     function continueToCurrentTask() {
@@ -1417,7 +1487,13 @@
     function showCompletionScreen() {
       document.getElementById('final-code').textContent = state.sessionCode;
       document.getElementById('total-time').textContent = Math.round(state.totalTimeSpent / 60000);
-      sendToSheets({ action: 'study_completed', sessionCode: state.sessionCode, totalDuration: Math.round(state.totalTimeSpent / 60000), timestamp: new Date().toISOString() });
+      sendToSheets({ 
+  action: 'study_completed', 
+  sessionCode: state.sessionCode, 
+  totalDuration: Math.round(state.totalTimeSpent / 60000),
+  deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',  // ADD THIS LINE
+  timestamp: new Date().toISOString() 
+});
       showScreen('completion-screen');
       document.getElementById('pause-fab').classList.remove('active');
     }
@@ -1529,4 +1605,5 @@
   </script>
 </body>
 </html>
+
 
