@@ -173,14 +173,24 @@
     .fab.active { display: block; }
     .fab:hover { transform: scale(1.05); }
     
-    /* Embed */
+    /* Embed shells */
     .embed-shell { background: #0b0b0b; border: 2px solid var(--gray-border); border-radius: 12px; overflow: hidden; margin-top: 16px; }
-    .embed-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #111827; color: #e5e7eb; font-size: 14px; }
-    .embed-toolbar .actions { display: flex; gap: 8px; }
-    .embed-toolbar .actions .button { padding: 8px 14px; border-radius: 999px; font-size: 13px; box-shadow: none; }
+    .fs-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:#111827; color:#e5e7eb; font-size:14px; }
+    .fs-toolbar .actions { display:flex; gap:8px; }
     .embed-frame { width: 100%; height: 75vh; border: none; display: block; background: #000; }
     .embed-note { color: #6b7280; font-size: 12px; padding: 8px 12px; background: #0f172a; }
-    
+
+    /* Fullscreen adjustments */
+    .fs-shell:fullscreen .embed-frame { height: calc(100vh - 52px); }
+    .fs-shell:-webkit-full-screen .embed-frame { height: calc(100vh - 52px); }
+
+    /* Distraction-free fallback */
+    html.df-mode, html.df-mode body { height:100%; }
+    html.df-mode body { overflow:hidden; position:fixed; left:0; right:0; }
+    html.df-mode .container { width:100vw; height:100vh; border-radius:0; box-shadow:none; }
+    html.df-mode .header, html.df-mode .footer, html.df-mode #task-instructions { display:none !important; }
+    html.df-mode .embed-frame { height: calc(100vh - 52px); }
+
     /* Responsive */
     @media (max-width: 768px) {
       .container { border-radius: 0; margin: 0; }
@@ -194,13 +204,6 @@
     /* Accessibility */
     .sr-only { position: absolute; left: -9999px; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-
-    /* Distraction-free mode */
-    html.df-mode, html.df-mode body { height:100%; }
-    html.df-mode body { overflow:hidden; position:fixed; left:0; right:0; }
-    html.df-mode .container { width:100vw; height:100vh; border-radius:0; box-shadow:none; }
-    html.df-mode .header, html.df-mode .footer, html.df-mode #task-instructions { display:none !important; }
-    html.df-mode .embed-frame { height: calc(100vh - 56px); } /* ≈ toolbar height */
   </style>
 </head>
 <body>
@@ -826,8 +829,7 @@
         const li = document.createElement('li');
         li.className = 'task-item';
         const isCompleted = state.completedTasks.includes(taskCode);
-        theCurrent = index === state.currentTaskIndex && !isCompleted;
-        const isCurrent = theCurrent;
+        const isCurrent = index === state.currentTaskIndex && !isCompleted;
         if (isCompleted) li.classList.add('completed');
         else if (isCurrent) li.classList.add('current');
         else li.classList.add('locked');
@@ -881,7 +883,7 @@
       sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: task.name, timestamp: new Date().toISOString() });
     }
 
-    // ----- Distraction-free helpers -----
+    // ----- Distraction-free fallback -----
     function enterDistractionFree() {
       document.documentElement.classList.add('df-mode');
       document.body.dataset.scrollY = window.scrollY;
@@ -904,13 +906,13 @@
       }
     });
 
-    // ----- Embedded tasks (SN / MRT) -----
+    // ----- Embedded tasks (SN / MRT) — streamlined flow -----
     function showEmbeddedTask(taskCode) {
       const task = TASKS[taskCode];
       const url  = task.embedUrl;
       const iframeId = `embed-${taskCode.toLowerCase()}`;
 
-      // Short extras
+      // Short intro
       let extra = '';
       if (taskCode === 'SN') {
         extra = `
@@ -926,7 +928,6 @@
           </div>`;
       }
 
-      // Instructions (short + scannable)
       document.getElementById('task-title').textContent = task.name;
       document.getElementById('task-instructions').innerHTML = `
         <p>${task.description}</p>
@@ -934,103 +935,121 @@
         <details style="margin-top:10px;"><summary style="cursor:pointer;">More info / troubleshooting</summary>
           <ul style="margin:8px 0 0 20px; text-align:left;">
             <li>If the game doesn’t respond, click inside it once to give it keyboard focus.</li>
-            <li>Use “Open in new tab” if the embed feels laggy or blocked.</li>
+            <li>If fullscreen doesn’t work on your device, we’ll switch to a distraction-free view.</li>
           </ul>
         </details>
       `;
 
-      // Shell with sticky controls, loading watchdog, keyboard test, and DF toggle
+      // Pre-start card → then fullscreen with a pinned top bar and a single completion button
       const content = document.getElementById('task-content');
       content.innerHTML = `
-        <div class="embed-shell" id="task-shell">
-          <div class="embed-toolbar">
-            <div>Embedded: ${task.name}</div>
-            <div class="actions">
-              <button class="button outline" id="focus-btn">Focus frame</button>
-              <button class="button outline" onclick="openEmbedInNewTab('${taskCode}')">Open in new tab</button>
-              <button class="button outline" id="df-btn">Distraction-free</button>
-            </div>
+        <div class="card" id="prestart">
+          <p>When you click <strong>Continue</strong>, the task will open in fullscreen. When you’re finished, click <em>I’m finished — Continue</em>.</p>
+          <div class="button-group" style="margin-top:12px;">
+            <button class="button" id="start-embed">Continue</button>
+            ${task.canSkip ? `<button class="button secondary" onclick="skipTask('${taskCode}')">Skip This Task</button>` : ''}
           </div>
-
-          <div id="preflight" style="padding:12px; background:#0f172a; color:#e5e7eb;">
-            <strong>Quick check (2 seconds):</strong>
-            <div style="display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-              <div id="kb-snippet" style="font-size:13px;">
-                ${taskCode === 'SN'
-                  ? 'Press any arrow key here → <span id="kb-ok" aria-live="polite">⏳</span>'
-                  : 'Press any key here → <span id="kb-ok" aria-live="polite">⏳</span>'}
-              </div>
-              <div style="font-size:12px; opacity:.85;">(You may still need to click inside the task once.)</div>
-            </div>
-          </div>
-
-          <div id="load-banner" style="display:none; padding:10px 12px; background:#111827; color:#e5e7eb; font-size:14px;">
-            Still loading… If nothing appears after a few seconds, try “Open in new tab”.
-          </div>
-
-          <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking"></iframe>
-          <div class="embed-note">Tip: click once inside the game to give it keyboard focus.</div>
         </div>
 
-        <div class="button-group" style="position:sticky; bottom:0; background:#fff; padding:12px; border-top:1px solid #eee;">
-          <button class="button success" id="complete-btn" disabled>Mark Complete</button>
-          <button class="button secondary" onclick="reloadEmbed('${iframeId}')">Reload frame</button>
+        <div class="embed-shell fs-shell" id="fs-shell" style="display:none;">
+          <div class="fs-toolbar" id="fs-toolbar">
+            <div>${task.name}</div>
+            <div class="actions">
+              <button class="button success" id="finish-btn" disabled>I’m finished — Continue</button>
+              <button class="button secondary" id="exit-btn">Exit fullscreen</button>
+            </div>
+          </div>
+          <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking" allowfullscreen></iframe>
+          <div class="embed-note">Tip: click once inside the game to give it keyboard focus.</div>
         </div>
       `;
 
-      // Activate screen and logic
       showScreen('task-screen');
 
-      // Disable complete for ~8s to prevent instant misclicks
-      const completeBtn = document.getElementById('complete-btn');
-      const enableComplete = () => { completeBtn.disabled = false; completeBtn.onclick = () => completeTask(taskCode); };
-      setTimeout(enableComplete, 8000);
-
-      // Keyboard test
-      const kbOk = document.getElementById('kb-ok');
-      const arrowKeys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
-      const onKey = (e) => {
-        if (taskCode === 'SN') {
-          if (!arrowKeys.includes(e.key)) return;
-        }
-        if (kbOk) kbOk.textContent = '✅';
-        window.removeEventListener('keydown', onKey);
-      };
-      window.addEventListener('keydown', onKey);
-
-      // Focus helper (note: cross-origin iframes often require a click for keyboard)
+      const fsShell = document.getElementById('fs-shell');
+      const finishBtn = document.getElementById('finish-btn');
+      const exitBtn = document.getElementById('exit-btn');
+      const prestart = document.getElementById('prestart');
       const iframe = document.getElementById(iframeId);
-      document.getElementById('focus-btn').onclick = () => iframe?.focus();
 
-      // Loading watchdog (7s)
-      const loadBanner = document.getElementById('load-banner');
-      let watchdog = setTimeout(() => { loadBanner.style.display = 'block'; }, 7000);
-      iframe.addEventListener('load', () => { clearTimeout(watchdog); loadBanner.style.display = 'none'; }, { once:true });
+      // Enable the finish button after a few seconds to prevent accidental immediate clicks
+      const enableFinish = () => { finishBtn.disabled = false; };
 
-      // Distraction-free toggle
-      const dfBtn = document.getElementById('df-btn');
-      let inDF = false;
-      dfBtn.onclick = () => {
-        inDF = !inDF;
-        if (inDF) {
+      // Enter fullscreen (fallback to distraction-free)
+      async function goFullscreen() {
+        prestart.style.display = 'none';
+        fsShell.style.display = 'block';
+
+        // Give the iframe a moment to mount
+        setTimeout(() => {
+          try { iframe.focus(); } catch(e) {}
+        }, 50);
+
+        try {
+          if (fsShell.requestFullscreen) {
+            await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+          } else if (fsShell.webkitRequestFullscreen) { // Safari
+            fsShell.webkitRequestFullscreen();
+          }
+          // If not actually in fullscreen after a bit, use distraction-free fallback
+          setTimeout(() => {
+            const inFS = document.fullscreenElement || document.webkitFullscreenElement;
+            if (!inFS) enterDistractionFree();
+          }, 250);
+        } catch (e) {
+          // Fallback
           enterDistractionFree();
-          dfBtn.textContent = 'Exit distraction-free';
-          const onEsc = (e) => { if (e.key === 'Escape') { dfBtn.click(); } };
-          window.addEventListener('keydown', onEsc, { once:true });
-          window.onbeforeunload = () => 'Leave the task? Your progress is saved, but you may lose unsent responses.';
-        } else {
-          exitDistractionFree();
-          dfBtn.textContent = 'Distraction-free';
-          window.onbeforeunload = null;
         }
+
+        // Small delay, then allow finishing
+        setTimeout(enableFinish, 6000);
+      }
+
+      // Exit whichever mode we used
+      function leaveFullscreenModes() {
+        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+        if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
+        exitDistractionFree();
+      }
+
+      // Wire up buttons
+      document.getElementById('start-embed').onclick = goFullscreen;
+      finishBtn.onclick = () => {
+        leaveFullscreenModes();
+        completeTask(taskCode);
       };
+      exitBtn.onclick = () => {
+        leaveFullscreenModes();
+        // Keep them on the page with the task still visible (non-fullscreen),
+        // and keep the finish button enabled so they can continue when they’re truly done.
+        fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        enableFinish();
+      };
+
+      // Minimal loading watchdog (helps on slow networks)
+      const loadTimeout = setTimeout(() => {
+        // If still blank after 7s, show a subtle hint
+        const note = document.createElement('div');
+        note.className = 'embed-note';
+        note.textContent = 'Still loading… if nothing appears soon, try exiting fullscreen and re-entering.';
+        fsShell.appendChild(note);
+      }, 7000);
+      iframe.addEventListener('load', () => clearTimeout(loadTimeout), { once:true });
+
+      // Escape key should just exit fullscreen (not mark complete)
+      document.addEventListener('keydown', function escHandler(ev) {
+        if (ev.key === 'Escape') {
+          // Let browser exit fullscreen; also clear DF mode if present
+          setTimeout(leaveFullscreenModes, 0);
+          document.removeEventListener('keydown', escHandler);
+        }
+      });
     }
 
     // ----- External tasks -----
     function showExternalTask(taskCode) {
       const task = TASKS[taskCode];
 
-      // Tailored guidance
       let extra = '';
       if (taskCode === 'ASLCT') {
         extra = `
@@ -1097,7 +1116,7 @@
       showScreen('task-screen');
     }
 
-    // ----- Recording task -----
+    // ----- Recording task (unchanged) -----
     function showRecordingTask() {
       state.recording.currentImage = 0;
       state.recording.recordings = [];
@@ -1502,10 +1521,6 @@
     window.closeEEGModal = closeEEGModal;
     window.completeTask = completeTask;
     window.skipTask = skipTask;
-    window.toggleRecording = toggleRecording;
-    window.reRecord = reRecord;
-    window.saveRecording = saveRecording;
-    window.skipRecording = skipRecording;
     window.openEmbedInNewTab = openEmbedInNewTab;
     window.reloadEmbed = reloadEmbed;
   </script>
