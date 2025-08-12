@@ -636,7 +636,10 @@
     ];
 
     // Mobile-specific sequence (reduced tasks)
-const MOBILE_SEQUENCE = ['MRT', 'SN', 'ID', 'DEMO'];
+const MOBILE_SEQUENCES = ['ZOOM', 'MRT', 'ASLCT' 'SN', 'ID', 'DEMO'],
+                         ['ZOOM', 'ASLCT', 'SN', 'ID', 'MRT', 'DEMO'],
+                        ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
+                          ['ZOOM', 'ID', 'MRT', 'ASLCT', 'SN', 'DEMO'];
 
 // Detect if mobile/tablet
 function isMobileDevice() {
@@ -695,10 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <strong>⚠️ Mobile/Tablet Detected - Limited Tasks Available</strong>
         <p style="margin-top: 10px;"><strong>We strongly recommend using a computer for the full study.</strong></p>
         <ul style="margin: 10px 0 0 20px; text-align: left;">
-          <li>You'll only get 4 tasks instead of 7 on mobile</li>
+          <li>You'll only get 6 tasks instead of 7 on mobile</li>
           <li>Some tasks work poorly on touchscreens</li>
-          <li>You'll miss the Virtual Campus Navigation and ASL Comprehension Test</li>
-          <li>The Zoom scheduling task is also unavailable on mobile</li>
+          <li>You'll miss the Virtual Campus Navigation </li>
         </ul>
         <p style="margin-top: 10px;"><strong>Continue on mobile only if you cannot access a computer.</strong></p>
       `;
@@ -752,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isMobileDevice()) {
     const proceed = confirm(
       'IMPORTANT: You are on a mobile device.\n\n' +
-      '• You will only receive 4 tasks instead of 7\n' +
+      '• You will only receive 6 tasks instead of 7\n' +
       '• We STRONGLY recommend using a computer for the full experience\n' +
       '• Some tasks may not work well on mobile\n\n' +
       'Do you want to continue on mobile anyway?'
@@ -1605,6 +1607,7 @@ if (isMobileDevice()) {
   </script>
 </body>
 </html>
+
 
 
 
