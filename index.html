@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,6 @@
   <title>Spatial Cognition & Sign Language Research Study</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
     :root {
       --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --success: #4caf50;
@@ -18,7 +17,6 @@
       --text-dark: #333;
       --text-muted: #666;
     }
-    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       background: var(--primary-gradient);
@@ -26,7 +24,6 @@
       padding: 20px;
       line-height: 1.6;
     }
-    
     .container {
       max-width: 900px;
       margin: 0 auto;
@@ -35,66 +32,35 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       overflow: hidden;
     }
-    
-    .header {
-      background: var(--primary-gradient);
-      color: white;
-      padding: 40px;
-      text-align: center;
-    }
-    
+    .header { background: var(--primary-gradient); color: white; padding: 40px; text-align: center; }
     .header h1 { font-size: 32px; margin-bottom: 10px; }
     .header p { font-size: 18px; opacity: 0.95; }
-    
+
     .content { padding: 40px; }
-    
+
     /* Screens */
     .screen { display: none; animation: fadeIn 0.3s ease-in; }
     .screen.active { display: block; }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
     /* Cards / banners */
-    .card {
-      background: var(--gray-light);
-      border-radius: 10px;
-      padding: 30px;
-      margin: 20px 0;
-      border: 2px solid var(--gray-border);
-      transition: all 0.3s;
-    }
+    .card { background: var(--gray-light); border-radius: 10px; padding: 30px; margin: 20px 0; border: 2px solid var(--gray-border); transition: all 0.3s; }
     .card:hover { border-color: #667eea; box-shadow: 0 5px 15px rgba(102,126,234,0.2); }
-    
-    .info-banner {
-      padding: 15px 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-      border-left: 4px solid;
-    }
+
+    .info-banner { padding: 15px 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid; }
     .info-banner.success { background: #e8f5e9; border-left-color: var(--success); color: #1b5e20; }
     .info-banner.warning { background: #fff3cd; border-left-color: var(--warning); color: #856404; }
     .info-banner.info { background: #e3f2fd; border-left-color: var(--info); color: #0d47a1; }
-    
+
     /* Forms */
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
-    .form-group input {
-      width: 100%; padding: 12px; border: 2px solid var(--gray-border);
-      border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
-    }
+    .form-group input { width: 100%; padding: 12px; border: 2px solid var(--gray-border); border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
     .form-group input:focus { outline: none; border-color: #667eea; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    
+
     /* Buttons */
-    .button {
-      background: var(--primary-gradient); color: white; border: none;
-      padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold;
-      cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102,126,234,0.4);
-      margin: 5px; display: inline-block;
-    }
+    .button { background: var(--primary-gradient); color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102,126,234,0.4); margin: 5px; display: inline-block; }
     .button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 20px rgba(102,126,234,0.5); }
     .button:disabled { opacity: 0.5; cursor: not-allowed; }
     .button.secondary { background: #6c757d; }
@@ -103,23 +69,20 @@
     .button.outline { background: white; color: #667eea; border: 2px solid #667eea; }
     .button.outline:hover { background: #667eea; color: white; }
     .button-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
-    
+
     /* Session widget */
-    .session-widget {
-      background: linear-gradient(135deg, #667eea20, #764ba220);
-      border-radius: 10px; padding: 20px; margin-bottom: 30px; display: none;
-    }
+    .session-widget { background: linear-gradient(135deg, #667eea20, #764ba220); border-radius: 10px; padding: 20px; margin-bottom: 30px; display: none; }
     .session-widget.active { display: block; }
     .session-widget h3 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
     .session-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
     .session-detail { background: white; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #667eea; }
     .session-detail label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
     .session-detail .value { font-size: 16px; font-weight: bold; color: #333; margin-top: 3px; }
-    
+
     /* Code display */
     .code-display { background: var(--primary-gradient); color: white; padding: 30px; border-radius: 10px; text-align: center; margin: 20px 0; }
     .code-display .code { font-size: 36px; font-weight: bold; letter-spacing: 3px; margin: 15px 0; font-family: monospace; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
-    
+
     /* Consent grid */
     .consent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
     .consent-card { background: white; border: 2px solid var(--gray-border); border-radius: 10px; padding: 20px; text-align: center; transition: all 0.3s; position: relative; }
@@ -128,7 +91,7 @@
     .consent-card .status-icon { font-size: 48px; margin-bottom: 15px; }
     .consent-card h4 { color: var(--text-dark); margin-bottom: 10px; }
     .consent-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
-    
+
     /* Tasks list */
     .task-list { list-style: none; margin: 20px 0; }
     .task-item { padding: 20px; margin: 10px 0; background: white; border-radius: 10px; border-left: 4px solid var(--gray-border); display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
@@ -140,11 +103,11 @@
     .task-name { font-size: 16px; color: var(--text-dark); margin-bottom: 5px; }
     .task-description { font-size: 13px; color: var(--text-muted); }
     .task-status { font-size: 24px; margin-left: 20px; }
-    
+
     /* Progress bar */
     .progress-bar { background: var(--gray-light); height: 30px; border-radius: 15px; overflow: hidden; margin: 20px 0; position: relative; }
     .progress-fill { background: var(--primary-gradient); height: 100%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
-    
+
     /* Video section */
     .video-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0; }
     .video-panel { text-align: center; }
@@ -158,29 +121,27 @@
     .recording-status.recording { color: var(--danger); animation: pulse 1.5s infinite; }
     .recording-status.recorded { color: var(--success); }
     @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:.5} }
-    
+
     /* Modals */
     .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
     .modal.active { display: flex; align-items: center; justify-content: center; }
     .modal-content { background-color: white; padding: 40px; border-radius: 15px; width: 90%; max-width: 500px; text-align: center; animation: slideUp 0.3s; }
     @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    
+
     /* Footer */
     .footer { background: var(--gray-light); padding: 30px; text-align: center; color: var(--text-muted); }
-    
+
     /* FAB */
     .fab { position: fixed; bottom: 30px; right: 30px; z-index: 1000; background: var(--warning); color: white; border: none; padding: 15px 25px; border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: none; transition: all 0.3s; }
     .fab.active { display: block; }
     .fab:hover { transform: scale(1.05); }
-    
+
     /* Embed shells */
     .embed-shell { background: #0b0b0b; border: 2px solid var(--gray-border); border-radius: 12px; overflow: hidden; margin-top: 16px; }
     .fs-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:#111827; color:#e5e7eb; font-size:14px; }
     .fs-toolbar .actions { display:flex; gap:8px; }
     .embed-frame { width: 100%; height: 75vh; border: none; display: block; background: #000; }
     .embed-note { color: #6b7280; font-size: 12px; padding: 8px 12px; background: #0f172a; }
-
-    /* Fullscreen adjustments */
     .fs-shell:fullscreen .embed-frame { height: calc(100vh - 52px); }
     .fs-shell:-webkit-full-screen .embed-frame { height: calc(100vh - 52px); }
 
@@ -200,7 +161,7 @@
       .button { width: 100%; }
       .embed-frame { height: 70vh; }
     }
-    
+
     /* Accessibility */
     .sr-only { position: absolute; left: -9999px; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -242,27 +203,36 @@
       <!-- Welcome -->
       <div class="screen active" id="welcome-screen">
         <h2 style="text-align: center; margin-bottom: 30px;">Welcome to Our Research Study</h2>
-        
+
         <div class="info-banner info">
           <strong>📅 Important: Zoom Task Required</strong>
-          <p style="margin-top: 10px;">One task (15-20 minutes) must be completed live on Zoom. You can start other tasks now and schedule the Zoom meeting at your convenience. We support ASL or spoken English with captions.</p>
+          <p style="margin-top: 10px;">One task (15–20 minutes) must be completed live on Zoom. You can start other tasks now and schedule the Zoom meeting at your convenience. We support ASL or spoken English with captions.</p>
         </div>
 
-        <div class="info-banner success" id="eeg-banner">
-          <strong>📍 Live in DC, Maryland, or Northern Virginia?</strong>
-          <p style="margin-top: 10px;">Add an optional in-lab EEG visit for <strong>additional compensation!</strong> Non-invasive, 30-45 minutes at Gallaudet campus.</p>
+        <div class="info-banner info" id="eeg-banner">
+          <strong>EEG temporarily unavailable</strong>
+          <p style="margin-top: 10px;">
+            You can complete the full study online now for $25 per hour. If you are local and want the optional in-person EEG visit later
+            (about 30–45 minutes), choose Online now + in-person later in the screener and we will contact you when sessions resume.
+          </p>
           <ul style="margin: 10px 0 0 20px; text-align: left;">
-            <li>Flexible scheduling at your convenience</li>
+            <li>Same hourly rate for all modes, $25 minimum even if under 1 hour</li>
+            <li>We will email to schedule the EEG visit when equipment is ready</li>
             <li>ASL or spoken English with captions available</li>
-            <li>Complete online tasks first, then add the EEG visit</li>
-            <li>Boosts the scientific value of the research</li>
           </ul>
-          <button class="button success" onclick="contactEEG()" style="margin-top: 10px;">I am local, tell me more</button>
         </div>
 
         <div class="info-banner warning" id="device-warning">
-          <strong>📱 Device Recommendation</strong>
-          <p style="margin-top: 10px;">Please use a computer if possible. Some tasks require keyboard/mouse and work best in Chrome or Firefox.</p>
+          <strong>Device tip</strong>
+          <p style="margin-top: 10px;">
+            A computer is preferred for the best experience. A tablet or iPhone is ok if that’s what you have today.
+            You can pause anytime and return later on a computer using your resume code.
+          </p>
+          <ul style="margin: 10px 0 0 20px; text-align: left;">
+            <li>Keyboard and mouse work best for some tasks</li>
+            <li>Chrome or Firefox recommended</li>
+            <li>Progress saves after each task</li>
+          </ul>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
@@ -271,7 +241,6 @@
             <p>Start a new study session and receive your unique resume code.</p>
             <button class="button" onclick="showScreen('new-participant')">Start New Session</button>
           </div>
-
           <div class="card">
             <h3>↩️ Returning Participant</h3>
             <p>Continue from where you left off using your resume code.</p>
@@ -314,13 +283,7 @@
 
         <div class="form-group">
           <label for="resume-code">Resume Code</label>
-          <input 
-            type="text" 
-            id="resume-code" 
-            maxlength="8" 
-            placeholder="ABC12345"
-            style="text-transform: uppercase; font-family: monospace; font-size: 24px; letter-spacing: 2px; text-align: center;"
-          />
+          <input type="text" id="resume-code" maxlength="8" placeholder="ABC12345" style="text-transform: uppercase; font-family: monospace; font-size: 24px; letter-spacing: 2px; text-align: center;" />
         </div>
 
         <div class="button-group">
@@ -332,7 +295,6 @@
       <!-- Session Created -->
       <div class="screen" id="session-created">
         <h2>✅ Session Created Successfully!</h2>
-        
         <div class="code-display">
           <p>Your Resume Code:</p>
           <div class="code" id="display-code">ABC12345</div>
@@ -393,15 +355,10 @@
       <!-- Progress -->
       <div class="screen" id="progress-screen">
         <h2>Your Study Progress</h2>
-        
         <div class="progress-bar">
-          <div class="progress-fill" id="progress-fill" style="width: 0%">
-            <span id="progress-text">0%</span>
-          </div>
+          <div class="progress-fill" id="progress-fill" style="width: 0%"><span id="progress-text">0%</span></div>
         </div>
-
         <ul class="task-list" id="task-list"></ul>
-
         <div class="button-group">
           <button class="button" id="continue-task-btn" onclick="continueToCurrentTask()">Continue to Current Task</button>
           <button class="button secondary" onclick="pauseSession()">Save & Exit</button>
@@ -418,7 +375,7 @@
       <!-- Recording -->
       <div class="screen" id="recording-screen">
         <h2>Image Description Task</h2>
-        
+
         <div class="info-banner info" id="recording-consent-check" style="display: none;">
           <strong>Video consent required</strong>
           <p>Please complete the video consent form to proceed with this task.</p>
@@ -450,11 +407,11 @@
               <h3>Your Video</h3>
               <video id="video-preview" autoplay muted playsinline style="display: none;"></video>
               <video id="recorded-video" controls playsinline style="display: none;"></video>
-              
+
               <div class="recording-controls">
                 <div class="recording-status ready" id="recording-status">Ready to record</div>
                 <div id="recording-timer" style="font-size: 24px; color: var(--danger); margin: 10px 0; display: none;">00:00</div>
-                
+
                 <div class="button-group">
                   <button class="button danger" id="record-btn" onclick="toggleRecording()">Start Recording</button>
                   <button class="button secondary" id="rerecord-btn" onclick="reRecord()" style="display: none;">Re-record</button>
@@ -465,7 +422,7 @@
           </div>
 
           <div class="info-banner info">
-            <strong>What to describe (30-60 seconds):</strong>
+            <strong>What to describe (30–60 seconds):</strong>
             <ul style="margin: 10px 0 0 20px; text-align: left;">
               <li>Objects and people you see</li>
               <li>Where things are located</li>
@@ -537,7 +494,7 @@
           <button class="button outline" onclick="copyEmail(this)" style="margin-left: 10px;">Copy Email</button>
         </p>
       </div>
-      
+
       <div style="text-align: left; background: var(--gray-light); padding: 20px; border-radius: 10px; margin: 20px 0;">
         <strong>Include in your email:</strong>
         <ul style="margin: 10px 0 0 20px;">
@@ -547,7 +504,7 @@
           <li>Communication preference (ASL or English)</li>
         </ul>
       </div>
-      
+
       <div class="button-group">
         <button class="button" onclick="tryMailto()">Open Email Client</button>
         <button class="button secondary" onclick="closeEEGModal()">Close</button>
@@ -577,7 +534,7 @@
         description: 'Decide if two images are the same or not',
         type: 'embed',
         embedUrl: 'https://melodyfschwenk.github.io/mrt/',
-      canSkip: true
+        canSkip: true
       },
       'ASLCT': {
         name: 'ASL Comprehension Test',
@@ -591,14 +548,14 @@
         description: 'Virtual SILC Test of Navigation (SILCton)',
         url: 'http://www.virtualsilcton.com/study/753798747',
         type: 'external',
-          canSkip: true,
+        canSkip: true
       },
       'SN': {
         name: 'Spatial Navigation',
         description: 'Choose the first step from the player to the stop sign (embedded below)',
         type: 'embed',
         embedUrl: 'https://melodyfschwenk.github.io/spatial-navigation-web/',
-          canSkip: true
+        canSkip: true
       },
       'ID': {
         name: 'Image Description',
@@ -616,14 +573,8 @@
 
     // ----- Consents -----
     const CONSENTS = {
-      'CONSENT1': {
-        name: 'Research Consent',
-        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g'
-      },
-      'CONSENT2': {
-        name: 'Video Consent',
-        url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u'
-      }
+      'CONSENT1': { name: 'Research Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g' },
+      'CONSENT2': { name: 'Video Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u' }
     };
 
     // ----- Sequences -----
@@ -635,21 +586,22 @@
       ['ZOOM', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
     ];
 
-    // Mobile-specific sequence (reduced tasks)
-const MOBILE_SEQUENCES = ['ZOOM', 'MRT', 'ASLCT' 'SN', 'ID', 'DEMO'],
-                         ['ZOOM', 'ASLCT', 'SN', 'ID', 'MRT', 'DEMO'],
-                        ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
-                          ['ZOOM', 'ID', 'MRT', 'ASLCT', 'SN', 'DEMO'];
+    // Mobile-specific sequences (reduced tasks)
+    const MOBILE_SEQUENCES = [
+      ['ZOOM', 'MRT', 'ASLCT', 'SN', 'ID', 'DEMO'],
+      ['ZOOM', 'ASLCT', 'SN', 'ID', 'MRT', 'DEMO'],
+      ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
+      ['ZOOM', 'ID', 'MRT', 'ASLCT', 'SN', 'DEMO']
+    ];
 
-// Detect if mobile/tablet
-function isMobileDevice() {
-  const hasTouch = ('ontouchstart' in window) || 
-                  (navigator.maxTouchPoints > 0) || 
-                  (navigator.msMaxTouchPoints > 0);
-  const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
-  const isSmallScreen = window.innerWidth <= 1024;
-  return hasTouch && (mobileUA || isSmallScreen);
-}
+    // Detect if mobile/tablet
+    function isMobileDevice() {
+      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+      const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth <= 1024;
+      return hasTouch && (mobileUA || isSmallScreen);
+    }
+
     // ----- State -----
     let state = {
       sessionCode: '',
@@ -662,58 +614,42 @@ function isMobileDevice() {
       startTime: null,
       totalTimeSpent: 0,
       lastActivity: null,
-      consentStatus: {
-        consent1: false,
-        consent2: false,
-        videoDeclined: false
-      },
+      consentStatus: { consent1: false, consent2: false, videoDeclined: false },
       recording: {
-        active: false,
-        mediaRecorder: null,
-        chunks: [],
-        currentImage: 0,
-        recordings: [],
-        stream: null,
-        currentBlob: null
+        active: false, mediaRecorder: null, chunks: [], currentImage: 0, recordings: [],
+        stream: null, currentBlob: null
       }
     };
 
-    // ----- Init -----
+    // ----- Init (single handler) -----
     document.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
       checkSavedSession();
-    });
 
-    // Enhanced mobile warning
-document.addEventListener('DOMContentLoaded', () => {
-  setupEventListeners();
-  checkSavedSession();
-  
-  // Add mobile-specific warning
-  if (isMobileDevice()) {
-    const warning = document.getElementById('device-warning');
-    if (warning) {
-      warning.className = 'info-banner danger'; // Make it red
-      warning.innerHTML = `
-        <strong>⚠️ Mobile/Tablet Detected - Limited Tasks Available</strong>
-        <p style="margin-top: 10px;"><strong>We strongly recommend using a computer for the full study.</strong></p>
-        <ul style="margin: 10px 0 0 20px; text-align: left;">
-          <li>You'll only get 6 tasks instead of 7 on mobile</li>
-          <li>Some tasks work poorly on touchscreens</li>
-          <li>You'll miss the Virtual Campus Navigation </li>
-        </ul>
-        <p style="margin-top: 10px;"><strong>Continue on mobile only if you cannot access a computer.</strong></p>
-      `;
-    }
-  }
-});
+      // Gentle mobile notice content swap
+      if (isMobileDevice()) {
+        const warning = document.getElementById('device-warning');
+        if (warning) {
+          warning.className = 'info-banner warning';
+          warning.innerHTML = `
+            <strong>Mobile or tablet detected</strong>
+            <p style="margin-top: 10px;">
+              A computer is preferred, but you can continue on this device. You can also pause now and resume later on a computer using your resume code.
+            </p>
+            <ul style="margin: 10px 0 0 20px; text-align: left;">
+              <li>Some tasks are simpler on mobile</li>
+              <li>Use Chrome or Safari, allow camera and mic if asked</li>
+              <li>Your progress will save automatically</li>
+            </ul>
+          `;
+        }
+      }
+    });
 
     function setupEventListeners() {
       document.getElementById('first-initial').addEventListener('input', validateInitials);
       document.getElementById('last-initial').addEventListener('input', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
-
-      // Recording skip buttons + fallback uploader
       bindRecordingSkips();
       bindUploadFallback();
     }
@@ -752,42 +688,43 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!first || !last) { alert('Please enter your initials'); return; }
 
       if (isMobileDevice()) {
-    const proceed = confirm(
-      'IMPORTANT: You are on a mobile device.\n\n' +
-      '• You will only receive 6 tasks instead of 7\n' +
-      '• We STRONGLY recommend using a computer for the full experience\n' +
-      '• Some tasks may not work well on mobile\n\n' +
-      'Do you want to continue on mobile anyway?'
-    );
-    if (!proceed) return;
-  }
+        const proceed = confirm(
+          'You are on a phone or tablet.\n\n' +
+          'A computer is preferred for the best experience, but you can continue now.\n' +
+          'You can also pause and resume later on a computer using your resume code.\n\n' +
+          'Continue on this device?'
+        );
+        if (!proceed) return;
+      }
 
       state.sessionCode = generateCode();
       state.participantID = `${first}${last}_${Date.now().toString().slice(-4)}`;
       state.email = email;
-      // Check if mobile and use appropriate sequence
-if (isMobileDevice()) {
-  state.sequenceIndex = -1; // Special index for mobile
-  state.sequence = MOBILE_SEQUENCE.slice();
-  state.isMobile = true;
-} else {
-  state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
-  state.sequence = SEQUENCES[state.sequenceIndex].slice();
-  state.isMobile = false;
-}
+
+      // Choose sequence (mobile vs desktop)
+      if (isMobileDevice()) {
+        state.sequenceIndex = Math.floor(Math.random() * MOBILE_SEQUENCES.length);
+        state.sequence = MOBILE_SEQUENCES[state.sequenceIndex].slice();
+        state.isMobile = true;
+      } else {
+        state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
+        state.sequence = SEQUENCES[state.sequenceIndex].slice();
+        state.isMobile = false;
+      }
+
       state.startTime = Date.now();
       state.lastActivity = new Date().toISOString();
 
       saveState();
-      sendToSheets({ 
-  action: 'session_created', 
-  sessionCode: state.sessionCode, 
-  participantID: state.participantID, 
-  email: state.email, 
-  sequenceIndex: state.sequenceIndex,
-  deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',  // ADD THIS LINE
-  timestamp: new Date().toISOString() 
-});
+      sendToSheets({
+        action: 'session_created',
+        sessionCode: state.sessionCode,
+        participantID: state.participantID,
+        email: state.email,
+        sequenceIndex: state.sequenceIndex,
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+        timestamp: new Date().toISOString()
+      });
 
       document.getElementById('display-code').textContent = state.sessionCode;
       showScreen('session-created');
@@ -834,7 +771,6 @@ if (isMobileDevice()) {
 
     // ----- Consent -----
     function proceedToConsent() { showScreen('consent-screen'); updateConsentDisplay(); }
-
     function openConsent(type) {
       const consent = CONSENTS[type];
       if (consent) {
@@ -842,7 +778,6 @@ if (isMobileDevice()) {
         sendToSheets({ action: 'consent_opened', sessionCode: state.sessionCode, type, timestamp: new Date().toISOString() });
       }
     }
-
     function markConsentDone(type) {
       if (type === 'consent1') {
         state.consentStatus.consent1 = true;
@@ -856,7 +791,6 @@ if (isMobileDevice()) {
       saveState(); updateConsentDisplay();
       sendToSheets({ action: 'consent_completed', sessionCode: state.sessionCode, type, timestamp: new Date().toISOString() });
     }
-
     function declineVideo() {
       if (confirm('Decline video consent? You can still participate in other tasks.')) {
         state.consentStatus.videoDeclined = true;
@@ -867,7 +801,6 @@ if (isMobileDevice()) {
         sendToSheets({ action: 'video_declined', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
       }
     }
-
     function updateConsentDisplay() {
       const ready = state.consentStatus.consent1 && (state.consentStatus.consent2 || state.consentStatus.videoDeclined);
       document.getElementById('continue-from-consent').disabled = !ready;
@@ -881,7 +814,6 @@ if (isMobileDevice()) {
         document.querySelector('#consent2-card .status-icon').textContent = state.consentStatus.videoDeclined ? '⚠️' : '✅';
       }
     }
-
     function proceedToTasks() {
       if (!state.consentStatus.consent1) { alert('Please complete the research consent form'); return; }
       showProgressScreen();
@@ -889,7 +821,6 @@ if (isMobileDevice()) {
 
     // ----- Progress -----
     function showProgressScreen() { updateTaskList(); updateProgressBar(); updateSessionWidget(); showScreen('progress-screen'); }
-
     function updateTaskList() {
       const list = document.getElementById('task-list');
       list.innerHTML = '';
@@ -912,34 +843,25 @@ if (isMobileDevice()) {
         list.appendChild(li);
       });
     }
-
     function updateProgressBar() {
       const progress = (state.completedTasks.length / state.sequence.length) * 100;
       document.getElementById('progress-fill').style.width = `${progress}%`;
       document.getElementById('progress-text').textContent = `${Math.round(progress)}%`;
     }
-
     function updateSessionWidget() {
-  if (!state.sessionCode) return;
-  document.getElementById('widget-code').textContent = state.sessionCode;
-  document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
-  document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
-  const currentTask = state.sequence[state.currentTaskIndex];
-  document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';
-  
-  // Add device indicator if mobile
-  if (state.isMobile) {
-    const codeEl = document.getElementById('widget-code');
-    codeEl.textContent = state.sessionCode + ' (Mobile)';
-  }
-}
+      if (!state.sessionCode) return;
+      document.getElementById('widget-code').textContent = state.sessionCode + (state.isMobile ? ' (Mobile)' : '');
+      document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
+      document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
+      const currentTask = state.sequence[state.currentTaskIndex];
+      document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';
+    }
 
     // ----- Task flow -----
     function continueToCurrentTask() {
       if (state.currentTaskIndex >= state.sequence.length) { showCompletionScreen(); return; }
       startTask(state.sequence[state.currentTaskIndex]);
     }
-
     function startTask(taskCode) {
       const task = TASKS[taskCode];
       if (!task) return;
@@ -947,13 +869,9 @@ if (isMobileDevice()) {
       if (!state.taskData) state.taskData = {};
       state.taskData[taskCode] = { startTime: Date.now() };
 
-      if (task.type === 'recording') {
-        showRecordingTask();
-      } else if (task.type === 'embed') {
-        showEmbeddedTask(taskCode);
-      } else {
-        showExternalTask(taskCode);
-      }
+      if (task.type === 'recording') showRecordingTask();
+      else if (task.type === 'embed') showEmbeddedTask(taskCode);
+      else showExternalTask(taskCode);
 
       sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: task.name, timestamp: new Date().toISOString() });
     }
@@ -971,7 +889,7 @@ if (isMobileDevice()) {
       window.scrollTo(0, y);
     }
 
-    // Optional: auto-complete from embedded apps
+    // PostMessage completion hook
     window.addEventListener('message', (ev) => {
       const allowedOrigin = 'https://melodyfschwenk.github.io';
       if (ev.origin !== allowedOrigin) return;
@@ -981,13 +899,12 @@ if (isMobileDevice()) {
       }
     });
 
-    // ----- Embedded tasks (SN / MRT) — streamlined flow -----
+    // ----- Embedded tasks -----
     function showEmbeddedTask(taskCode) {
       const task = TASKS[taskCode];
       const url  = task.embedUrl;
       const iframeId = `embed-${taskCode.toLowerCase()}`;
 
-      // Short intro
       let extra = '';
       if (taskCode === 'SN') {
         extra = `
@@ -1015,7 +932,6 @@ if (isMobileDevice()) {
         </details>
       `;
 
-      // Pre-start card → then fullscreen with a pinned top bar and a single completion button
       const content = document.getElementById('task-content');
       content.innerHTML = `
         <div class="card" id="prestart">
@@ -1047,63 +963,37 @@ if (isMobileDevice()) {
       const prestart = document.getElementById('prestart');
       const iframe = document.getElementById(iframeId);
 
-      // Enable the finish button after a few seconds to prevent accidental immediate clicks
       const enableFinish = () => { finishBtn.disabled = false; };
 
-      // Enter fullscreen (fallback to distraction-free)
       async function goFullscreen() {
         prestart.style.display = 'none';
         fsShell.style.display = 'block';
 
-        // Give the iframe a moment to mount
-        setTimeout(() => {
-          try { iframe.focus(); } catch(e) {}
-        }, 50);
+        setTimeout(() => { try { iframe.focus(); } catch(e) {} }, 50);
 
         try {
-          if (fsShell.requestFullscreen) {
-            await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-          } else if (fsShell.webkitRequestFullscreen) { // Safari
-            fsShell.webkitRequestFullscreen();
-          }
-          // If not actually in fullscreen after a bit, use distraction-free fallback
+          if (fsShell.requestFullscreen) { await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
+          else if (fsShell.webkitRequestFullscreen) { fsShell.webkitRequestFullscreen(); }
           setTimeout(() => {
             const inFS = document.fullscreenElement || document.webkitFullscreenElement;
             if (!inFS) enterDistractionFree();
           }, 250);
-        } catch (e) {
-          // Fallback
-          enterDistractionFree();
-        }
+        } catch (e) { enterDistractionFree(); }
 
-        // Small delay, then allow finishing
         setTimeout(enableFinish, 6000);
       }
 
-      // Exit whichever mode we used
       function leaveFullscreenModes() {
         if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
         if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
         exitDistractionFree();
       }
 
-      // Wire up buttons
       document.getElementById('start-embed').onclick = goFullscreen;
-      finishBtn.onclick = () => {
-        leaveFullscreenModes();
-        completeTask(taskCode);
-      };
-      exitBtn.onclick = () => {
-        leaveFullscreenModes();
-        // Keep them on the page with the task still visible (non-fullscreen),
-        // and keep the finish button enabled so they can continue when they’re truly done.
-        fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        enableFinish();
-      };
+      finishBtn.onclick = () => { leaveFullscreenModes(); completeTask(taskCode); };
+      exitBtn.onclick = () => { leaveFullscreenModes(); fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' }); enableFinish(); };
 
-      // Minimal loading watchdog (helps on slow networks)
       const loadTimeout = setTimeout(() => {
-        // If still blank after 7s, show a subtle hint
         const note = document.createElement('div');
         note.className = 'embed-note';
         note.textContent = 'Still loading… if nothing appears soon, try exiting fullscreen and re-entering.';
@@ -1111,10 +1001,8 @@ if (isMobileDevice()) {
       }, 7000);
       iframe.addEventListener('load', () => clearTimeout(loadTimeout), { once:true });
 
-      // Escape key should just exit fullscreen (not mark complete)
       document.addEventListener('keydown', function escHandler(ev) {
         if (ev.key === 'Escape') {
-          // Let browser exit fullscreen; also clear DF mode if present
           setTimeout(leaveFullscreenModes, 0);
           document.removeEventListener('keydown', escHandler);
         }
@@ -1124,7 +1012,6 @@ if (isMobileDevice()) {
     // ----- External tasks -----
     function showExternalTask(taskCode) {
       const task = TASKS[taskCode];
-
       let extra = '';
       if (taskCode === 'ASLCT') {
         extra = `
@@ -1147,9 +1034,7 @@ if (isMobileDevice()) {
         extra = `
           <div class="info-banner info" style="margin-top: 10px;">
             <strong>Virtual SILC Test of Navigation (SILCton) — What you'll do</strong>
-            <p style="margin-top: 6px;">
-              Learn a small virtual campus (Learning phase), then answer quick questions (Test phase).
-            </p>
+            <p style="margin-top: 6px;">Learn a small virtual campus (Learning phase), then answer quick questions (Test phase).</p>
             <ul style="margin: 10px 0 0 20px; text-align: left;">
               <li><strong>Controls:</strong> Move with WASD/arrow keys; look around with the mouse.</li>
               <li>Desktop/laptop recommended (Chrome/Firefox). Keep this page open.</li>
@@ -1191,7 +1076,7 @@ if (isMobileDevice()) {
       showScreen('task-screen');
     }
 
-    // ----- Recording task (unchanged) -----
+    // ----- Recording task -----
     function showRecordingTask() {
       state.recording.currentImage = 0;
       state.recording.recordings = [];
@@ -1215,7 +1100,6 @@ if (isMobileDevice()) {
         recorded.load?.();
       }
     }
-
     function updateRecordingImage() {
       const imageNum = state.recording.currentImage + 1;
       document.getElementById('image-number').textContent = imageNum;
@@ -1320,23 +1204,22 @@ if (isMobileDevice()) {
           state.recording.mediaRecorder.onstop = () => {
             try {
               revokeRecordedURL();
-
               const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/webm' });
               const url = URL.createObjectURL(blob);
               const recordedEl = document.getElementById('recorded-video');
-              recordedEl.src = url; 
-              recordedEl.style.display = 'block'; 
+              recordedEl.src = url;
+              recordedEl.style.display = 'block';
               preview.style.display = 'none';
 
               document.getElementById('record-btn').style.display = 'none';
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
-              status.textContent = 'Recording complete'; 
+              status.textContent = 'Recording complete';
               status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
-            } catch (e) { 
-              console.error('Finalize error:', e); 
-              alert('There was an issue finalizing the recording.'); 
+            } catch (e) {
+              console.error('Finalize error:', e);
+              alert('There was an issue finalizing the recording.');
             }
           };
 
@@ -1403,23 +1286,16 @@ if (isMobileDevice()) {
         } catch(e) { resolve(); }
       }).finally(() => {
         try { if (state.recording.stream) state.recording.stream.getTracks().forEach(t => t.stop()); } catch(e){}
-        state.recording.stream = null; 
-        state.recording.active = false; 
-        state.recording.chunks = []; 
+        state.recording.stream = null;
+        state.recording.active = false;
+        state.recording.chunks = [];
         stopRecordingTimer();
 
         if (!keepPreviewUI) {
           const preview = document.getElementById('video-preview');
-          if (preview) {
-            preview.pause?.();
-            preview.srcObject = null;
-            preview.style.display = 'none';
-          }
+          if (preview) { preview.pause?.(); preview.srcObject = null; preview.style.display = 'none'; }
           const recorded = document.getElementById('recorded-video');
-          if (recorded) {
-            revokeRecordedURL();
-            recorded.style.display = 'none';
-          }
+          if (recorded) { revokeRecordedURL(); recorded.style.display = 'none'; }
           state.recording.mediaRecorder = null;
         }
       });
@@ -1489,13 +1365,13 @@ if (isMobileDevice()) {
     function showCompletionScreen() {
       document.getElementById('final-code').textContent = state.sessionCode;
       document.getElementById('total-time').textContent = Math.round(state.totalTimeSpent / 60000);
-      sendToSheets({ 
-  action: 'study_completed', 
-  sessionCode: state.sessionCode, 
-  totalDuration: Math.round(state.totalTimeSpent / 60000),
-  deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',  // ADD THIS LINE
-  timestamp: new Date().toISOString() 
-});
+      sendToSheets({
+        action: 'study_completed',
+        sessionCode: state.sessionCode,
+        totalDuration: Math.round(state.totalTimeSpent / 60000),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+        timestamp: new Date().toISOString()
+      });
       showScreen('completion-screen');
       document.getElementById('pause-fab').classList.remove('active');
     }
@@ -1507,20 +1383,17 @@ if (isMobileDevice()) {
       document.getElementById('pause-modal').classList.add('active');
       sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
     }
-
     function copyCode(btnEl) {
       const code = document.getElementById('display-code').textContent;
       navigator.clipboard.writeText(code).then(() => {
         if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
       });
     }
-
     function copyASLCTCode(btnEl) {
       navigator.clipboard.writeText('NWMTLYMTP').then(() => {
         if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
       }).catch(() => { alert('Access code: NWMTLYMTP'); });
     }
-
     function openEmbedInNewTab(taskCode) {
       const task = TASKS[taskCode];
       if (task?.embedUrl) window.open(task.embedUrl, '_blank', 'noopener');
@@ -1541,7 +1414,6 @@ if (isMobileDevice()) {
       if (modal) modal.classList.add('active');
       sendToSheets({ action: 'eeg_interest_clicked', sessionCode: state.sessionCode || 'none', participantID: state.participantID || 'none', timestamp: new Date().toISOString() });
     }
-    
     function tryMailto() {
       const code = state.sessionCode || 'TBD';
       const participantEmail = state.email ? `\nParticipant email: ${state.email}` : '';
@@ -1562,13 +1434,11 @@ if (isMobileDevice()) {
       try { window.location.href = `mailto:action.brain.lab@gallaudet.edu?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
       catch (e) { alert('Could not open email client. Please manually email: action.brain.lab@gallaudet.edu'); }
     }
-    
     function copyEmail(btnEl) {
       navigator.clipboard.writeText('action.brain.lab@gallaudet.edu').then(() => {
         if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
       }).catch(() => { alert('Email: action.brain.lab@gallaudet.edu'); });
     }
-    
     function closeEEGModal() { document.getElementById('eeg-modal').classList.remove('active'); }
 
     function hashCode(str) { let hash = 0; for (let i=0;i<str.length;i++){const c=str.charCodeAt(i); hash=((hash<<5)-hash)+c; hash|=0;} return hash; }
@@ -1576,10 +1446,7 @@ if (isMobileDevice()) {
     async function sendToSheets(data) {
       if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) { console.log('Sheets not configured:', data); return; }
       try {
-        await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+        await fetch(CONFIG.SHEETS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
       } catch (error) { console.error('Error sending to sheets:', error); }
     }
 
@@ -1607,8 +1474,3 @@ if (isMobileDevice()) {
   </script>
 </body>
 </html>
-
-
-
-
-
