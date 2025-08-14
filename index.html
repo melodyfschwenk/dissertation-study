@@ -122,6 +122,11 @@
     .recording-status.recorded { color: var(--success); }
     @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:.5} }
 
+    /* Upload progress indicator */
+    #upload-progress { margin: 15px 0; padding: 15px; background: #f0f0f0; border-radius: 8px; display: none; }
+    .upload-progress-bar { background: #ddd; height: 8px; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+    #upload-progress-fill { background: #667eea; height: 100%; width: 0%; transition: width 0.3s; }
+
     /* Modals */
     .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s; }
     .modal.active { display: flex; align-items: center; justify-content: center; }
@@ -225,7 +230,7 @@
         <div class="info-banner warning" id="device-warning">
           <strong>Device tip</strong>
           <p style="margin-top: 10px;">
-            A computer is preferred for the best experience. A tablet or iPhone is ok if that’s what you have today.
+            A computer is preferred for the best experience. A tablet or iPhone is ok if that's what you have today.
             You can pause anytime and return later on a computer using your resume code.
           </p>
           <ul style="margin: 10px 0 0 20px; text-align: left;">
@@ -412,6 +417,19 @@
                 <div class="recording-status ready" id="recording-status">Ready to record</div>
                 <div id="recording-timer" style="font-size: 24px; color: var(--danger); margin: 10px 0; display: none;">00:00</div>
 
+                <!-- Upload Progress Indicator -->
+                <div id="upload-progress">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="flex: 1;">
+                      <div style="font-weight: bold; margin-bottom: 5px;">Uploading video to secure storage...</div>
+                      <div class="upload-progress-bar">
+                        <div id="upload-progress-fill"></div>
+                      </div>
+                    </div>
+                    <div id="upload-status">0%</div>
+                  </div>
+                </div>
+
                 <div class="button-group">
                   <button class="button danger" id="record-btn" onclick="toggleRecording()">Start Recording</button>
                   <button class="button secondary" id="rerecord-btn" onclick="reRecord()" style="display: none;">Re-record</button>
@@ -515,7 +533,7 @@
   <script>
     // ----- Configuration -----
     const CONFIG = {
-      SHEETS_URL: 'https://script.google.com/macros/s/AKfycbx2aB_Dlatm1DN39z_klK6MwRAsd4Ip1FYwxbdE98alXCkNr2L9sqqFeWKUSSNG0RDXfw/exec',
+      SHEETS_URL: 'https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec',
       IMAGE_1: 'images/description1.jpg',
       IMAGE_2: 'images/description2.jpg'
     };
@@ -926,8 +944,8 @@
         ${extra}
         <details style="margin-top:10px;"><summary style="cursor:pointer;">More info / troubleshooting</summary>
           <ul style="margin:8px 0 0 20px; text-align:left;">
-            <li>If the game doesn’t respond, click inside it once to give it keyboard focus.</li>
-            <li>If fullscreen doesn’t work on your device, we’ll switch to a distraction-free view.</li>
+            <li>If the game doesn't respond, click inside it once to give it keyboard focus.</li>
+            <li>If fullscreen doesn't work on your device, we'll switch to a distraction-free view.</li>
           </ul>
         </details>
       `;
@@ -935,7 +953,7 @@
       const content = document.getElementById('task-content');
       content.innerHTML = `
         <div class="card" id="prestart">
-          <p>When you click <strong>Continue</strong>, the task will open in fullscreen. When you’re finished, click <em>I’m finished — Continue</em>.</p>
+          <p>When you click <strong>Continue</strong>, the task will open in fullscreen. When you're finished, click <em>I'm finished — Continue</em>.</p>
           <div class="button-group" style="margin-top:12px;">
             <button class="button" id="start-embed">Continue</button>
             ${task.canSkip ? `<button class="button secondary" onclick="skipTask('${taskCode}')">Skip This Task</button>` : ''}
@@ -946,7 +964,7 @@
           <div class="fs-toolbar" id="fs-toolbar">
             <div>${task.name}</div>
             <div class="actions">
-              <button class="button success" id="finish-btn" disabled>I’m finished — Continue</button>
+              <button class="button success" id="finish-btn" disabled>I'm finished — Continue</button>
               <button class="button secondary" id="exit-btn">Exit fullscreen</button>
             </div>
           </div>
@@ -1025,9 +1043,9 @@
           <div class="info-banner info" style="margin-top: 10px;">
             <strong>Instructions:</strong>
             <ol style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Click “Open Task”.</li>
+              <li>Click "Open Task".</li>
               <li>On the ASLCT portal, paste the access code <em>NWMTLYMTP</em> and follow the prompts.</li>
-              <li>Return here when finished and click “Mark Complete”.</li>
+              <li>Return here when finished and click "Mark Complete".</li>
             </ol>
           </div>`;
       } else if (taskCode === 'VCN') {
@@ -1100,24 +1118,44 @@
         recorded.load?.();
       }
     }
+
     function updateRecordingImage() {
       const imageNum = state.recording.currentImage + 1;
       document.getElementById('image-number').textContent = imageNum;
       document.getElementById('current-image').src = imageNum === 1 ? CONFIG.IMAGE_1 : CONFIG.IMAGE_2;
+      
       const preview = document.getElementById('video-preview');
       const recorded = document.getElementById('recorded-video');
       preview.style.display = 'none';
       recorded.style.display = 'none';
+      
+      // Clean up previous recording blob URL
       revokeRecordedURL();
       state.recording.currentBlob = null;
+      
+      // Reset UI elements
       document.getElementById('record-btn').style.display = 'inline-block';
       document.getElementById('rerecord-btn').style.display = 'none';
       document.getElementById('save-recording-btn').style.display = 'none';
+      
       const status = document.getElementById('recording-status');
       status.textContent = 'Ready to record';
       status.className = 'recording-status ready';
+      
+      // Clear any previous errors
       document.getElementById('recording-error').style.display = 'none';
       document.getElementById('video-upload-fallback').style.display = 'none';
+      document.getElementById('upload-progress').style.display = 'none';
+      
+      // Clear file input
+      const fileInput = document.getElementById('video-file-input');
+      if (fileInput) fileInput.value = '';
+      
+      const uploadBtn = document.getElementById('upload-save-btn');
+      if (uploadBtn) {
+        uploadBtn.style.display = 'none';
+        uploadBtn.textContent = 'Use this upload';
+      }
     }
 
     function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
@@ -1151,17 +1189,34 @@
       }
     }
 
+    // Enhanced file upload handling for the fallback option
     function bindUploadFallback() {
       const input = document.getElementById('video-file-input');
       const btn = document.getElementById('upload-save-btn');
       if (!input || !btn) return;
+      
       input.addEventListener('change', () => {
         const f = input.files && input.files[0];
         if (!f) return;
-        if (!f.type.startsWith('video/')) { alert('Please select a video file'); input.value = ''; return; }
+        if (!f.type.startsWith('video/')) { 
+          alert('Please select a video file'); 
+          input.value = ''; 
+          return; 
+        }
+        
+        // Check file size (limit to 20MB for upload)
+        const maxSize = 20 * 1024 * 1024; // 20MB
+        if (f.size > maxSize) {
+          alert(`File too large (${Math.round(f.size/1024/1024)}MB). Please upload a video under 20MB.`);
+          input.value = '';
+          return;
+        }
+        
         state.recording.currentBlob = f;
         btn.style.display = 'inline-block';
+        btn.textContent = `Upload & Continue (${Math.round(f.size/1024)}KB)`;
       });
+      
       btn.addEventListener('click', saveRecording);
     }
 
@@ -1268,12 +1323,201 @@
 
     function reRecord() { cleanupRecording(true).finally(() => updateRecordingImage()); }
 
-    function saveRecording() {
-      if (!state.recording.currentBlob) { alert('Please record or upload a video first.'); return; }
-      state.recording.recordings.push({ image: state.recording.currentImage + 1, blob: state.recording.currentBlob, timestamp: new Date().toISOString() });
-      sendToSheets({ action: 'image_recorded', sessionCode: state.sessionCode, imageNumber: state.recording.currentImage + 1, timestamp: new Date().toISOString() });
-      if (state.recording.currentImage === 0) { state.recording.currentImage = 1; updateRecordingImage(); }
-      else { completeTask('ID'); }
+    // Updated saveRecording function with Google Drive upload
+    async function saveRecording() {
+      if (!state.recording.currentBlob) { 
+        alert('Please record or upload a video first.'); 
+        return; 
+      }
+
+      // Show uploading status
+      const saveBtn = document.getElementById('save-recording-btn');
+      const originalText = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Uploading...';
+
+      // Update status and show progress
+      const status = document.getElementById('recording-status');
+      status.textContent = '⬆️ Uploading to secure storage...';
+      status.className = 'recording-status recording';
+      
+      const uploadProgress = document.getElementById('upload-progress');
+      uploadProgress.style.display = 'block';
+
+      try {
+        // Upload to Google Drive
+        const uploadResult = await uploadVideoToDrive(
+          state.recording.currentBlob, 
+          state.sessionCode, 
+          state.recording.currentImage + 1
+        );
+
+        if (uploadResult.success) {
+          // Store the upload info
+          state.recording.recordings.push({ 
+            image: state.recording.currentImage + 1, 
+            blob: state.recording.currentBlob, 
+            timestamp: new Date().toISOString(),
+            driveFileId: uploadResult.fileId,
+            driveFileUrl: uploadResult.fileUrl,
+            filename: uploadResult.filename
+          });
+
+          // Log the successful recording and upload
+          sendToSheets({ 
+            action: 'image_recorded_and_uploaded', 
+            sessionCode: state.sessionCode, 
+            imageNumber: state.recording.currentImage + 1,
+            driveFileId: uploadResult.fileId,
+            filename: uploadResult.filename,
+            timestamp: new Date().toISOString() 
+          });
+
+          // Update status to success
+          status.textContent = '✅ Upload complete!';
+          status.className = 'recording-status recorded';
+          uploadProgress.style.display = 'none';
+
+          // Continue to next image or complete task
+          setTimeout(() => {
+            if (state.recording.currentImage === 0) { 
+              state.recording.currentImage = 1; 
+              updateRecordingImage(); 
+            } else { 
+              completeTask('ID'); 
+            }
+          }, 1000);
+
+        } else {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        
+        // Hide progress and show error message
+        uploadProgress.style.display = 'none';
+        const errorDiv = document.getElementById('recording-error');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = `
+          <strong>Upload failed</strong>
+          <p style="margin-top: 6px;">
+            Error: ${error.message}. You can try again or continue without uploading. 
+            The video is saved locally in your browser.
+          </p>
+          <div class="button-group" style="margin-top: 10px;">
+            <button class="button" onclick="retryVideoUpload()">Try Again</button>
+            <button class="button secondary" onclick="continueWithoutUpload()">Continue Without Upload</button>
+          </div>
+        `;
+
+        // Reset status
+        status.textContent = '❌ Upload failed';
+        status.className = 'recording-status ready';
+      } finally {
+        // Reset button
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+
+    // New function to upload video to Google Drive
+    async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
+      try {
+        // Check file size (limit to 20MB for safety)
+        const maxSize = 20 * 1024 * 1024; // 20MB
+        if (videoBlob.size > maxSize) {
+          throw new Error(`Video file too large (${Math.round(videoBlob.size/1024/1024)}MB). Please record a shorter video.`);
+        }
+
+        // Convert blob to base64
+        const base64Data = await blobToBase64(videoBlob);
+        
+        // Remove the data URL prefix (e.g., "data:video/webm;base64,")
+        const base64VideoData = base64Data.split(',')[1];
+        
+        const uploadData = {
+          action: 'upload_video',
+          sessionCode: sessionCode,
+          imageNumber: imageNumber,
+          videoData: base64VideoData,
+          timestamp: new Date().toISOString()
+        };
+
+        console.log(`Uploading video: ${Math.round(videoBlob.size/1024)}KB for image ${imageNumber}`);
+
+        const response = await fetch(CONFIG.SHEETS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(uploadData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('Video uploaded successfully:', result.filename);
+        }
+        
+        return result;
+
+      } catch (error) {
+        console.error('Drive upload error:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    // Helper function to convert blob to base64
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Retry upload function
+    async function retryVideoUpload() {
+      document.getElementById('recording-error').style.display = 'none';
+      await saveRecording();
+    }
+
+    // Continue without upload function
+    function continueWithoutUpload() {
+      if (confirm('Continue without uploading the video? The recording will only be saved locally in your browser.')) {
+        // Store the recording info without Drive details
+        state.recording.recordings.push({ 
+          image: state.recording.currentImage + 1, 
+          blob: state.recording.currentBlob, 
+          timestamp: new Date().toISOString(),
+          uploadSkipped: true
+        });
+
+        // Log that recording was saved but not uploaded
+        sendToSheets({ 
+          action: 'image_recorded_no_upload', 
+          sessionCode: state.sessionCode, 
+          imageNumber: state.recording.currentImage + 1,
+          reason: 'Upload failed - continued locally',
+          timestamp: new Date().toISOString() 
+        });
+
+        // Continue to next image or complete task
+        if (state.recording.currentImage === 0) { 
+          state.recording.currentImage = 1; 
+          updateRecordingImage(); 
+        } else { 
+          completeTask('ID'); 
+        }
+        
+        document.getElementById('recording-error').style.display = 'none';
+      }
     }
 
     function cleanupRecording(keepPreviewUI = false) {
@@ -1471,6 +1715,9 @@
     window.skipTask = skipTask;
     window.openEmbedInNewTab = openEmbedInNewTab;
     window.reloadEmbed = reloadEmbed;
+    // Video upload functions
+    window.retryVideoUpload = retryVideoUpload;
+    window.continueWithoutUpload = continueWithoutUpload;
   </script>
 </body>
 </html>
