@@ -1699,6 +1699,112 @@
       } catch (error) { console.error('Error sending to sheets:', error); }
     }
 
+    // DEBUG FUNCTION - Add this before "// Expose to window"
+    async function debugVideoUpload() {
+      console.log('🔍 Starting video upload debug...');
+      
+      // Test 1: Check configuration
+      console.log('1. Configuration check:');
+      console.log('SHEETS_URL:', CONFIG.SHEETS_URL);
+      console.log('Is valid URL:', CONFIG.SHEETS_URL.includes('script.google.com'));
+      
+      // Test 2: Test basic connection
+      console.log('2. Testing basic connection...');
+      try {
+        const testResponse = await fetch(CONFIG.SHEETS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'test_connection',
+            timestamp: new Date().toISOString()
+          })
+        });
+        
+        console.log('✅ Connection response:', {
+          status: testResponse.status,
+          ok: testResponse.ok,
+          statusText: testResponse.statusText
+        });
+        
+        if (testResponse.ok) {
+          const testResult = await testResponse.json();
+          console.log('✅ Connection result:', testResult);
+        }
+      } catch (error) {
+        console.error('❌ Connection failed:', error);
+      }
+      
+      // Test 3: Create a tiny test video blob
+      console.log('3. Creating test video blob...');
+      try {
+        // Create a minimal test "video" (just some bytes)
+        const testData = 'test video data for debugging';
+        const testBlob = new Blob([testData], { type: 'video/webm' });
+        
+        console.log('Test blob created:', {
+          size: testBlob.size,
+          type: testBlob.type
+        });
+        
+        // Test 4: Test base64 conversion
+        console.log('4. Testing base64 conversion...');
+        const base64Data = await blobToBase64(testBlob);
+        const base64VideoData = base64Data.split(',')[1];
+        
+        console.log('✅ Base64 conversion successful:', {
+          originalSize: testBlob.size,
+          base64Length: base64VideoData.length
+        });
+        
+        // Test 5: Test actual upload
+        console.log('5. Testing upload with tiny file...');
+        const uploadData = {
+          action: 'upload_video',
+          sessionCode: 'DEBUG123',
+          imageNumber: 1,
+          videoData: base64VideoData,
+          timestamp: new Date().toISOString()
+        };
+        
+        const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(uploadData)
+        });
+        
+        console.log('Upload response:', {
+          status: uploadResponse.status,
+          ok: uploadResponse.ok,
+          statusText: uploadResponse.statusText
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          console.log('✅ Upload successful:', uploadResult);
+          
+          // Clean up test file if it was created
+          if (uploadResult.success && uploadResult.fileId) {
+            console.log('🧹 Test file created with ID:', uploadResult.fileId);
+            console.log('Note: You may want to delete this test file from Google Drive');
+          }
+        } else {
+          const errorText = await uploadResponse.text();
+          console.error('❌ Upload failed:', errorText);
+        }
+        
+      } catch (error) {
+        console.error('❌ Debug test failed:', error);
+      }
+      
+      console.log('🔍 Debug complete! Check the console messages above.');
+    }
+
+    console.log('Debug function loaded! Open browser console and run: debugVideoUpload()');
+
     // Expose to window
     window.showScreen = showScreen;
     window.createNewSession = createNewSession;
@@ -1723,6 +1829,8 @@
     // Video upload functions
     window.retryVideoUpload = retryVideoUpload;
     window.continueWithoutUpload = continueWithoutUpload;
+     window.debugVideoUpload = debugVideoUpload;
   </script>
 </body>
 </html>
+
