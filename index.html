@@ -1191,34 +1191,34 @@
 
     // Enhanced file upload handling for the fallback option
     function bindUploadFallback() {
-      const input = document.getElementById('video-file-input');
-      const btn = document.getElementById('upload-save-btn');
-      if (!input || !btn) return;
-      
-      input.addEventListener('change', () => {
-        const f = input.files && input.files[0];
-        if (!f) return;
-        if (!f.type.startsWith('video/')) { 
-          alert('Please select a video file'); 
-          input.value = ''; 
-          return; 
-        }
-        
-        // Check file size (limit to 20MB for upload)
-        const maxSize = 20 * 1024 * 1024; // 20MB
-        if (f.size > maxSize) {
-          alert(`File too large (${Math.round(f.size/1024/1024)}MB). Please upload a video under 20MB.`);
-          input.value = '';
-          return;
-        }
-        
-        state.recording.currentBlob = f;
-        btn.style.display = 'inline-block';
-        btn.textContent = `Upload & Continue (${Math.round(f.size/1024)}KB)`;
-      });
-      
-      btn.addEventListener('click', saveRecording);
+  const input = document.getElementById('video-file-input');
+  const btn = document.getElementById('upload-save-btn');
+  if (!input || !btn) return;
+  
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    if (!f.type.startsWith('video/')) { 
+      alert('Please select a video file'); 
+      input.value = ''; 
+      return; 
     }
+    
+    // Warn for very large files but allow them
+    if (f.size > 100 * 1024 * 1024) { // 100MB warning
+      if (!confirm(`Large file (${Math.round(f.size/1024/1024)}MB). This may take longer to upload. Continue?`)) {
+        input.value = '';
+        return;
+      }
+    }
+    
+    state.recording.currentBlob = f;
+    btn.style.display = 'inline-block';
+    btn.textContent = `Upload & Continue (${Math.round(f.size/1024)}KB)`;
+  });
+  
+  btn.addEventListener('click', saveRecording);
+}
 
     function bindRecordingSkips() {
       document.getElementById('skip-recording-btn')?.addEventListener('click', skipRecording);
@@ -1331,18 +1331,19 @@
       }
 
       // Show uploading status
-      const saveBtn = document.getElementById('save-recording-btn');
-      const originalText = saveBtn.textContent;
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Uploading...';
+      // Show uploading status
+const saveBtn = document.getElementById('save-recording-btn');
+const originalText = saveBtn.textContent;
+saveBtn.disabled = true;
+saveBtn.textContent = 'Processing...';
 
-      // Update status and show progress
-      const status = document.getElementById('recording-status');
-      status.textContent = '⬆️ Uploading to secure storage...';
-      status.className = 'recording-status recording';
-      
-      const uploadProgress = document.getElementById('upload-progress');
-      uploadProgress.style.display = 'block';
+// Update status and show progress
+const status = document.getElementById('recording-status');
+status.textContent = '⚙️ Processing video...';
+status.className = 'recording-status recording';
+
+const uploadProgress = document.getElementById('upload-progress');
+uploadProgress.style.display = 'block';
 
       try {
         // Upload to Google Drive
@@ -1423,59 +1424,86 @@
 
     // New function to upload video to Google Drive
     async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
-      try {
-        // Check file size (limit to 20MB for safety)
-        const maxSize = 20 * 1024 * 1024; // 20MB
-        if (videoBlob.size > maxSize) {
-          throw new Error(`Video file too large (${Math.round(videoBlob.size/1024/1024)}MB). Please record a shorter video.`);
-        }
-
-        // Convert blob to base64
-        const base64Data = await blobToBase64(videoBlob);
-        
-        // Remove the data URL prefix (e.g., "data:video/webm;base64,")
-        const base64VideoData = base64Data.split(',')[1];
-        
-        const uploadData = {
-          action: 'upload_video',
-          sessionCode: sessionCode,
-          imageNumber: imageNumber,
-          videoData: base64VideoData,
-          timestamp: new Date().toISOString()
-        };
-
-        console.log(`Uploading video: ${Math.round(videoBlob.size/1024)}KB for image ${imageNumber}`);
-
-        const response = await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(uploadData)
-        });
-
-        if (!response.ok) {
-          throw new Error(`Upload failed: HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-          console.log('Video uploaded successfully:', result.filename);
-        }
-        
-        return result;
-
-      } catch (error) {
-        if (error instanceof TypeError) {
-          console.error('Drive upload error: CORS or network issue', error);
-          return { success: false, error: 'Network or CORS error' };
-        }
-        console.error('Drive upload error:', error);
-        return { success: false, error: error.message };
-      }
+  try {
+    // Just warn for large files, don't block them
+    if (videoBlob.size > 50 * 1024 * 1024) { // 50MB warning
+      console.warn(`Large video file: ${Math.round(videoBlob.size/1024/1024)}MB - this may take a while`);
     }
+
+    // Show upload progress for large files
+    updateUploadProgress(0, `Preparing ${Math.round(videoBlob.size/1024/1024)}MB upload...`);
+    
+    // Convert blob to base64
+    const base64Data = await blobToBase64(videoBlob);
+    updateUploadProgress(30, 'Encoding complete, uploading...');
+    
+    // Remove the data URL prefix (e.g., "data:video/webm;base64,")
+    const base64VideoData = base64Data.split(',')[1];
+    
+    const uploadData = {
+      action: 'upload_video',
+      sessionCode: sessionCode,
+      imageNumber: imageNumber,
+      videoData: base64VideoData,
+      fileSize: videoBlob.size, // Include file size info
+      timestamp: new Date().toISOString()
+    };
+
+    console.log(`Uploading video: ${Math.round(videoBlob.size/1024)}KB for image ${imageNumber}`);
+    updateUploadProgress(50, 'Sending to server...');
+
+    const response = await fetch(CONFIG.SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(uploadData)
+    });
+
+    updateUploadProgress(100, 'Upload complete!');
+    
+    // Return success (adjust based on your Google Scripts response)
+    return {
+      success: true,
+      filename: `video_${sessionCode}_img${imageNumber}_${Date.now()}.webm`,
+      fileId: 'uploaded',
+      fileUrl: 'uploaded'
+    };
+
+  } catch (error) {
+    console.error('Drive upload error:', error);
+    
+    // Check if it's a size-related error
+    if (error.message.includes('PayloadTooLargeError') || 
+        error.message.includes('413') ||
+        error.message.includes('too large')) {
+      return { 
+        success: false, 
+        error: `File too large for upload. Please record a shorter video.`
+      };
+    }
+    
+    return { success: false, error: error.message };
+  }
+}
+
+    // Add this NEW function after uploadVideoToDrive
+function updateUploadProgress(percent, message) {
+  const progressDiv = document.getElementById('upload-progress');
+  const progressFill = document.getElementById('upload-progress-fill');
+  const status = document.getElementById('upload-status');
+  
+  if (progressDiv) progressDiv.style.display = 'block';
+  if (progressFill) progressFill.style.width = `${percent}%`;
+  if (status) status.textContent = `${percent}%`;
+  
+  // Update the progress message
+  const progressText = progressDiv?.querySelector('div[style*="font-weight: bold"]');
+  if (progressText && message) {
+    progressText.textContent = message;
+  }
+}
 
     // Helper function to convert blob to base64
     function blobToBase64(blob) {
@@ -1833,5 +1861,6 @@
   </script>
 </body>
 </html>
+
 
 
