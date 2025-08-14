@@ -1448,6 +1448,7 @@
 
         const response = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',
+          mode: 'cors',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1467,6 +1468,10 @@
         return result;
 
       } catch (error) {
+        if (error instanceof TypeError) {
+          console.error('Drive upload error: CORS or network issue', error);
+          return { success: false, error: 'Network or CORS error' };
+        }
         console.error('Drive upload error:', error);
         return { success: false, error: error.message };
       }
