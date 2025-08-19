@@ -738,7 +738,32 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
       const isSmallScreen = window.innerWidth <= 1024;
       return hasTouch && (mobileUA || isSmallScreen);
     }
+function tryMailto() {
+  const addr = 'action.brain.lab@gallaudet.edu';
+  const subject = encodeURIComponent('[EEG Add-On] Scheduling — Session ' + (state.sessionCode || ''));
+  const body = encodeURIComponent(`Hi Action Brain Lab,
 
+I'd like to schedule the optional EEG visit.
+
+Preferred dates/times:
+Communication preference (ASL or English):
+
+Thanks!
+Session code: ${state.sessionCode || ''}`);
+  window.location.href = `mailto:${addr}?subject=${subject}&body=${body}`;
+}
+
+function copyEmail(btn) {
+  const addr = 'action.brain.lab@gallaudet.edu';
+  navigator.clipboard.writeText(addr).then(() => {
+    if (btn) { const t = btn.textContent; btn.textContent = '✅ Copied!'; setTimeout(()=>btn.textContent=t, 1500); }
+  });
+}
+
+function closeEEGModal() {
+  const m = document.getElementById('eeg-modal');
+  if (m) m.classList.remove('active');
+}
     // ----- State -----
     let state = {
   sessionCode: '',
@@ -1817,38 +1842,27 @@ uploadProgress.style.display = 'block';
       }
     }
 
-    // New function to upload video to Google Drive
-    // === REPLACE your existing uploadVideoToDrive with this ===
-async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
+  async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    // Show staged progress that reflects real phases
     updateUploadProgress(10, 'Preparing upload...');
-    
-    // Convert blob -> base64 (no data: prefix)
+
     const base64DataUrl = await blobToBase64(videoBlob);
     const base64VideoData = base64DataUrl.split(',')[1];
     updateUploadProgress(30, 'Encoding complete...');
 
-    // Build payload (with optional auth added below in step 4)
-    let uploadData = {
+    const uploadData = {
       action: 'upload_video',
-      sessionCode: sessionCode,
-      imageNumber: imageNumber,
+      sessionCode,
+      imageNumber,
       videoData: base64VideoData,
       fileSize: videoBlob.size,
       timestamp: new Date().toISOString()
     };
 
-    // (Optional security) Attach HMAC auth if you added Step 4
-   if (SECURITY.ENABLED) {
-   uploadData = await addAuthFields(uploadData);
-}
-
     updateUploadProgress(60, 'Sending to server...');
 
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      // IMPORTANT: "simple" request -> no preflight; server returns JSON we can read
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(uploadData)
     });
@@ -1858,21 +1872,12 @@ async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
       throw new Error(`Upload request failed (${response.status}). ${errText}`);
     }
 
-    // Read JSON result from Apps Script
     let result;
-    try {
-      result = await response.json();
-    } catch {
-      // Fallback (rare) if returned as text
-      const text = await response.text();
-      result = JSON.parse(text);
-    }
+    try { result = await response.json(); }
+    catch { result = JSON.parse(await response.text()); }
 
-    if (!result.success) {
-      throw new Error(result.error || 'Upload failed');
-    }
+    if (!result.success) throw new Error(result.error || 'Upload failed');
 
-    // Only now mark 100% and success
     updateUploadProgress(100, 'Upload complete!');
 
     return {
@@ -1881,11 +1886,11 @@ async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
       fileId: result.fileId,
       fileUrl: result.fileUrl
     };
-
   } catch (error) {
     return { success: false, error: error.message || String(error) };
   }
 }
+
 
     // Add this NEW function after uploadVideoToDrive
 function updateUploadProgress(percent, message) {
@@ -2191,53 +2196,23 @@ async function skipTaskProceed(taskCode) {
 async function sendToSheets(payload) {
   if (!CONFIG.SHEETS_URL) return;
 
-  // Add UA + HMAC (if helpers are present/enabled)
-  let body = { ...payload, userAgent: navigator.userAgent };
-  if (SECURITY.ENABLED) body = await addAuthFields(body);
+  const body = { ...payload, userAgent: navigator.userAgent };
+
   try {
     await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // simple request, no preflight
       body: JSON.stringify(body)
     });
-    // If you want to verify responses during dev, you can parse here:
-    // const out = await res.json().catch(()=>null); console.debug(out);
   } catch (error) {
     console.error('Error sending to sheets:', error);
   }
 }
 
 
+
     // ---------- OPTIONAL AUTH HELPERS (frontend) ----------
-const SECURITY = {
-  ENABLED: false,
-  SHARED_SECRET: 'c4f0b2a9e8d1f3a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f412'
-};
 
-
-// Compute HMAC-SHA256(message) with WebCrypto, return base64 string
-async function hmacBase64(secret, message) {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-  // base64 encode
-  const bytes = new Uint8Array(sig);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-// Attach ts+sig to any payload
-async function addAuthFields(payload) {
-  if (!SECURITY.ENABLED) return payload;
-  const ts = Date.now();
-  const who = payload.sessionCode || 'anon';
-  const message = `${ts}:${who}`;
-  const sig = await hmacBase64(SECURITY.SHARED_SECRET, message);
-  return { ...payload, ts, sig };
-}
 
     // DEBUG FUNCTION - Add this before "// Expose to window"
     async function debugVideoUpload() {
@@ -2301,13 +2276,13 @@ try {
         
         // Test 5: Test actual upload
         console.log('5. Testing upload with tiny file...');
-        const uploadData = await addAuthFields({
+        const uploadData = {
   action: 'upload_video',
   sessionCode: 'DEBUG123',
   imageNumber: 1,
   videoData: base64VideoData,
   timestamp: new Date().toISOString()
-});
+};
 const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
   method: 'POST',
   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2379,6 +2354,7 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
 
 
 
