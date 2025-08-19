@@ -1861,9 +1861,11 @@ uploadProgress.style.display = 'block';
 
     updateUploadProgress(60, 'Sending to server...');
 
+   
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(uploadData)
     });
 
@@ -2354,6 +2356,7 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
 
 
 
