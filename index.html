@@ -1851,8 +1851,8 @@ async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
       throw new Error('Video too large (max 35MB). Please record a shorter video.');
     }
 
-    const base64DataUrl = await blobToBase64(videoBlob);
-    const base64VideoData = base64DataUrl.split(',')[1];
+const base64DataUrl = await blobToBase64(videoBlob);
+const base64VideoData = base64DataUrl.split(',').pop(); 
     updateUploadProgress(30, 'Encoding complete...');
 
     const uploadData = {
@@ -2386,6 +2386,7 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
 
 
 
