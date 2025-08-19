@@ -2210,7 +2210,7 @@ async function sendToSheets(payload) {
 
     // ---------- OPTIONAL AUTH HELPERS (frontend) ----------
 const SECURITY = {
-  ENABLED: true,
+  ENABLED: false,
   SHARED_SECRET: 'c4f0b2a9e8d1f3a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f412'
 };
 
@@ -2248,41 +2248,34 @@ async function addAuthFields(payload) {
       console.log('SHEETS_URL:', CONFIG.SHEETS_URL);
       console.log('Is valid URL:', CONFIG.SHEETS_URL.includes('script.google.com'));
       
-      // Test 2: Test basic connection
-      console.log('2. Testing basic connection...');
-      try {
-         const testResponse = await fetch(CONFIG.SHEETS_URL, {
-           method: 'POST',
-           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-           body: JSON.stringify({
-             action: 'test_connection', 
-             timestamp: new Date().toISOString()
-})
-});
-        const testResponse = await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'test_connection',
-            timestamp: new Date().toISOString()
-          })
-        });
+// Test 2: Test basic connection (simple request, no preflight)
+console.log('2. Testing basic connection...');
+try {
+  const res = await fetch(CONFIG.SHEETS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      action: 'test_connection',
+      timestamp: new Date().toISOString()
+    })
+  });
+
+  console.log('✅ Connection response:', {
+    status: res.status,
+    ok: res.ok,
+    statusText: res.statusText
+  });
+
+  // be tolerant if server sometimes returns text
+  let payload;
+  try { payload = await res.json(); } catch { payload = await res.text(); }
+  console.log('✅ Connection result:', payload);
+} catch (error) {
+  console.error('❌ Connection failed:', error);
+}
+
         
-        console.log('✅ Connection response:', {
-          status: testResponse.status,
-          ok: testResponse.ok,
-          statusText: testResponse.statusText
-        });
-        
-        if (testResponse.ok) {
-          const testResult = await testResponse.json();
-          console.log('✅ Connection result:', testResult);
-        }
-      } catch (error) {
-        console.error('❌ Connection failed:', error);
-      }
+
       
       // Test 3: Create a tiny test video blob
       console.log('3. Creating test video blob...');
@@ -2386,6 +2379,7 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
 
 
 
