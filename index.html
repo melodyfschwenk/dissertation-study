@@ -540,7 +540,9 @@
     const CONFIG = {
       SHEETS_URL: 'https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec',
       IMAGE_1: 'images/description1.jpg',
-      IMAGE_2: 'images/description2.jpg'
+      IMAGE_2: 'images/description2.jpg',
+    ASLCT_ACCESS_CODE: 'DVCWHNABJ'
+
     };
 
     // ----- Tasks -----
@@ -647,6 +649,14 @@
     // ----- Init (single handler) -----
     document.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
+      // Secure-context guard: disable inline recording if not https
+if (!window.isSecureContext) {
+  // Hide the record button if the recording screen gets opened
+  const style = document.createElement('style');
+  style.textContent = `#record-btn { display: none !important; }`;
+  document.head.appendChild(style);
+}
+
       checkSavedSession();
 
       // Gentle mobile notice content swap
@@ -685,16 +695,33 @@
     }
 
     // ----- Screens -----
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      const screen = document.getElementById(screenId);
-      if (screen) screen.classList.add('active');
-      const widget = document.getElementById('session-widget');
-      const showWidget = ['progress-screen','task-screen','consent-screen','recording-screen'].includes(screenId);
-      if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
-      const fab = document.getElementById('pause-fab');
-      if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
-    }
+   // === REPLACE your existing showScreen with this ===
+function showScreen(screenId) {
+  // Hide all screens, show target
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById(screenId);
+  if (screen) screen.classList.add('active');
+
+  // Show/hide session widget + FAB
+  const widget = document.getElementById('session-widget');
+  const showWidget = ['progress-screen','task-screen','consent-screen','recording-screen'].includes(screenId);
+  if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
+  const fab = document.getElementById('pause-fab');
+  if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
+
+  // Accessibility: move focus to the screen heading and announce
+  const heading = screen?.querySelector('h2, h1, h3');
+  if (heading) {
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: false });
+    // Clean up tabindex after focus so it doesn't stay in tab order
+    setTimeout(() => heading.removeAttribute('tabindex'), 500);
+    // Live region update
+    const live = document.getElementById('live-status');
+    if (live) live.textContent = `Section changed: ${heading.textContent}`;
+  }
+}
+
 
     // ----- Session -----
     function generateCode() {
@@ -768,21 +795,30 @@
       } catch (err) { console.error(err); alert('Error loading session'); }
     }
 
-    function checkSavedSession() {
-      try {
-        const recentCode = localStorage.getItem('recent_session');
-        if (!recentCode) return;
-        const saved = localStorage.getItem(`study_${recentCode}`);
-        if (!saved) return;
-        const data = JSON.parse(saved);
-        const daysSince = (Date.now() - new Date(data.lastActivity).getTime()) / (1000*60*60*24);
-        if (daysSince < 30) {
-          if (confirm(`Welcome back! Resume session ${recentCode}?`)) {
-            state = data; updateSessionWidget(); showProgressScreen();
-          }
+    // === REPLACE the body of checkSavedSession with this ===
+function checkSavedSession() {
+  try {
+    const recentCode = localStorage.getItem('recent_session');
+    if (!recentCode) return;
+
+    const saved = localStorage.getItem(`study_${recentCode}`);
+    if (!saved) return;
+
+    const data = JSON.parse(saved);
+    const daysSince = (Date.now() - new Date(data.lastActivity).getTime()) / (1000*60*60*24);
+    if (daysSince < 30) {
+      // Delay so it doesn’t clash with initial UI
+      setTimeout(() => {
+        if (confirm(`Welcome back! Resume session ${recentCode}?`)) {
+          state = data; updateSessionWidget(); showProgressScreen();
         }
-      } catch (e) { console.warn('Could not check saved session', e); }
+      }, 700); // ~0.7s feels smooth with your animations
     }
+  } catch (e) {
+    console.warn('Could not check saved session', e);
+  }
+}
+
 
     function saveState() {
       try {
@@ -1033,76 +1069,106 @@
     }
 
     // ----- External tasks -----
-    function showExternalTask(taskCode) {
-      const task = TASKS[taskCode];
-      let extra = '';
-      if (taskCode === 'ASLCT') {
-        extra = `
-          <div class="info-banner success" style="margin-top: 10px;">
-            <strong>ASLCT Access Code</strong>
-            <p style="margin-top: 6px;">
-              On the login page, enter access code: <span class="code" style="font-size:22px; background:#fff; color:#333; padding:4px 8px; border-radius:6px; display:inline-block;">NWMTLYMTP</span>
-            </p>
-            <button class="button outline" onclick="copyASLCTCode(this)">Copy Access Code</button>
-          </div>
-          <div class="info-banner info" style="margin-top: 10px;">
-            <strong>Instructions:</strong>
-            <ol style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Click "Open Task".</li>
-              <li>On the ASLCT portal, paste the access code <em>DVCWHNABJ</em> and follow the prompts.</li>
-              <li>Return here when finished and click "Mark Complete".</li>
-            </ol>
-          </div>
-          <div style="margin-top: 10px; text-align: left;">
-            <p>If you encounter any problems with the ASLCT, please describe them below and click Send.</p>
-            <textarea id="aslct-issue-text" style="width: 100%; height: 80px; margin-top: 6px;"></textarea>
-            <button class="button secondary" style="margin-top: 10px;" onclick="submitASLCTIssue()">Send</button>
-          </div>`;
-      } else if (taskCode === 'VCN') {
-        extra = `
-          <div class="info-banner info" style="margin-top: 10px;">
-            <strong>Virtual SILC Test of Navigation (SILCton) — What you'll do</strong>
-            <p style="margin-top: 6px;">Learn a small virtual campus (Learning phase), then answer quick questions (Test phase).</p>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li><strong>Controls:</strong> Move with WASD/arrow keys; look around with the mouse.</li>
-              <li>Desktop/laptop recommended (Chrome/Firefox). Keep this page open.</li>
-            </ul>
-          </div>`;
-      }
+    
+    // === REPLACE your existing showExternalTask with this ===
+function showExternalTask(taskCode) {
+  const task = TASKS[taskCode];
+  let extra = '';
 
-      document.getElementById('task-title').textContent = task.name;
-      document.getElementById('task-instructions').innerHTML = `
-        <p>${task.description}</p>
-        ${extra}
-        <div class="info-banner info" style="margin-top: 10px;">
-          <strong>Instructions:</strong>
-          <ol style="margin: 10px 0 0 20px; text-align: left;">
-            <li>Click "Open Task" to launch in a new tab.</li>
-            <li>Complete the task as instructed.</li>
-            <li>Return to this tab when finished.</li>
-            <li>Click "Mark Complete" to continue.</li>
-          </ol>
-        </div>
-      `;
+  if (taskCode === 'ASLCT') {
+    // Use ONE access code consistently. If you have an official one, put it here:
+    const ASLCT_CODE = CONFIG.ASLCT_ACCESS_CODE;
 
-      const content = document.getElementById('task-content');
-      content.innerHTML = `
-        <div class="button-group">
-          <button class="button" onclick="window.open('${task.url}', '_blank', 'noopener')">Open Task</button>
-          <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
-        </div>
-      `;
 
-      if (task.canSkip) {
-        content.innerHTML += `
-          <button class="button secondary" onclick="skipTask('${taskCode}')" style="display: block; margin: 20px auto;">
-            ${taskCode === 'ASLCT' ? 'Skip - I Do Not Know ASL' : 'Skip This Task'}
-          </button>
-        `;
-      }
+    extra = `
+      <div class="info-banner success" style="margin-top: 10px;">
+        <strong>ASLCT Access Code</strong>
+        <p style="margin-top: 6px;">
+          On the login page, enter access code:
+          <span class="code" style="font-size:22px; background:#fff; color:#333; padding:4px 8px; border-radius:6px; display:inline-block;">${ASLCT_CODE}</span>
+        </p>
+        <button class="button outline" onclick="navigator.clipboard.writeText('${ASLCT_CODE}').then(()=>{ this.textContent='✅ Copied!'; setTimeout(()=>this.textContent='Copy Access Code',1500); })">Copy Access Code</button>
+      </div>
+      <div class="info-banner info" style="margin-top: 10px;">
+        <strong>Instructions:</strong>
+        <ol style="margin: 10px 0 0 20px; text-align: left;">
+          <li>Click "Open Task".</li>
+          <li>On the ASLCT portal, paste the access code <em>${ASLCT_CODE}</em> and follow the prompts.</li>
+          <li>Return here when finished and click "Mark Complete".</li>
+        </ol>
+      </div>
+      <div style="margin-top: 10px; text-align: left;">
+        <p>If you encounter any problems with the ASLCT, please describe them below and click Send.</p>
+        <textarea id="aslct-issue-text" style="width: 100%; height: 80px; margin-top: 6px;"></textarea>
+        <button class="button secondary" style="margin-top: 10px;" onclick="submitASLCTIssue()">Send</button>
+      </div>`;
+  } else if (taskCode === 'VCN') {
+    extra = `
+      <div class="info-banner info" style="margin-top: 10px;">
+        <strong>Virtual SILC Test of Navigation (SILCton) — What you'll do</strong>
+        <p style="margin-top: 6px;">Learn a small virtual campus (Learning phase), then answer quick questions (Test phase).</p>
+        <ul style="margin: 10px 0 0 20px; text-align: left;">
+          <li><strong>Controls:</strong> Move with WASD/arrow keys; look around with the mouse.</li>
+          <li>Desktop/laptop recommended (Chrome/Firefox). Keep this page open.</li>
+        </ul>
+      </div>`;
+  }
 
-      showScreen('task-screen');
-    }
+  document.getElementById('task-title').textContent = task.name;
+  document.getElementById('task-instructions').innerHTML = `
+    <p>${task.description}</p>
+    ${extra}
+    <div class="info-banner info" style="margin-top: 10px;">
+      <strong>Instructions:</strong>
+      <ol style="margin: 10px 0 0 20px; text-align: left;">
+        <li>Click "Open Task" to launch in a new tab.</li>
+        <li>Complete the task as instructed.</li>
+        <li>Return to this tab when finished.</li>
+        <li>Click "Mark Complete" to continue.</li>
+      </ol>
+    </div>
+  `;
+
+  const content = document.getElementById('task-content');
+  // Use a real <a> for opening the task (more semantic, keyboard-friendly)
+  content.innerHTML = `
+    <div class="button-group">
+      <a class="button"
+         href="${task.url}"
+         target="_blank"
+         rel="noopener"
+         aria-label="Open Task (opens in new tab)"
+         onclick="sendToSheets({ action: '${taskCode === 'ZOOM' ? 'calendly_opened' : 'task_opened'}', sessionCode: state.sessionCode || 'none', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });">
+         Open Task
+      </a>
+      <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
+    </div>
+  `;
+
+  if (task.canSkip) {
+    content.innerHTML += `
+      <button class="button secondary" onclick="skipTask('${taskCode}')" style="display: block; margin: 20px auto;">
+        ${taskCode === 'ASLCT' ? 'Skip - I Do Not Know ASL' : 'Skip This Task'}
+      </button>
+    `;
+  }
+
+  showScreen('task-screen');
+}
+
+function openExternalTask(taskCode) {
+  const task = TASKS[taskCode];
+  if (!task || !task.url) return;
+  if (taskCode === 'ZOOM') {
+    sendToSheets({
+      action: 'calendly_opened',
+      sessionCode: state.sessionCode || 'none',
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    });
+  }
+  window.open(task.url, '_blank', 'noopener');
+}
 
     // ----- Recording task -----
     function showRecordingTask() {
@@ -1117,6 +1183,16 @@
         document.getElementById('recording-content').style.display = 'block';
         updateRecordingImage();
       }
+      // NEW: if page not secure, skip recorder UI and show upload UI
+if (!window.isSecureContext) {
+  document.getElementById('recording-consent-check').style.display = 'none';
+  document.getElementById('recording-content').style.display = 'block';
+  document.getElementById('video-upload-fallback').style.display = 'block';
+  const status = document.getElementById('recording-status');
+  status.textContent = 'Recording disabled (requires https). Please use the upload option below.';
+  status.className = 'recording-status warning';
+}
+
       showScreen('recording-screen');
     }
 
@@ -1433,69 +1509,77 @@ uploadProgress.style.display = 'block';
     }
 
     // New function to upload video to Google Drive
-    async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
+    // === REPLACE your existing uploadVideoToDrive with this ===
+async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    // Just warn for large files, don't block them
-    if (videoBlob.size > 50 * 1024 * 1024) { // 50MB warning
-      console.warn(`Large video file: ${Math.round(videoBlob.size/1024/1024)}MB - this may take a while`);
-    }
+    // Show staged progress that reflects real phases
+    updateUploadProgress(10, 'Preparing upload...');
+    
+    // Convert blob -> base64 (no data: prefix)
+    const base64DataUrl = await blobToBase64(videoBlob);
+    const base64VideoData = base64DataUrl.split(',')[1];
+    updateUploadProgress(30, 'Encoding complete...');
 
-    // Show upload progress for large files
-    updateUploadProgress(0, `Preparing ${Math.round(videoBlob.size/1024/1024)}MB upload...`);
-    
-    // Convert blob to base64
-    const base64Data = await blobToBase64(videoBlob);
-    updateUploadProgress(30, 'Encoding complete, uploading...');
-    
-    // Remove the data URL prefix (e.g., "data:video/webm;base64,")
-    const base64VideoData = base64Data.split(',')[1];
-    
-    const uploadData = {
+    // Build payload (with optional auth added below in step 4)
+    let uploadData = {
       action: 'upload_video',
       sessionCode: sessionCode,
       imageNumber: imageNumber,
       videoData: base64VideoData,
-      fileSize: videoBlob.size, // Include file size info
+      fileSize: videoBlob.size,
       timestamp: new Date().toISOString()
     };
 
-    console.log(`Uploading video: ${Math.round(videoBlob.size/1024)}KB for image ${imageNumber}`);
-    updateUploadProgress(50, 'Sending to server...');
+    // (Optional security) Attach HMAC auth if you added Step 4
+    if (window.addAuthFields) {
+      uploadData = await addAuthFields(uploadData);
+    }
+
+    updateUploadProgress(60, 'Sending to server...');
 
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      // IMPORTANT: "simple" request -> no preflight; server returns JSON we can read
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(uploadData)
     });
 
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`Upload request failed (${response.status}). ${errText}`);
+    }
+
+    // Read JSON result from Apps Script
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      // Fallback (rare) if returned as text
+      const text = await response.text();
+      result = JSON.parse(text);
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    // Only now mark 100% and success
     updateUploadProgress(100, 'Upload complete!');
-    
-    // Return success (adjust based on your Google Scripts response)
+
     return {
       success: true,
-      filename: `video_${sessionCode}_img${imageNumber}_${Date.now()}.webm`,
-      fileId: 'uploaded',
-      fileUrl: 'uploaded'
+      filename: result.filename,
+      fileId: result.fileId,
+      fileUrl: result.fileUrl
     };
 
   } catch (error) {
-    console.error('Drive upload error:', error);
-    
-    // Check if it's a size-related error
-    if (error.message.includes('PayloadTooLargeError') || 
-        error.message.includes('413') ||
-        error.message.includes('too large')) {
-      return { 
-        success: false, 
-        error: `File too large for upload. Please record a shorter video.`
-      };
-    }
-    
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || String(error) };
   }
+}
+
+   
+
 }
 
     // Add this NEW function after uploadVideoToDrive
@@ -1683,10 +1767,11 @@ function updateUploadProgress(percent, message) {
       });
     }
     function copyASLCTCode(btnEl) {
-      navigator.clipboard.writeText('NWMTLYMTP').then(() => {
-        if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
-      }).catch(() => { alert('Access code: NWMTLYMTP'); });
-    }
+  navigator.clipboard.writeText(CONFIG.ASLCT_ACCESS_CODE)
+    .then(() => { if (btnEl) { const o=btnEl.textContent; btnEl.textContent='✅ Copied!'; setTimeout(()=>btnEl.textContent=o,2000);} })
+    .catch(() => { alert('Access code: ' + CONFIG.ASLCT_ACCESS_CODE); });
+}
+
     function openEmbedInNewTab(taskCode) {
       const task = TASKS[taskCode];
       if (task?.embedUrl) window.open(task.embedUrl, '_blank', 'noopener');
@@ -1752,12 +1837,59 @@ function updateUploadProgress(percent, message) {
       alert('Issue submitted. Thank you!');
     }
 
-    async function sendToSheets(data) {
-      if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) { console.log('Sheets not configured:', data); return; }
-      try {
-        await fetch(CONFIG.SHEETS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      } catch (error) { console.error('Error sending to sheets:', error); }
-    }
+    // === REPLACE sendToSheets with this ===
+async function sendToSheets(payload) {
+  if (!CONFIG.SHEETS_URL) return;
+
+  // Add UA + HMAC (if helpers are present/enabled)
+  let body = { ...payload, userAgent: navigator.userAgent };
+  if (window.addAuthFields) body = await addAuthFields(body);
+
+  try {
+    await fetch(CONFIG.SHEETS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // simple request, no preflight
+      body: JSON.stringify(body)
+    });
+    // If you want to verify responses during dev, you can parse here:
+    // const out = await res.json().catch(()=>null); console.debug(out);
+  } catch (error) {
+    console.error('Error sending to sheets:', error);
+  }
+}
+
+
+    // ---------- OPTIONAL AUTH HELPERS (frontend) ----------
+const SECURITY = {
+  ENABLED: true,
+  // IMPORTANT: replace with your own long random string and also set it
+  // as WEBAPP_SECRET in your Apps Script (step 4B).
+  SHARED_SECRET: 'CHANGE_ME_TO_A_LONG_RANDOM_STRING'
+};
+
+// Compute HMAC-SHA256(message) with WebCrypto, return base64 string
+async function hmacBase64(secret, message) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+  // base64 encode
+  const bytes = new Uint8Array(sig);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+// Attach ts+sig to any payload
+async function addAuthFields(payload) {
+  if (!SECURITY.ENABLED) return payload;
+  const ts = Date.now();
+  const who = payload.sessionCode || 'anon';
+  const message = `${ts}:${who}`;
+  const sig = await hmacBase64(SECURITY.SHARED_SECRET, message);
+  return { ...payload, ts, sig };
+}
 
     // DEBUG FUNCTION - Add this before "// Expose to window"
     async function debugVideoUpload() {
@@ -1820,21 +1952,19 @@ function updateUploadProgress(percent, message) {
         
         // Test 5: Test actual upload
         console.log('5. Testing upload with tiny file...');
-        const uploadData = {
-          action: 'upload_video',
-          sessionCode: 'DEBUG123',
-          imageNumber: 1,
-          videoData: base64VideoData,
-          timestamp: new Date().toISOString()
-        };
-        
-        const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(uploadData)
-        });
+        const uploadData = await addAuthFields({
+  action: 'upload_video',
+  sessionCode: 'DEBUG123',
+  imageNumber: 1,
+  videoData: base64VideoData,
+  timestamp: new Date().toISOString()
+});
+const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+  body: JSON.stringify(uploadData)
+});
+
         
         console.log('Upload response:', {
           status: uploadResponse.status,
@@ -1895,6 +2025,7 @@ function updateUploadProgress(percent, message) {
   </script>
 </body>
 </html>
+
 
 
 
