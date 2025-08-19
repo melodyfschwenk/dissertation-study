@@ -547,11 +547,11 @@
 
     // ----- Tasks -----
     const TASKS = {
-      'ZOOM': {
-        name: 'Schedule Zoom Task',
-        description: '15-20 minute live assessment',
-        url: 'https://calendly.com/melodyschwenk/spatialcognitionzoom',
-        type: 'external',
+      'RC': {
+        name: 'Reading Comprehension Task',
+        description: 'Read passages and answer questions',
+        type: 'embed',
+        embedUrl: 'https://melodyfschwenk.github.io/readingcomp/',
         canSkip: true
       },
       'MRT': {
@@ -602,22 +602,28 @@
       'CONSENT2': { name: 'Video Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u' }
     };
 
-    // ----- Sequences -----
-    const SEQUENCES = [
-      ['ZOOM', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID', 'DEMO'],
-      ['ZOOM', 'ASLCT', 'VCN', 'SN', 'ID', 'MRT', 'DEMO'],
-      ['ZOOM', 'VCN', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
-      ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'VCN', 'DEMO'],
-      ['ZOOM', 'ID', 'MRT', 'ASLCT', 'VCN', 'SN', 'DEMO']
-    ];
+    // ----- Task sequencing -----
+    const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
+    const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN', 'ID'];
 
-    // Mobile-specific sequences (reduced tasks)
-    const MOBILE_SEQUENCES = [
-      ['ZOOM', 'MRT', 'ASLCT', 'SN', 'ID', 'DEMO'],
-      ['ZOOM', 'ASLCT', 'SN', 'ID', 'MRT', 'DEMO'],
-      ['ZOOM', 'SN', 'ID', 'MRT', 'ASLCT', 'DEMO'],
-      ['ZOOM', 'ID', 'MRT', 'ASLCT', 'SN', 'DEMO']
-    ];
+    function mulberry32(a) {
+      return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function shuffleWithSeed(array, seed) {
+      const rng = mulberry32(seed);
+      const a = array.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
 
     // Detect if mobile/tablet
     function isMobileDevice() {
@@ -752,15 +758,16 @@ function showScreen(screenId) {
       state.email = email;
 
       // Choose sequence (mobile vs desktop)
+      const seed = Math.abs(hashCode(state.sessionCode));
+      state.sequenceIndex = seed;
       if (isMobileDevice()) {
-        state.sequenceIndex = Math.floor(Math.random() * MOBILE_SEQUENCES.length);
-        state.sequence = MOBILE_SEQUENCES[state.sequenceIndex].slice();
+        state.sequence = shuffleWithSeed(MOBILE_TASKS, seed);
         state.isMobile = true;
       } else {
-        state.sequenceIndex = Math.abs(hashCode(state.sessionCode)) % SEQUENCES.length;
-        state.sequence = SEQUENCES[state.sequenceIndex].slice();
+        state.sequence = shuffleWithSeed(DESKTOP_TASKS, seed);
         state.isMobile = false;
       }
+      state.sequence.push('DEMO');
 
       state.startTime = Date.now();
       state.lastActivity = new Date().toISOString();
@@ -1138,7 +1145,7 @@ function showExternalTask(taskCode) {
          target="_blank"
          rel="noopener"
          aria-label="Open Task (opens in new tab)"
-         onclick="sendToSheets({ action: '${taskCode === 'ZOOM' ? 'calendly_opened' : 'task_opened'}', sessionCode: state.sessionCode || 'none', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });">
+         onclick="sendToSheets({ action: 'task_opened', sessionCode: state.sessionCode || 'none', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });">
          Open Task
       </a>
       <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
@@ -1159,14 +1166,6 @@ function showExternalTask(taskCode) {
 function openExternalTask(taskCode) {
   const task = TASKS[taskCode];
   if (!task || !task.url) return;
-  if (taskCode === 'ZOOM') {
-    sendToSheets({
-      action: 'calendly_opened',
-      sessionCode: state.sessionCode || 'none',
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    });
-  }
   window.open(task.url, '_blank', 'noopener');
 }
 
