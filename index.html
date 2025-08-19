@@ -2210,7 +2210,7 @@ async function sendToSheets(payload) {
 
     // ---------- OPTIONAL AUTH HELPERS (frontend) ----------
 const SECURITY = {
-  ENABLED: false,
+  ENABLED: true,
   SHARED_SECRET: 'c4f0b2a9e8d1f3a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f412'
 };
 
@@ -2251,6 +2251,14 @@ async function addAuthFields(payload) {
       // Test 2: Test basic connection
       console.log('2. Testing basic connection...');
       try {
+         const testResponse = await fetch(CONFIG.SHEETS_URL, {
+           method: 'POST',
+           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+           body: JSON.stringify({
+             action: 'test_connection', 
+             timestamp: new Date().toISOString()
+})
+});
         const testResponse = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',
           headers: {
@@ -2378,6 +2386,7 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
 
 
 
