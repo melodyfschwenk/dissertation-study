@@ -474,7 +474,12 @@
             <div class="code" id="final-code">ABC12345</div>
           </div>
           <p style="margin-top: 20px;">Total time: <strong id="total-time">0</strong> minutes</p>
-          <p style="margin-top: 30px; color: var(--text-muted);">You may now close this window.</p>
+          <div class="button-group" style="margin-top:30px;">
+            <button class="button success" id="mark-complete-btn" onclick="markComplete()">Mark Me Complete</button>
+          </div>
+          <p id="completion-message" style="display:none; margin-top:20px; color: var(--text-muted);">
+            ✅ Your participation has been recorded. You may now close this window.
+          </p>
         </div>
       </div>
     </div>
@@ -1647,15 +1652,21 @@ function updateUploadProgress(percent, message) {
     function showCompletionScreen() {
       document.getElementById('final-code').textContent = state.sessionCode;
       document.getElementById('total-time').textContent = Math.round(state.totalTimeSpent / 60000);
-      sendToSheets({
+      showScreen('completion-screen');
+      document.getElementById('pause-fab').classList.remove('active');
+    }
+
+    async function markComplete() {
+      const btn = document.getElementById('mark-complete-btn');
+      btn.disabled = true;
+      await sendToSheets({
         action: 'study_completed',
         sessionCode: state.sessionCode,
         totalDuration: Math.round(state.totalTimeSpent / 60000),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         timestamp: new Date().toISOString()
       });
-      showScreen('completion-screen');
-      document.getElementById('pause-fab').classList.remove('active');
+      document.getElementById('completion-message').style.display = 'block';
     }
 
     // ----- Utilities -----
@@ -1880,6 +1891,7 @@ function updateUploadProgress(percent, message) {
     window.continueWithoutUpload = continueWithoutUpload;
      window.debugVideoUpload = debugVideoUpload;
     window.submitASLCTIssue = submitASLCTIssue;
+    window.markComplete = markComplete;
   </script>
 </body>
 </html>
