@@ -1047,6 +1047,11 @@
               <li>On the ASLCT portal, paste the access code <em>DVCWHNABJ</em> and follow the prompts.</li>
               <li>Return here when finished and click "Mark Complete".</li>
             </ol>
+          </div>
+          <div style="margin-top: 10px; text-align: left;">
+            <p>If you encounter any problems with the ASLCT, please describe them below and click Send.</p>
+            <textarea id="aslct-issue-text" style="width: 100%; height: 80px; margin-top: 6px;"></textarea>
+            <button class="button secondary" style="margin-top: 10px;" onclick="submitASLCTIssue()">Send</button>
           </div>`;
       } else if (taskCode === 'VCN') {
         extra = `
@@ -1720,6 +1725,22 @@ function updateUploadProgress(percent, message) {
 
     function hashCode(str) { let hash = 0; for (let i=0;i<str.length;i++){const c=str.charCodeAt(i); hash=((hash<<5)-hash)+c; hash|=0;} return hash; }
 
+    function submitASLCTIssue() {
+      const el = document.getElementById('aslct-issue-text');
+      if (!el) return;
+      const message = el.value.trim();
+      if (!message) return;
+      sendToSheets({
+        action: 'aslct_issue',
+        sessionCode: state.sessionCode || 'none',
+        participantID: state.participantID || 'none',
+        message,
+        timestamp: new Date().toISOString()
+      });
+      el.value = '';
+      alert('Issue submitted. Thank you!');
+    }
+
     async function sendToSheets(data) {
       if (!CONFIG.SHEETS_URL || CONFIG.SHEETS_URL.includes('YOUR_')) { console.log('Sheets not configured:', data); return; }
       try {
@@ -1858,6 +1879,7 @@ function updateUploadProgress(percent, message) {
     window.retryVideoUpload = retryVideoUpload;
     window.continueWithoutUpload = continueWithoutUpload;
      window.debugVideoUpload = debugVideoUpload;
+    window.submitASLCTIssue = submitASLCTIssue;
   </script>
 </body>
 </html>
