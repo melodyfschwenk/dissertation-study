@@ -125,6 +125,33 @@ function doPost(e) {
         logTaskStart(ss, data);
         break;
 
+      case 'task_departed':
+        logSessionEvent(ss, {
+          sessionCode: data.sessionCode,
+          eventType: 'Task Departed',
+          details: data.task,
+          timestamp: data.timestamp
+        });
+        break;
+
+      case 'task_returned':
+        logSessionEvent(ss, {
+          sessionCode: data.sessionCode,
+          eventType: 'Task Returned',
+          details: data.task + ' (Away: ' + (data.away || 0) + 's)',
+          timestamp: data.timestamp
+        });
+        break;
+
+      case 'inactivity':
+        logSessionEvent(ss, {
+          sessionCode: data.sessionCode,
+          eventType: 'Inactivity',
+          details: data.task,
+          timestamp: data.timestamp
+        });
+        break;
+
       case 'task_skipped':
         logTaskSkipped(ss, data);
         break;
@@ -263,14 +290,14 @@ function safeSetupOrMigrate_() {
   // Sessions
   ensureSheetWithHeaders_(ss, 'Sessions', [
     'Session Code', 'Participant ID', 'Email', 'Sequence Index',
-    'Created Date', 'Last Activity', 'Total Time (min)', 'Tasks Completed',
+    'Created Date', 'Last Activity', 'Total Time (min)', 'Active Time (min)', 'Activity %', 'Tasks Completed',
     'Consent 1', 'Consent 2', 'Status', 'Device Type', 'Notes'
   ]);
 
   // Task Progress
   ensureSheetWithHeaders_(ss, 'Task Progress', [
     'Timestamp','Session Code','Participant ID','Task Name',
-    'Event Type','Duration (sec)','Details','Completed'
+    'Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
   ]);
 
   // Session Events
@@ -440,20 +467,20 @@ function initialSetup() {
 
   var sessionsSheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
   sessionsSheet.clear();
-  sessionsSheet.getRange(1, 1, 1, 13).setValues([
+  sessionsSheet.getRange(1, 1, 1, 15).setValues([
     [
     'Session Code','Participant ID','Email','Sequence Index','Created Date','Last Activity',
-    'Total Time (min)','Tasks Completed','Consent 1','Consent 2','Status','Device Type','Notes'
+    'Total Time (min)','Active Time (min)','Activity %','Tasks Completed','Consent 1','Consent 2','Status','Device Type','Notes'
   ]]);
-  formatHeaders(sessionsSheet, 13);
+  formatHeaders(sessionsSheet, 15);
 
   var progressSheet = ss.getSheetByName('Task Progress') || ss.insertSheet('Task Progress');
   progressSheet.clear();
-  progressSheet.getRange(1, 1, 1, 8).setValues([
+  progressSheet.getRange(1, 1, 1, 14).setValues([
     [
-    'Timestamp','Session Code','Participant ID','Task Name','Event Type','Duration (sec)','Details','Completed'
+    'Timestamp','Session Code','Participant ID','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
   ]]);
-  formatHeaders(progressSheet, 8);
+  formatHeaders(progressSheet, 14);
 
   var eventsSheet = ss.getSheetByName('Session Events') || ss.insertSheet('Session Events');
   eventsSheet.clear();
@@ -553,6 +580,8 @@ function createSession(ss, data) {
     data.sequenceIndex,
     data.timestamp,
     data.timestamp,
+    0,
+    0,
     0,
     '0/' + totalTasks,
     'Pending',
@@ -673,7 +702,7 @@ function getSessionActivitySummary(sessionCode) {
     if (progressData[i][1] === sessionCode) {
       var taskName = progressData[i][3];
       var eventType = progressData[i][4];
-      var duration = progressData[i][5];
+      var duration = progressData[i][7];
       
       if (!summary.tasks[taskName]) {
         summary.tasks[taskName] = {
@@ -725,7 +754,13 @@ function logTaskStart(ss, data) {
     data.participantID || getParticipantIDFromSession(ss, data.sessionCode), // Fetch if missing
     data.task,
     'Started',
+    data.startTime || data.timestamp,
     '',
+    0,
+    0,
+    0,
+    0,
+    0,
     '',
     false
   ]);
@@ -743,27 +778,50 @@ function logTaskStart(ss, data) {
 
 function logTaskComplete(ss, data) {
   var sheet = ss.getSheetByName('Task Progress');
+  var details = data.details || '';
+  var activityPct = data.activity || (data.elapsed ? (data.active / data.elapsed * 100) : 0);
+  var suspicious = (data.elapsed && data.active && (data.active / data.elapsed) < 0.3);
+  if (data.recordingDuration) {
+    details = (details ? details + '; ' : '') + 'Recording ' + data.recordingDuration + 's';
+  }
+  if (suspicious) {
+    details = (details ? details + ' | ' : '') + 'FLAG: Low activity';
+  }
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || getParticipantIDFromSession(ss, data.sessionCode), // Fetch if missing
     data.task,
     'Completed',
-    data.duration || 0,
-    '',
+    data.startTime || '',
+    data.endTime || '',
+    data.elapsed || 0,
+    data.active || 0,
+    data.pauseCount || 0,
+    data.inactive || 0,
+    activityPct || 0,
+    details,
     true
   ]);
   updateCompletedTasksCount(ss, data.sessionCode);
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
   updateTotalTime(ss, data.sessionCode);
-  
+
   // Add to Session Events for better tracking
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Task Completed',
-    details: data.task + ' (Duration: ' + (data.duration || 0) + 's)',
+    details: data.task + ' (Elapsed: ' + (data.elapsed || 0) + 's, Active: ' + (data.active || 0) + 's)',
     timestamp: data.timestamp
   });
+  if (suspicious) {
+    logSessionEvent(ss, {
+      sessionCode: data.sessionCode,
+      eventType: 'Suspicious Activity',
+      details: data.task + ' activity ' + Math.round((data.active / data.elapsed) * 100) + '%',
+      timestamp: data.timestamp
+    });
+  }
 }
 
 // Add helper function to get participant ID from session
@@ -786,6 +844,12 @@ function logTaskSkipped(ss, data) {
     data.participantID || '',
     data.task,
     'Skipped',
+    '',
+    '',
+    0,
+    0,
+    0,
+    0,
     0,
     data.reason || 'User choice',
     true
@@ -811,6 +875,12 @@ function logImageRecorded(ss, data) {
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded',
     '',
+    '',
+    0,
+    0,
+    0,
+    0,
+    0,
     'Image ' + data.imageNumber + '/2',
     false
   ]);
@@ -831,6 +901,12 @@ function logImageRecordedAndUploaded(ss, data) {
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded & Uploaded',
     '',
+    '',
+    0,
+    0,
+    0,
+    0,
+    0,
     'File: ' + data.filename,
     false
   ]);
@@ -851,6 +927,12 @@ function logImageRecordedNoUpload(ss, data) {
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded (Local Only)',
     '',
+    '',
+    0,
+    0,
+    0,
+    0,
+    0,
     'Reason: ' + data.reason,
     false
   ]);
@@ -871,6 +953,12 @@ function logVideoRecording(ss, data) {
     'Image Description',
     'Video Recorded - Image ' + data.imageNumber,
     '',
+    '',
+    0,
+    0,
+    0,
+    0,
+    0,
     'Image ' + data.imageNumber + ' of 2 recorded',
     false
   ]);
@@ -906,8 +994,8 @@ function logEEGInterest(ss, data) {
     var rows = sheet.getDataRange().getValues();
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0] === data.sessionCode) {
-        var notes = rows[i][12] || '';
-        sheet.getRange(i + 1, 13).setValue(notes ? (notes + ' | EEG Interest') : 'EEG Interest');
+        var notes = rows[i][14] || '';
+        sheet.getRange(i + 1, 15).setValue(notes ? (notes + ' | EEG Interest') : 'EEG Interest');
         break;
       }
     }
@@ -922,8 +1010,8 @@ function completeStudy(ss, data) {
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.sessionCode) {
       sheet.getRange(i + 1, 7).setValue(data.totalDuration || 0);                    // Total Time (min)
-      sheet.getRange(i + 1, 8).setValue(required.length + '/' + required.length);    // Tasks Completed
-      sheet.getRange(i + 1, 11).setValue('Complete');                                // Status
+      sheet.getRange(i + 1, 10).setValue(required.length + '/' + required.length);   // Tasks Completed
+      sheet.getRange(i + 1, 13).setValue('Complete');                                // Status
       break;
     }
   }
@@ -952,14 +1040,26 @@ function updateSessionActivity(ss, sessionCode, timestamp) {
 
 function updateTotalTime(ss, sessionCode) {
   var p = ss.getSheetByName('Task Progress').getDataRange().getValues();
-  var total = 0;
+  var totalElapsed = 0;
+  var totalActive = 0;
   for (var i = 1; i < p.length; i++) {
-    if (p[i][1] === sessionCode && p[i][5]) total += Number(p[i][5]) || 0;
+    if (p[i][1] === sessionCode && p[i][4] === 'Completed') {
+      totalElapsed += Number(p[i][7]) || 0;
+      totalActive += Number(p[i][8]) || 0;
+    }
   }
-  var s = ss.getSheetByName('Sessions').getDataRange().getValues();
-  for (var r = 1; r < s.length; r++) {
-    if (s[r][0] === sessionCode) {
-      ss.getSheetByName('Sessions').getRange(r + 1, 7).setValue(Math.round(total / 60));
+  var s = ss.getSheetByName('Sessions');
+  var rows = s.getDataRange().getValues();
+  for (var r = 1; r < rows.length; r++) {
+    if (rows[r][0] === sessionCode) {
+      s.getRange(r + 1, 7).setValue(Math.round(totalElapsed / 60));
+      s.getRange(r + 1, 8).setValue(Math.round(totalActive / 60));
+      var pct = totalElapsed ? Math.round((totalActive / totalElapsed) * 100) : 0;
+      s.getRange(r + 1, 9).setValue(pct);
+      if (pct < 30) {
+        var notes = rows[r][14] || '';
+        s.getRange(r + 1, 15).setValue(notes ? (notes + ' | Low activity') : 'Low activity');
+      }
       break;
     }
   }
@@ -972,8 +1072,8 @@ function getRequiredTasksForSession_(ss, sessionCode) {
   var consent2 = '';
   for (var r = 1; r < s.length; r++) {
     if (s[r][0] === sessionCode) {
-      deviceType = s[r][11] || 'Desktop'; // col L
-      consent2   = s[r][9]  || '';        // col J
+      deviceType = s[r][13] || 'Desktop'; // col N
+      consent2   = s[r][11]  || '';       // col L
       break;
     }
   }
@@ -999,7 +1099,7 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     if (progress[i][1] === sessionCode &&
         progress[i][3] === 'ASL Comprehension Test' &&
         progress[i][4] === 'Skipped') {
-      var details = String(progress[i][6] || '').toLowerCase();
+      var details = String(progress[i][12] || '').toLowerCase();
       if (details.indexOf('does not know asl') !== -1) {
         aslctOptional = true;
         break;
@@ -1027,7 +1127,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
     // Check BOTH 'Completed' status OR 'Skipped' with valid reasons
     var eventType = progress[i][4]; // Column E: Event Type
     var taskName = progress[i][3];  // Column D: Task Name
-    var details = String(progress[i][6] || ''); // Column G: Details
+    var details = String(progress[i][12] || ''); // Column M: Details
     
     // Task is considered done if:
     // 1. Event Type is 'Completed'
@@ -1049,11 +1149,11 @@ function updateCompletedTasksCount(ss, sessionCode) {
   var rows = sessionsSheet.getDataRange().getValues();
   for (var r = 1; r < rows.length; r++) {
     if (rows[r][0] === sessionCode) {
-      sessionsSheet.getRange(r + 1, 8).setValue(completedCount + '/' + required.length);
-      
+      sessionsSheet.getRange(r + 1, 10).setValue(completedCount + '/' + required.length);
+
       // Also update status to Complete if all required tasks are done
       if (completedCount === required.length) {
-        sessionsSheet.getRange(r + 1, 11).setValue('Complete');
+        sessionsSheet.getRange(r + 1, 13).setValue('Complete');
       }
       break;
     }
@@ -1141,12 +1241,14 @@ function getSessionData(ss, sessionCode) {
           created: s[i][4],
           lastActivity: s[i][5],
           totalTimeMin: s[i][6],
-          tasksCompleted: s[i][7],
-          consent1: s[i][8],
-          consent2: s[i][9],
-          status: s[i][10],
-          deviceType: s[i][11],
-          notes: s[i][12]
+          activeTimeMin: s[i][7],
+          activityPct: s[i][8],
+          tasksCompleted: s[i][9],
+          consent1: s[i][10],
+          consent2: s[i][11],
+          status: s[i][12],
+          deviceType: s[i][13],
+          notes: s[i][14]
         }
       });
     }
@@ -1287,8 +1389,8 @@ function setEEGStatus_(ss, sessionCode, status, scheduledAt, source, note) {
       if (scheduledAt) sheet.getRange(i + 1, eegCols.when).setValue(scheduledAt);
       if (source)      sheet.getRange(i + 1, eegCols.source).setValue(source);
       if (note) {
-        var existing = rows[i][12] || '';
-        sheet.getRange(i + 1, 13).setValue(existing ? (existing + ' | ' + note) : note);
+        var existing = rows[i][14] || '';
+        sheet.getRange(i + 1, 15).setValue(existing ? (existing + ' | ' + note) : note);
       }
       break;
     }

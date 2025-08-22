@@ -817,7 +817,10 @@ function closeEEGModal() {
   completedTasks: [],
   startTime: null,
   totalTimeSpent: 0,
+  totalActiveTime: 0,
   lastActivity: null,
+  currentTaskType: '',
+  externalDepart: null,
 
   consentStatus: { consent1: false, consent2: false, videoDeclined: false },
 
@@ -832,6 +835,125 @@ function closeEEGModal() {
     stream: null, currentBlob: null
   }
 };
+
+// Task timer to track active engagement
+let taskTimer = {
+  startTime: null,
+  endTime: null,
+  activeTime: 0,
+  lastActivity: 0,
+  isPaused: false,
+  pauseReason: null,
+  pauseCount: 0,
+  inactivityTime: 0,
+  lastTick: 0,
+  intervalId: null,
+  start() {
+    this.startTime = Date.now();
+    this.lastActivity = Date.now();
+    this.lastTick = Date.now();
+    this.activeTime = 0;
+    this.inactivityTime = 0;
+    this.pauseCount = 0;
+    this.isPaused = false;
+    this.intervalId = setInterval(() => this.tick(), 1000);
+  },
+  tick() {
+    const now = Date.now();
+    if (!document.hidden && !this.isPaused) {
+      if (now - this.lastActivity > 120000) {
+        this.pause('inactivity');
+        showInactivityPrompt();
+      } else {
+        this.activeTime += now - this.lastTick;
+      }
+    } else if (this.isPaused && this.pauseReason === 'inactivity') {
+      this.inactivityTime += now - this.lastTick;
+    }
+    this.lastTick = now;
+  },
+  recordActivity() {
+    this.lastActivity = Date.now();
+    if (this.isPaused && this.pauseReason === 'inactivity') this.resume();
+  },
+  pause(reason) {
+    if (!this.isPaused) {
+      this.isPaused = true;
+      this.pauseReason = reason;
+      this.pauseCount++;
+      this.pauseStart = Date.now();
+    }
+  },
+  resume() {
+    if (this.isPaused) {
+      if (this.pauseReason === 'inactivity' && this.pauseStart) {
+        this.inactivityTime += Date.now() - this.pauseStart;
+      }
+      this.isPaused = false;
+      this.pauseReason = null;
+      this.lastActivity = Date.now();
+    }
+  },
+  stop() {
+    clearInterval(this.intervalId);
+    if (this.isPaused && this.pauseReason === 'inactivity' && this.pauseStart) {
+      this.inactivityTime += Date.now() - this.pauseStart;
+    }
+    this.endTime = Date.now();
+  },
+  getSummary() {
+    const elapsed = (this.endTime || Date.now()) - this.startTime;
+    const activityScore = elapsed > 0 ? (this.activeTime / elapsed) * 100 : 0;
+    return {
+      start: new Date(this.startTime).toISOString(),
+      end: new Date(this.endTime).toISOString(),
+      elapsed,
+      active: this.activeTime,
+      pauseCount: this.pauseCount,
+      inactive: this.inactivityTime,
+      activity: activityScore
+    };
+  }
+};
+
+function showInactivityPrompt() {
+  sendToSheets({ action: 'inactivity', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), timestamp: new Date().toISOString() });
+  if (confirm('Are you still there?')) {
+    taskTimer.resume();
+    taskTimer.recordActivity();
+  }
+}
+
+['mousemove','mousedown','keydown','touchstart'].forEach(ev => {
+  document.addEventListener(ev, () => taskTimer.recordActivity(), { passive: true });
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) taskTimer.pause('visibility'); else taskTimer.resume();
+});
+
+window.addEventListener('blur', () => {
+  taskTimer.pause('blur');
+  if (state.currentTaskType === 'external') {
+    state.externalDepart = Date.now();
+    sendToSheets({ action: 'task_departed', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), timestamp: new Date().toISOString() });
+  }
+});
+
+window.addEventListener('focus', () => {
+  taskTimer.resume();
+  if (state.currentTaskType === 'external' && state.externalDepart) {
+    const away = Date.now() - state.externalDepart;
+    taskTimer.activeTime += away;
+    taskTimer.lastTick = Date.now();
+    sendToSheets({ action: 'task_returned', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), away: Math.round(away/1000), timestamp: new Date().toISOString() });
+    state.externalDepart = null;
+  }
+});
+
+window.addEventListener('message', e => {
+  if (e.data === 'heartbeat') taskTimer.recordActivity();
+});
 
 // Handle Dropbox OAuth redirect
 function handleDropboxAuth() {
@@ -1294,14 +1416,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const task = TASKS[taskCode];
       if (!task) return;
 
-      if (!state.taskData) state.taskData = {};
-      state.taskData[taskCode] = { startTime: Date.now() };
+  if (!state.taskData) state.taskData = {};
+  state.taskData[taskCode] = { startTime: Date.now() };
+      state.currentTaskType = task.type;
+      taskTimer.start();
 
       if (task.type === 'recording') showRecordingTask();
       else if (task.type === 'embed') showEmbeddedTask(taskCode);
       else showExternalTask(taskCode);
 
-      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), timestamp: new Date().toISOString() });
+      const startISO = new Date().toISOString();
+      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), timestamp: startISO, startTime: startISO });
     }
 
     // ----- Distraction-free fallback -----
@@ -1407,6 +1532,7 @@ const reqs = TASKS[taskCode]?.requirements || '—';
       const exitBtn = document.getElementById('exit-btn');
       const prestart = document.getElementById('prestart');
       const iframe = document.getElementById(iframeId);
+      iframe.addEventListener('focus', () => taskTimer.recordActivity());
 
       const enableFinish = () => { finishBtn.disabled = false; };
 
@@ -2307,28 +2433,55 @@ function updateUploadProgress(percent, message) {
     function startRecordingTimer() {
       const timer = document.getElementById('recording-timer'); timer.style.display = 'block';
       let seconds = 0;
+      state.recording.recordingStart = Date.now();
       recordingTimer = setInterval(() => {
         seconds++; const mins = Math.floor(seconds/60); const secs = seconds % 60;
         timer.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
       }, 1000);
     }
-    function stopRecordingTimer() { clearInterval(recordingTimer); const t = document.getElementById('recording-timer'); if (t) t.style.display = 'none'; }
+    function stopRecordingTimer() {
+      clearInterval(recordingTimer);
+      const t = document.getElementById('recording-timer'); if (t) t.style.display = 'none';
+      if (state.recording.recordingStart) {
+        state.recording.recordingDuration = Date.now() - state.recording.recordingStart;
+      }
+    }
 
     // ----- Complete/Skip -----
     function completeTask(taskCode) {
       const task = TASKS[taskCode]; if (!task) { console.error('Task not found:', taskCode); return; }
-      const startTime = state.taskData && state.taskData[taskCode]?.startTime || Date.now();
-      const timeSpent = Date.now() - startTime; state.totalTimeSpent += timeSpent;
+      taskTimer.stop();
+      const summary = taskTimer.getSummary();
+      state.totalTimeSpent += summary.elapsed;
+      state.totalActiveTime += summary.active;
       if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
       state.currentTaskIndex++;
       while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
-      sendToSheets({ action: 'task_completed', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), duration: Math.round(timeSpent/1000), timestamp: new Date().toISOString() });
+      const payload = {
+        action: 'task_completed',
+        sessionCode: state.sessionCode,
+        task: getStandardTaskName(taskCode),
+        elapsed: Math.round(summary.elapsed/1000),
+        active: Math.round(summary.active/1000),
+        pauseCount: summary.pauseCount,
+        inactive: Math.round(summary.inactive/1000),
+        activity: Math.round(summary.activity),
+        startTime: summary.start,
+        endTime: summary.end,
+        timestamp: new Date().toISOString()
+      };
+      if (taskCode === 'ID' && state.recording && state.recording.recordingDuration) {
+        payload.recordingDuration = Math.round(state.recording.recordingDuration/1000);
+      }
+      sendToSheets(payload);
+      state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
 
     function skipTask(taskCode) {
       const task = TASKS[taskCode]; if (!task) { console.error('Task not found:', taskCode); return; }
+      taskTimer.stop();
       if (taskCode === 'ID') {
         if (state.recording && (state.recording.stream || state.recording.active)) {
           try { state.recording.stream?.getTracks().forEach(t => t.stop()); } catch(e){}
@@ -2346,6 +2499,7 @@ function updateUploadProgress(percent, message) {
         reason: taskCode === 'ASLCT' ? 'Does not know ASL' : taskCode === 'ID' ? (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 'User chose to skip',
         timestamp: new Date().toISOString()
       });
+      state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
 
