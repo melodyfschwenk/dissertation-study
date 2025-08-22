@@ -1683,9 +1683,15 @@ if (instructionBox) {
             return;
           }
 
+          // UPDATED: Try MP4 first, then WebM fallback
           let options = {};
-          if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) options.mimeType = 'video/webm;codecs=vp9,opus';
-          else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) options.mimeType = 'video/webm;codecs=vp8,opus';
+          if (MediaRecorder.isTypeSupported?.('video/mp4;codecs=h264,aac')) {
+            options.mimeType = 'video/mp4;codecs=h264,aac';
+          } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) {
+            options.mimeType = 'video/webm;codecs=vp9,opus';
+          } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) {
+            options.mimeType = 'video/webm;codecs=vp8,opus';
+          }
 
           state.recording.mediaRecorder = new MediaRecorder(stream, options);
           state.recording.chunks = [];
@@ -1693,7 +1699,7 @@ if (instructionBox) {
           state.recording.mediaRecorder.onstop = () => {
             try {
               revokeRecordedURL();
-              const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/webm' });
+              const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/mp4' });
               const url = URL.createObjectURL(blob);
               const recordedEl = document.getElementById('recorded-video');
               recordedEl.src = url;
@@ -1703,7 +1709,8 @@ if (instructionBox) {
               document.getElementById('record-btn').style.display = 'none';
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
-              status.textContent = 'Recording complete';
+              const format = blob.type.includes('mp4') ? 'MP4' : 'WebM';
+              status.textContent = `Recording complete (${format})`;
               status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
             } catch (e) {
@@ -1858,8 +1865,8 @@ async function saveRecording() {
       imageNumber: state.recording.currentImage + 1,
       error: error.message,
       timestamp: new Date().toISOString(),
-      attemptedMethod: 'dropbox_then_drive',
-      fallbackUsed: error.message.includes('Google Drive')
+      attemptedMethod: 'drive_then_dropbox',
+      fallbackUsed: error.message.includes('Dropbox')
     });
     
     uploadProgress.style.display = 'none';
@@ -1918,83 +1925,76 @@ function continueWithoutUpload() {
   }
 }
 
-// Enhanced upload function - tries Dropbox first, Google Drive as fallback
+// Enhanced upload function - tries Google Drive first, Dropbox as fallback
 async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    updateUploadProgress(5, 'Starting upload...');
-    
-    // Try Dropbox first
+    updateUploadProgress(5, 'Starting upload…');
+
+    // Try Google Drive FIRST
     try {
-      updateUploadProgress(10, 'Connecting to Dropbox...');
-      const dropboxResult = await uploadToDropbox(videoBlob, sessionCode, imageNumber);
-      
-      if (dropboxResult.success) {
-        updateUploadProgress(100, 'Upload complete to Dropbox!');
+      updateUploadProgress(10, 'Connecting to Google Drive...');
+      const driveResult = await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
+
+      if (driveResult.success) {
+        updateUploadProgress(100, 'Upload complete to Google Drive!');
         return {
           success: true,
-          filename: dropboxResult.filename,
-          fileId: dropboxResult.fileId,
-          fileUrl: dropboxResult.fileUrl,
-          uploadMethod: 'dropbox'
+          filename: driveResult.filename,
+          fileId: driveResult.fileId,
+          fileUrl: driveResult.fileUrl,
+          uploadMethod: 'google_drive'
         };
       } else {
-        console.warn('Dropbox upload failed, trying Google Drive fallback:', dropboxResult.error);
-        updateUploadProgress(30, 'Dropbox failed, trying Google Drive...');
+        console.warn('Google Drive upload failed, trying Dropbox fallback:', driveResult.error);
+        updateUploadProgress(30, 'Google Drive failed, trying Dropbox...');
       }
-    } catch (dropboxError) {
-      console.warn('Dropbox upload error, trying Google Drive fallback:', dropboxError);
-      updateUploadProgress(30, 'Dropbox failed, trying Google Drive...');
+    } catch (driveError) {
+      console.warn('Google Drive upload error, trying Dropbox fallback:', driveError);
+      updateUploadProgress(30, 'Google Drive failed, trying Dropbox...');
     }
 
-    // Fallback to Google Drive
-    updateUploadProgress(40, 'Uploading to Google Drive...');
-    const driveResult = await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
-    
-    if (driveResult.success) {
-      updateUploadProgress(100, 'Upload complete to Google Drive!');
+    // Fallback to Dropbox
+    updateUploadProgress(40, 'Uploading to Dropbox...');
+    const dropboxResult = await uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber);
+
+    if (dropboxResult.success) {
+      updateUploadProgress(100, 'Upload complete to Dropbox!');
       return {
         success: true,
-        filename: driveResult.filename,
-        fileId: driveResult.fileId,
-        fileUrl: driveResult.fileUrl,
-        uploadMethod: 'google_drive'
+        filename: dropboxResult.filename,
+        fileId: dropboxResult.fileId,
+        fileUrl: dropboxResult.fileUrl,
+        uploadMethod: 'dropbox',
+        dropboxPath: dropboxResult.dropboxPath
       };
     } else {
-      throw new Error(`Both uploads failed. Dropbox: failed, Google Drive: ${driveResult.error}`);
+      throw new Error(`Both uploads failed. Google Drive: failed, Dropbox: ${dropboxResult.error}`);
     }
 
   } catch (error) {
     console.error('All upload methods failed:', error);
-    return { 
-      success: false, 
-      error: error.message || String(error) 
+    return {
+      success: false,
+      error: error.message || String(error)
     };
   }
 }
 
-// NEW: Dropbox upload function
-async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
+// Updated Dropbox upload function (now fallback)
+async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber) {
   try {
-    // Initialize Dropbox client
-    const dbx = new Dropbox.Dropbox({ 
+    const dbx = new Dropbox.Dropbox({
       clientId: 'nvkm67mvluiu4pf',
       fetch: fetch
     });
 
-    // Get access token (user will need to authorize once)
     let accessToken = localStorage.getItem('dropbox_access_token');
-    
+
     if (!accessToken) {
-      // Start OAuth flow
-      updateUploadProgress(15, 'Authorizing Dropbox access...');
-      
-      // Get authorization URL
+      updateUploadProgress(45, 'Authorizing Dropbox access...');
       const authUrl = dbx.getAuthenticationUrl('https://melodyfschwenk.github.io/spatial-cognition-study/');
-      
-      // Open popup for authorization
       const popup = window.open(authUrl, 'dropbox_auth', 'width=600,height=700');
-      
-      // Wait for authorization
+
       accessToken = await new Promise((resolve, reject) => {
         const checkClosed = setInterval(() => {
           try {
@@ -2002,8 +2002,7 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
               clearInterval(checkClosed);
               reject(new Error('Authorization cancelled'));
             }
-            
-            // Check if we got redirected back with a token
+
             const currentUrl = popup.location.href;
             if (currentUrl.includes('access_token=')) {
               const token = currentUrl.split('access_token=')[1].split('&')[0];
@@ -2016,8 +2015,7 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
             // Cross-origin error is expected during auth flow
           }
         }, 1000);
-        
-        // Timeout after 5 minutes
+
         setTimeout(() => {
           clearInterval(checkClosed);
           popup.close();
@@ -2026,26 +2024,33 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
       });
     }
 
-    // Set the access token
     dbx.setAccessToken(accessToken);
-    updateUploadProgress(25, 'Preparing file...');
+    updateUploadProgress(55, 'Preparing file...');
 
-    // Check file size (Dropbox allows up to 150MB for upload API)
     if (videoBlob.size > 150 * 1024 * 1024) {
       throw new Error('Video too large for direct upload (max 150MB)');
     }
 
-    // Create filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${sessionCode}_image${imageNumber}_${timestamp}.webm`;
-    
-    // Create folder path
-    const folderPath = `/Participant_${sessionCode}`;
-    const fullPath = `${folderPath}/${filename}`;
+    const extension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    const filename = `${sessionCode}_image${imageNumber}_${timestamp}.${extension}`;
 
-    updateUploadProgress(30, 'Uploading to Dropbox...');
+    const participantFolder = `/spatial-cognition-videos/Participant_${sessionCode}`;
+    const fullPath = `${participantFolder}/${filename}`;
 
-    // Upload file
+    updateUploadProgress(60, 'Uploading to Dropbox...');
+
+    try {
+      await dbx.filesCreateFolderV2({
+        path: participantFolder,
+        autorename: false
+      });
+    } catch (folderError) {
+      if (!folderError.error || !folderError.error.error_summary.includes('path/conflict')) {
+        console.warn('Folder creation issue:', folderError);
+      }
+    }
+
     const response = await dbx.filesUpload({
       path: fullPath,
       contents: videoBlob,
@@ -2055,7 +2060,6 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
 
     updateUploadProgress(80, 'Getting shareable link...');
 
-    // Get a shareable link
     let shareUrl = '';
     try {
       const shareResponse = await dbx.sharingCreateSharedLinkWithSettings({
@@ -2069,7 +2073,7 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
       shareUrl = shareResponse.result.url;
     } catch (shareError) {
       console.warn('Could not create share link:', shareError);
-      shareUrl = `https://dropbox.com/preview${fullPath}`;
+      shareUrl = `https://dropbox.com/home/spatial-cognition-videos/Participant_${sessionCode}`;
     }
 
     updateUploadProgress(90, 'Upload complete!');
@@ -2085,12 +2089,11 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
 
   } catch (error) {
     console.error('Dropbox upload failed:', error);
-    
-    // If it's an auth error, clear the stored token
+
     if (error.message?.includes('auth') || error.status === 401) {
       localStorage.removeItem('dropbox_access_token');
     }
-    
+
     return {
       success: false,
       error: error.message || String(error)
@@ -2098,18 +2101,18 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
   }
 }
 
-    async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
+async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    updateUploadProgress(50, 'Preparing Google Drive upload...');
+    updateUploadProgress(15, 'Preparing Google Drive upload…');
 
-    // Check blob size before encoding
-    if (videoBlob.size > 35 * 1024 * 1024) {
-      throw new Error('Video too large for Google Drive (max 35MB)');
+    // UPDATED: Higher size limit for MP4 (they're usually smaller than WebM)
+    if (videoBlob.size > 45 * 1024 * 1024) { // Increased from 35MB to 45MB
+      throw new Error('Video too large for Google Drive (max 45MB)');
     }
 
     const base64DataUrl = await blobToBase64(videoBlob);
-    const base64VideoData = base64DataUrl.split(',').pop(); 
-    updateUploadProgress(70, 'Encoding complete...');
+    const base64VideoData = base64DataUrl.split(',').pop();
+    updateUploadProgress(25, 'Encoding complete...');
 
     const uploadData = {
       action: 'upload_video',
@@ -2120,7 +2123,7 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
       timestamp: new Date().toISOString()
     };
 
-    updateUploadProgress(80, 'Sending to Google Drive...');
+    updateUploadProgress(30, 'Sending to Google Drive...');
 
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
@@ -2128,11 +2131,11 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
       body: JSON.stringify(uploadData)
     });
 
-    updateUploadProgress(90, 'Processing response...');
+    updateUploadProgress(35, 'Processing response...');
 
     let result;
     const contentType = response.headers.get('content-type');
-    
+
     if (contentType && contentType.includes('application/json')) {
       result = await response.json();
     } else {
@@ -2155,12 +2158,12 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
       fileId: result.fileId,
       fileUrl: result.fileUrl
     };
-    
+
   } catch (error) {
     console.error('Google Drive upload error:', error);
-    return { 
-      success: false, 
-      error: error.message || String(error) 
+    return {
+      success: false,
+      error: error.message || String(error)
     };
   }
 }
