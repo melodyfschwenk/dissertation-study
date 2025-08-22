@@ -338,6 +338,26 @@
           <input type="email" id="email" placeholder="your.email@example.com" />
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hearing-status">Hearing Status</label>
+            <select id="hearing-status">
+              <option value="" selected disabled>Select</option>
+              <option value="deaf">Deaf</option>
+              <option value="hearing">Hearing</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fluency">ASL Fluency</label>
+            <select id="fluency">
+              <option value="" selected disabled>Select</option>
+              <option value="fluent">Fluent</option>
+              <option value="non-fluent">Non-fluent</option>
+              <option value="non-signer">Non-signer</option>
+            </select>
+          </div>
+        </div>
+
         <div class="button-group">
           <button class="button primary" id="create-session-btn" onclick="createNewSession()" disabled>Create Session</button>
           <button class="button secondary" onclick="showScreen('welcome-screen')">Back</button>
@@ -811,6 +831,8 @@ function closeEEGModal() {
   sessionCode: '',
   participantID: '',
   email: '',
+  hearingStatus: '',
+  fluency: '',
   sequenceIndex: -1,
   sequence: [],
   currentTaskIndex: 0,
@@ -1007,16 +1029,22 @@ if (!window.isSecureContext) {
     function setupEventListeners() {
       document.getElementById('first-initial').addEventListener('input', validateInitials);
       document.getElementById('last-initial').addEventListener('input', validateInitials);
+      document.getElementById('hearing-status').addEventListener('change', validateInitials);
+      document.getElementById('fluency').addEventListener('change', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
       bindRecordingSkips();
       bindUploadFallback();
     }
 
     function validateInitials(e) {
-      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
+      if (e.target.id === 'first-initial' || e.target.id === 'last-initial') {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
+      }
       const first = document.getElementById('first-initial').value;
       const last = document.getElementById('last-initial').value;
-      document.getElementById('create-session-btn').disabled = !(first && last);
+      const hearing = document.getElementById('hearing-status').value;
+      const fluency = document.getElementById('fluency').value;
+      document.getElementById('create-session-btn').disabled = !(first && last && hearing && fluency);
     }
 
     // ----- Screens -----
@@ -1073,7 +1101,9 @@ function showScreen(screenId) {
       const first = document.getElementById('first-initial').value.trim().toUpperCase();
       const last = document.getElementById('last-initial').value.trim().toUpperCase();
       const email = document.getElementById('email').value.trim();
-      if (!first || !last) { alert('Please enter your initials'); return; }
+      const hearing = document.getElementById('hearing-status').value;
+      const fluency = document.getElementById('fluency').value;
+      if (!first || !last || !hearing || !fluency) { alert('Please complete all fields'); return; }
 
       if (isMobileDevice()) {
         const proceed = confirm(
@@ -1088,6 +1118,8 @@ function showScreen(screenId) {
       state.sessionCode = generateCode();
       state.participantID = `${first}${last}_${Date.now().toString().slice(-4)}`;
       state.email = email;
+      state.hearingStatus = hearing;
+      state.fluency = fluency;
 
       // Choose sequence (mobile vs desktop)
       const seed = Math.abs(hashCode(state.sessionCode));
@@ -1110,6 +1142,8 @@ function showScreen(screenId) {
         sessionCode: state.sessionCode,
         participantID: state.participantID,
         email: state.email,
+        hearingStatus: state.hearingStatus,
+        fluency: state.fluency,
         sequenceIndex: state.sequenceIndex,
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         timestamp: new Date().toISOString()
