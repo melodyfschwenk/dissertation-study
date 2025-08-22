@@ -730,7 +730,19 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
 },
   'DEMO':{ name:'Demographics Survey', description:'Background information & payment', url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
 };
-
+    // Add this after TASKS definition
+    function getStandardTaskName(taskCode) {
+      const mapping = {
+        'RC': 'Reading Comprehension Task',
+        'MRT': 'Mental Rotation Task',
+        'ASLCT': 'ASL Comprehension Test',
+        'VCN': 'Virtual Campus Navigation',
+        'SN': 'Spatial Navigation',
+        'ID': 'Image Description',
+        'DEMO': 'Demographics Survey'
+      };
+      return mapping[taskCode] || TASKS[taskCode]?.name || taskCode;
+    }
 
     // ----- Consents -----
     const CONSENTS = {
@@ -1289,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (task.type === 'embed') showEmbeddedTask(taskCode);
       else showExternalTask(taskCode);
 
-      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: task.name, timestamp: new Date().toISOString() });
+      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), timestamp: new Date().toISOString() });
     }
 
     // ----- Distraction-free fallback -----
@@ -2311,7 +2323,7 @@ function updateUploadProgress(percent, message) {
       state.currentTaskIndex++;
       while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
-      sendToSheets({ action: 'task_completed', sessionCode: state.sessionCode, task: task.name, duration: Math.round(timeSpent/1000), timestamp: new Date().toISOString() });
+      sendToSheets({ action: 'task_completed', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), duration: Math.round(timeSpent/1000), timestamp: new Date().toISOString() });
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
 
@@ -2330,7 +2342,7 @@ function updateUploadProgress(percent, message) {
       sendToSheets({
         action: 'task_skipped',
         sessionCode: state.sessionCode,
-        task: task.name,
+        task: getStandardTaskName(taskCode),
         reason: taskCode === 'ASLCT' ? 'Does not know ASL' : taskCode === 'ID' ? (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 'User chose to skip',
         timestamp: new Date().toISOString()
       });
@@ -2426,7 +2438,7 @@ function markEEGScheduled() {
     sendToSheets({
       action: 'help_requested',
       sessionCode: state.sessionCode || 'none',
-      task: TASKS[taskCode]?.name || taskCode,
+      task: getStandardTaskName(taskCode),
       timestamp: new Date().toISOString()
     });
   };
