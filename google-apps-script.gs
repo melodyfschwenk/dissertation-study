@@ -284,20 +284,93 @@ function ensureSheetWithHeaders_(ss, name, headers) {
   return sheet;
 }
 
+// ---- Data migration & cleanup helpers ----
+function backupParticipantData_(ss) {
+  var backup = SpreadsheetApp.create('Backup_' + new Date().toISOString().replace(/[:.]/g, '-'));
+  ['Sessions', 'Task Progress', 'Session Events', 'Video_Uploads', 'Video_Upload_Errors', 'Video Tracking']
+    .forEach(function(name) {
+      var sh = ss.getSheetByName(name);
+      if (sh) sh.copyTo(backup).setName(name);
+    });
+}
+
+function cleanSessionsSheet_(ss) {
+  var sheet = ss.getSheetByName('Sessions');
+  if (!sheet) return;
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return;
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  // Merge old consent columns into single Consent Status
+  var c1 = headers.indexOf('Consent 1');
+  var c2 = headers.indexOf('Consent 2');
+  var statusIdx = headers.indexOf('Consent Status');
+  if (statusIdx === -1) {
+    statusIdx = lastCol + 1;
+    sheet.insertColumnAfter(lastCol);
+    sheet.getRange(1, statusIdx).setValue('Consent Status')
+         .setFontWeight('bold').setBackground('#f1f3f4');
+    lastCol++;
+  }
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var val = '';
+    if (c1 !== -1 && data[i][c1]) val = data[i][c1];
+    if (!val && c2 !== -1 && data[i][c2]) val = data[i][c2];
+    if (val) sheet.getRange(i + 1, statusIdx).setValue(val);
+  }
+
+  // Remove redundant columns
+  var removeNames = ['Sequence Index', 'Activity %', 'Consent 1', 'Consent 2', 'Notes'];
+  removeNames.forEach(function(name) {
+    var idx = headers.indexOf(name);
+    if (idx !== -1) sheet.deleteColumn(idx + 1);
+  });
+}
+
+function migrateVideoSheets_(ss) {
+  var headers = ['Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'];
+  var tracking = ensureSheetWithHeaders_(ss, 'Video Tracking', headers);
+
+  var oldUploads = ss.getSheetByName('Video_Uploads');
+  if (oldUploads) {
+    var upData = oldUploads.getDataRange().getValues();
+    for (var i = 1; i < upData.length; i++) {
+      tracking.appendRow(upData[i].concat(['']));
+    }
+    ss.deleteSheet(oldUploads);
+  }
+
+  var oldErr = ss.getSheetByName('Video_Upload_Errors');
+  if (oldErr) {
+    var errData = oldErr.getDataRange().getValues();
+    for (var j = 1; j < errData.length; j++) {
+      tracking.appendRow([
+        errData[j][0], errData[j][1], errData[j][2], '', '', '', '', errData[j][4] || '', errData[j][5] || '', '', 'error', errData[j][3]
+      ]);
+    }
+    ss.deleteSheet(oldErr);
+  }
+
+  return tracking;
+}
+
 function safeSetupOrMigrate_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Sessions
+  backupParticipantData_(ss);
+
+  // Sessions sheet cleanup and setup
+  cleanSessionsSheet_(ss);
   ensureSheetWithHeaders_(ss, 'Sessions', [
-    'Session Code', 'Participant ID', 'Email', 'Sequence Index',
-    'Created Date', 'Last Activity', 'Total Time (min)', 'Active Time (min)', 'Activity %', 'Tasks Completed',
-    'Consent 1', 'Consent 2', 'Status', 'Device Type', 'Notes'
+    'Session Code','Participant ID','Email','Created Date','Last Activity','Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status'
   ]);
 
   // Task Progress
   ensureSheetWithHeaders_(ss, 'Task Progress', [
-    'Timestamp','Session Code','Participant ID','Task Name',
-    'Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
+    'Timestamp','Session Code','Participant ID','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
   ]);
 
   // Session Events
@@ -305,48 +378,53 @@ function safeSetupOrMigrate_() {
     'Timestamp','Session Code','Event Type','Details','IP Address','User Agent'
   ]);
 
-  // Enhanced video uploads logging with Dropbox support
-  ensureSheetWithHeaders_(ss, 'Video_Uploads', [
-    'Timestamp','Session Code','Image Number','Filename',
-    'File ID','File URL','File Size (KB)','Upload Time',
-    'Upload Method','Dropbox Path','Upload Status'
-  ]);
-  
-  ensureSheetWithHeaders_(ss, 'Video_Upload_Errors', [
-    'Timestamp','Session Code','Image Number','Error Message',
-    'Upload Time','Attempted Method','Fallback Used'
-  ]);
+  // Video tracking (single sheet)
+  migrateVideoSheets_(ss);
 
   // Email reminders
   ensureSheetWithHeaders_(ss, 'Email Reminders', [
     'Session Code','Email','Last Reminder Sent','Reminders Count','Status'
   ]);
 
-  // Dashboard with upload method summary
-  var dash = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard');
-  if (dash.getLastRow() < 1) dash.getRange(1, 1).setValue('Dashboard');
-  dash.getRange('A1').setFontSize(16).setFontWeight('bold');
-  if (!dash.getRange('A3').getDisplayValue()) dash.getRange('A3').setValue('Total Sessions');
-  if (!dash.getRange('B3').getDisplayValue()) dash.getRange('B3').setFormula('=COUNTA(Sessions!A2:A)');
-  if (!dash.getRange('A4').getDisplayValue()) dash.getRange('A4').setValue('Completed Studies');
-  if (!dash.getRange('B4').getDisplayValue()) dash.getRange('B4').setFormula('=COUNTIF(Sessions!K2:K,"Complete")');
-  if (!dash.getRange('A5').getDisplayValue()) dash.getRange('A5').setValue('Videos Uploaded');
-  if (!dash.getRange('B5').getDisplayValue()) dash.getRange('B5').setFormula('=COUNTA(Video_Uploads!A2:A)');
-  
-  // Add upload method breakdown
-  if (!dash.getRange('A7').getDisplayValue()) {
-    dash.getRange('A7').setValue('Upload Method Breakdown');
-    dash.getRange('A7').setFontWeight('bold');
-    dash.getRange('A8').setValue('Dropbox Uploads');
-    dash.getRange('B8').setFormula('=COUNTIF(Video_Uploads!I2:I,"dropbox")');
-    dash.getRange('A9').setValue('Google Drive Uploads');
-    dash.getRange('B9').setFormula('=COUNTIF(Video_Uploads!I2:I,"google_drive")');
-    dash.getRange('A10').setValue('Local Only');
-    dash.getRange('B10').setFormula('=COUNTIF(Video_Uploads!I2:I,"local_only")');
-    dash.getRange('A11').setValue('Failed Uploads');
-    dash.getRange('B11').setFormula('=COUNTA(Video_Upload_Errors!A2:A)');
+  // Score tracking sheets
+  ensureSheetWithHeaders_(ss, 'ASLCT Scores', ['Session Code','ASLCT Score','Entry Time','Notes']);
+  ensureSheetWithHeaders_(ss, 'WIAT Scores', ['Session Code','WIAT Score','Entry Time','Notes']);
+  var summary = ensureSheetWithHeaders_(ss, 'Scores Summary', ['Session Code','ASLCT Score','WIAT Score']);
+  if (summary.getLastRow() < 2) {
+    summary.getRange('B2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'ASLCT Scores\'!A:B,2,false),"")))');
+    summary.getRange('C2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'WIAT Scores\'!A:B,2,false),"")))');
   }
-  
+
+  // Dashboard
+  var dash = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard');
+  dash.getRange('A1').setValue('Dashboard').setFontSize(16).setFontWeight('bold');
+  dash.getRange('A3').setValue('Total Sessions');
+  dash.getRange('B3').setFormula('=COUNTA(Sessions!A2:A)');
+  dash.getRange('A4').setValue('Completed Studies');
+  dash.getRange('B4').setFormula('=COUNTIF(Sessions!I2:I,"Complete")');
+
+  dash.getRange('A6').setValue('Device Breakdown');
+  dash.getRange('A7').setValue('Desktop');
+  dash.getRange('B7').setFormula('=COUNTIF(Sessions!J2:J,"desktop")');
+  dash.getRange('A8').setValue('Mobile');
+  dash.getRange('B8').setFormula('=COUNTIF(Sessions!J2:J,"mobile")');
+  dash.getRange('A9').setValue('Tablet');
+  dash.getRange('B9').setFormula('=COUNTIF(Sessions!J2:J,"tablet")');
+
+  dash.getRange('A11').setValue('Video Uploads');
+  dash.getRange('A12').setValue('Successful');
+  dash.getRange('B12').setFormula('=COUNTIF(\'Video Tracking\'!K2:K,"success")');
+  dash.getRange('A13').setValue('Failed');
+  dash.getRange('B13').setFormula('=COUNTIF(\'Video Tracking\'!K2:K,"error")');
+
+  dash.getRange('A15').setValue('Score Entries');
+  dash.getRange('A16').setValue('ASLCT Scores Entered');
+  dash.getRange('B16').setFormula('=COUNTA(\'ASLCT Scores\'!A2:A)');
+  dash.getRange('A17').setValue('WIAT Scores Entered');
+  dash.getRange('B17').setFormula('=COUNTA(\'WIAT Scores\'!A2:A)');
+
+  dash.getRange('A19').setValue('EEG Interested');
+  dash.getRange('B19').setFormula('=COUNTIF(Sessions!O2:O,"Interested")');
   dash.autoResizeColumns(1, 2);
 
   // Dynamic columns on Sessions
@@ -467,12 +545,12 @@ function initialSetup() {
 
   var sessionsSheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
   sessionsSheet.clear();
-  sessionsSheet.getRange(1, 1, 1, 15).setValues([
+  sessionsSheet.getRange(1, 1, 1, 11).setValues([
     [
-    'Session Code','Participant ID','Email','Sequence Index','Created Date','Last Activity',
-    'Total Time (min)','Active Time (min)','Activity %','Tasks Completed','Consent 1','Consent 2','Status','Device Type','Notes'
+    'Session Code','Participant ID','Email','Created Date','Last Activity',
+    'Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status'
   ]]);
-  formatHeaders(sessionsSheet, 15);
+  formatHeaders(sessionsSheet, 11);
 
   var progressSheet = ss.getSheetByName('Task Progress') || ss.insertSheet('Task Progress');
   progressSheet.clear();
@@ -491,22 +569,13 @@ function initialSetup() {
   formatHeaders(eventsSheet, 6);
 
 
-  var videoSheet = ss.getSheetByName('Video_Uploads') || ss.insertSheet('Video_Uploads');
+  var videoSheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
   videoSheet.clear();
-  videoSheet.getRange(1, 1, 1, 11).setValues([
+  videoSheet.getRange(1, 1, 1, 12).setValues([
     [
-    'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)',
-    'Upload Time','Upload Method','Dropbox Path','Upload Status'
+    'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'
   ]]);
-  formatHeaders(videoSheet, 11);
-
-  var videoErr = ss.getSheetByName('Video_Upload_Errors') || ss.insertSheet('Video_Upload_Errors');
-  videoErr.clear();
-  videoErr.getRange(1, 1, 1, 7).setValues([
-    [
-    'Timestamp','Session Code','Image Number','Error Message','Upload Time','Attempted Method','Fallback Used'
-  ]]);
-  formatHeaders(videoErr, 7);
+  formatHeaders(videoSheet, 12);
 
   var reminders = ss.getSheetByName('Email Reminders') || ss.insertSheet('Email Reminders');
   reminders.clear();
@@ -537,9 +606,9 @@ function setupDashboard(sheet) {
   sheet.getRange('A3').setValue('Total Sessions');
   sheet.getRange('B3').setFormula('=COUNTA(Sessions!A2:A)');
   sheet.getRange('A4').setValue('Completed Studies');
-  sheet.getRange('B4').setFormula('=COUNTIF(Sessions!K2:K,"Complete")');
+  sheet.getRange('B4').setFormula('=COUNTIF(Sessions!I2:I,"Complete")');
   sheet.getRange('A5').setValue('Videos Uploaded');
-  sheet.getRange('B5').setFormula('=COUNTA(Video_Uploads!A2:A)');
+  sheet.getRange('B5').setFormula('=COUNTA(\'Video Tracking\'!A2:A)');
   sheet.autoResizeColumns(1, 2);
 }
 
@@ -643,29 +712,29 @@ function logConsentOpened(ss, data) {
 
 function logConsentCompleted(ss, data) {
   var sheet = ss.getSheetByName('Sessions');
+  var cols = ensureConsentColumns_(ss);
   var rows = sheet.getDataRange().getValues();
-  var col = (data.type === 'consent1') ? 9 : 10;
-
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.sessionCode) {
-      sheet.getRange(i + 1, col).setValue('Complete');
+      sheet.getRange(i + 1, cols.status).setValue('Complete');
       break;
     }
   }
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Consent Completed',
-    details: (data.type === 'consent1' ? 'Research Consent' : 'Video Consent') + ' marked complete',
+    details: 'Consent marked complete',
     timestamp: data.timestamp
   });
 }
 
 function logVideoDeclined(ss, data) {
   var sheet = ss.getSheetByName('Sessions');
+  var cols = ensureConsentColumns_(ss);
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.sessionCode) {
-      sheet.getRange(i + 1, 10).setValue('Declined');
+      sheet.getRange(i + 1, cols.status).setValue('Declined');
       break;
     }
   }
@@ -990,15 +1059,7 @@ function logEEGInterest(ss, data) {
   });
 
   if (data.sessionCode && data.sessionCode !== 'none') {
-    var sheet = ss.getSheetByName('Sessions');
-    var rows = sheet.getDataRange().getValues();
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === data.sessionCode) {
-        var notes = rows[i][14] || '';
-        sheet.getRange(i + 1, 15).setValue(notes ? (notes + ' | EEG Interest') : 'EEG Interest');
-        break;
-      }
-    }
+    setEEGStatus_(ss, data.sessionCode, 'Interested', data.timestamp, 'self-report', 'EEG Interest');
   }
 }
 
@@ -1009,9 +1070,9 @@ function completeStudy(ss, data) {
 
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.sessionCode) {
-      sheet.getRange(i + 1, 7).setValue(data.totalDuration || 0);                    // Total Time (min)
-      sheet.getRange(i + 1, 10).setValue(required.length + '/' + required.length);   // Tasks Completed
-      sheet.getRange(i + 1, 13).setValue('Complete');                                // Status
+      sheet.getRange(i + 1, 6).setValue(data.totalDuration || 0);                    // Total Time (min)
+      sheet.getRange(i + 1, 8).setValue(required.length + '/' + required.length);   // Tasks Completed
+      sheet.getRange(i + 1, 9).setValue('Complete');                                // Status
       break;
     }
   }
@@ -1032,7 +1093,7 @@ function updateSessionActivity(ss, sessionCode, timestamp) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === sessionCode) {
-      sheet.getRange(i + 1, 6).setValue(timestamp);
+      sheet.getRange(i + 1, 5).setValue(timestamp);
       break;
     }
   }
@@ -1149,11 +1210,11 @@ function updateCompletedTasksCount(ss, sessionCode) {
   var rows = sessionsSheet.getDataRange().getValues();
   for (var r = 1; r < rows.length; r++) {
     if (rows[r][0] === sessionCode) {
-      sessionsSheet.getRange(r + 1, 10).setValue(completedCount + '/' + required.length);
+      sessionsSheet.getRange(r + 1, 8).setValue(completedCount + '/' + required.length);
 
       // Also update status to Complete if all required tasks are done
       if (completedCount === required.length) {
-        sessionsSheet.getRange(r + 1, 13).setValue('Complete');
+        sessionsSheet.getRange(r + 1, 9).setValue('Complete');
       }
       break;
     }
@@ -1238,17 +1299,14 @@ function getSessionData(ss, sessionCode) {
           sessionCode: s[i][0],
           participantID: s[i][1],
           email: s[i][2],
-          created: s[i][4],
-          lastActivity: s[i][5],
-          totalTimeMin: s[i][6],
-          activeTimeMin: s[i][7],
-          activityPct: s[i][8],
-          tasksCompleted: s[i][9],
-          consent1: s[i][10],
-          consent2: s[i][11],
-          status: s[i][12],
-          deviceType: s[i][13],
-          notes: s[i][14]
+          created: s[i][3],
+          lastActivity: s[i][4],
+          totalTimeMin: s[i][5],
+          activeTimeMin: s[i][6],
+          tasksCompleted: s[i][7],
+          status: s[i][8],
+          deviceType: s[i][9],
+          consentStatus: s[i][10]
         }
       });
     }
@@ -1259,39 +1317,17 @@ function getSessionData(ss, sessionCode) {
 // ===============================
 // Enhanced video logging functions
 // ===============================
-function logVideoUpload(data) {
+function logVideoEvent(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Video_Uploads') || ss.insertSheet('Video_Uploads');
-  
-  // Ensure all columns exist
+  var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
+
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 11).setValues([
-      [
-      'Timestamp', 'Session Code', 'Image Number', 'Filename',
-      'File ID', 'File URL', 'File Size (KB)', 'Upload Time',
-      'Upload Method', 'Dropbox Path', 'Upload Status'
+    sheet.getRange(1, 1, 1, 12).setValues([[
+      'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'
     ]]);
-    formatHeaders(sheet, 11);
+    formatHeaders(sheet, 12);
   }
-  
-  // Add new columns if they don't exist (for existing sheets)
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var headersToAdd = [
-    { name: 'Upload Method', position: 9 },
-    { name: 'Dropbox Path', position: 10 },
-    { name: 'Upload Status', position: 11 }
-  ];
-  
-  headersToAdd.forEach(function(header) {
-    if (headers.indexOf(header.name) === -1) {
-      var newCol = sheet.getLastColumn() + 1;
-      sheet.insertColumnAfter(sheet.getLastColumn());
-      sheet.getRange(1, newCol).setValue(header.name)
-           .setFontWeight('bold').setBackground('#f1f3f4');
-    }
-  });
-  
-  // Log the upload with enhanced data
+
   sheet.appendRow([
     new Date(),
     data.sessionCode || '',
@@ -1303,46 +1339,19 @@ function logVideoUpload(data) {
     data.uploadTime || new Date().toISOString(),
     data.uploadMethod || 'unknown',
     data.dropboxPath || '',
-    data.uploadStatus || 'success'
+    data.uploadStatus || 'success',
+    data.error || ''
   ]);
 }
 
+function logVideoUpload(data) {
+  data.uploadStatus = data.uploadStatus || 'success';
+  logVideoEvent(data);
+}
+
 function logVideoUploadError(ss, data) {
-  var sheet = ss.getSheetByName('Video_Upload_Errors') || ss.insertSheet('Video_Upload_Errors');
-  
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 7).setValues([
-      [
-      'Timestamp', 'Session Code', 'Image Number', 'Error Message', 
-      'Upload Time', 'Attempted Method', 'Fallback Used'
-    ]]);
-    formatHeaders(sheet, 7);
-  }
-  
-  // Add new columns if they don't exist
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  if (headers.indexOf('Attempted Method') === -1) {
-    var newCol = sheet.getLastColumn() + 1;
-    sheet.insertColumnAfter(sheet.getLastColumn());
-    sheet.getRange(1, newCol).setValue('Attempted Method')
-         .setFontWeight('bold').setBackground('#f1f3f4');
-  }
-  if (headers.indexOf('Fallback Used') === -1) {
-    var newCol2 = sheet.getLastColumn() + 1;
-    sheet.insertColumnAfter(sheet.getLastColumn());
-    sheet.getRange(1, newCol2).setValue('Fallback Used')
-         .setFontWeight('bold').setBackground('#f1f3f4');
-  }
-  
-  sheet.appendRow([
-    new Date(),
-    data.sessionCode || 'unknown',
-    data.imageNumber || 0,
-    data.error || '',
-    data.timestamp || new Date().toISOString(),
-    data.attemptedMethod || 'unknown',
-    data.fallbackUsed || false
-  ]);
+  data.uploadStatus = 'error';
+  logVideoEvent(data);
 }
 
 // ===============================
@@ -1388,10 +1397,6 @@ function setEEGStatus_(ss, sessionCode, status, scheduledAt, source, note) {
       if (status)      sheet.getRange(i + 1, eegCols.status).setValue(status);
       if (scheduledAt) sheet.getRange(i + 1, eegCols.when).setValue(scheduledAt);
       if (source)      sheet.getRange(i + 1, eegCols.source).setValue(source);
-      if (note) {
-        var existing = rows[i][14] || '';
-        sheet.getRange(i + 1, 15).setValue(existing ? (existing + ' | ' + note) : note);
-      }
       break;
     }
   }
@@ -1417,11 +1422,10 @@ function ensureConsentColumns_(ss) {
   }
 
   return {
-    c1: ensureHeader_('Consent1 Verify'),
-    c2: ensureHeader_('Consent2 Verify'),
-    src: ensureHeader_('Consent Verify Source'),
-    code: ensureHeader_('Consent Verify Code'),
-    when: ensureHeader_('Consent Verify Timestamp')
+    status: ensureHeader_('Consent Status'),
+    src: ensureHeader_('Consent Source'),
+    code: ensureHeader_('Consent Code'),
+    when: ensureHeader_('Consent Timestamp')
   };
 }
 
@@ -1434,8 +1438,7 @@ function setConsentVerify_(ss, sessionCode, which, status, source, codeSuffix, t
 
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === sessionCode) {
-      var colVerify = (which === 'consent1') ? cols.c1 : cols.c2;
-      sheet.getRange(i + 1, colVerify).setValue(status || 'Verified');
+      sheet.getRange(i + 1, cols.status).setValue(status || 'Verified');
       sheet.getRange(i + 1, cols.src).setValue(source || '');
       if (codeSuffix) sheet.getRange(i + 1, cols.code).setValue(codeSuffix);
       sheet.getRange(i + 1, cols.when).setValue(ts || new Date().toISOString());
