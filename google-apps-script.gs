@@ -218,6 +218,10 @@ function doPost(e) {
         completeStudy(ss, data);
         break;
 
+      case 'save_state':
+        saveSessionState(ss, data);
+        break;
+
       case 'get_session':
         return getSessionData(ss, data.sessionCode);
 
@@ -546,12 +550,12 @@ function initialSetup() {
 
   var sessionsSheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
   sessionsSheet.clear();
-  sessionsSheet.getRange(1, 1, 1, 11).setValues([
+  sessionsSheet.getRange(1, 1, 1, 12).setValues([
     [
     'Session Code','Participant ID','Email','Created Date','Last Activity',
-    'Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status'
+    'Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status','State JSON'
   ]]);
-  formatHeaders(sessionsSheet, 11);
+  formatHeaders(sessionsSheet, 12);
 
   var progressSheet = ss.getSheetByName('Task Progress') || ss.insertSheet('Task Progress');
   progressSheet.clear();
@@ -747,6 +751,38 @@ function logVideoDeclined(ss, data) {
     details: 'User declined video consent',
     timestamp: data.timestamp
   });
+}
+
+function saveSessionState(ss, data) {
+  if (!data.sessionCode) return;
+  var sheet = ss.getSheetByName('Sessions');
+  if (!sheet) return;
+
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (v) { return String(v || ''); });
+
+  var stateIdx = headers.indexOf('State JSON');
+  if (stateIdx === -1) {
+    stateIdx = lastCol;
+    sheet.insertColumnAfter(lastCol);
+    stateIdx++;
+    sheet.getRange(1, stateIdx).setValue('State JSON').setFontWeight('bold').setBackground('#f1f3f4');
+    headers.push('State JSON');
+  } else {
+    stateIdx = stateIdx + 1;
+  }
+
+  var lastIdx = headers.indexOf('Last Activity');
+  lastIdx = lastIdx === -1 ? null : lastIdx + 1;
+
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.sessionCode) {
+      sheet.getRange(i + 1, stateIdx).setValue(JSON.stringify(data.state || {}));
+      if (lastIdx) sheet.getRange(i + 1, lastIdx).setValue(data.timestamp || new Date().toISOString());
+      break;
+    }
+  }
 }
 
 // ===============================
@@ -1293,23 +1329,29 @@ function logEvent(ss, data) {
 function getSessionData(ss, sessionCode) {
   if (!sessionCode) return createCorsOutput({ success: false, error: 'Missing sessionCode' });
 
-  var s = ss.getSheetByName('Sessions').getDataRange().getValues();
-  for (var i = 1; i < s.length; i++) {
-    if (s[i][0] === sessionCode) {
+  var sheet = ss.getSheetByName('Sessions');
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0].map(function (v) { return String(v || ''); });
+  var map = {};
+  for (var i = 0; i < headers.length; i++) map[headers[i]] = i;
+
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][0] === sessionCode) {
       return createCorsOutput({
         success: true,
         session: {
-          sessionCode: s[i][0],
-          participantID: s[i][1],
-          email: s[i][2],
-          created: s[i][3],
-          lastActivity: s[i][4],
-          totalTimeMin: s[i][5],
-          activeTimeMin: s[i][6],
-          tasksCompleted: s[i][7],
-          status: s[i][8],
-          deviceType: s[i][9],
-          consentStatus: s[i][10]
+          sessionCode: data[r][0],
+          participantID: map['Participant ID'] != null ? data[r][map['Participant ID']] : '',
+          email: map['Email'] != null ? data[r][map['Email']] : '',
+          created: map['Created Date'] != null ? data[r][map['Created Date']] : '',
+          lastActivity: map['Last Activity'] != null ? data[r][map['Last Activity']] : '',
+          totalTimeMin: map['Total Time (min)'] != null ? data[r][map['Total Time (min)']] : '',
+          activeTimeMin: map['Active Time (min)'] != null ? data[r][map['Active Time (min)']] : '',
+          tasksCompleted: map['Tasks Completed'] != null ? data[r][map['Tasks Completed']] : '',
+          status: map['Status'] != null ? data[r][map['Status']] : '',
+          deviceType: map['Device Type'] != null ? data[r][map['Device Type']] : '',
+          consentStatus: map['Consent Status'] != null ? data[r][map['Consent Status']] : '',
+          state: map['State JSON'] != null ? data[r][map['State JSON']] : ''
         }
       });
     }

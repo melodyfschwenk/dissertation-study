@@ -1153,19 +1153,28 @@ function showScreen(screenId) {
       showScreen('session-created');
     }
 
-    function resumeSession() {
+    async function resumeSession() {
       const code = document.getElementById('resume-code').value.toUpperCase();
       if (code.length !== 8) { alert('Please enter your 8-character resume code'); return; }
       try {
-        const saved = localStorage.getItem(`study_${code}`);
-        if (saved) {
-          state = JSON.parse(saved);
-          updateSessionWidget();
-          if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
-        } else {
+        const res = await fetch(CONFIG.SHEETS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'get_session', sessionCode: code })
+        });
+        const data = await res.json();
+        if (!data.success || !data.session || !data.session.state) {
           alert('Session not found. Please check your code.');
+          return;
         }
-      } catch (err) { console.error(err); alert('Error loading session'); }
+        state = JSON.parse(data.session.state);
+        saveState();
+        updateSessionWidget();
+        if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
+      } catch (err) {
+        console.error(err);
+        alert('Error loading session');
+      }
     }
 
     // === REPLACE the body of checkSavedSession with this ===
@@ -1198,6 +1207,7 @@ function checkSavedSession() {
         state.lastActivity = new Date().toISOString();
         localStorage.setItem(`study_${state.sessionCode}`, JSON.stringify(state));
         localStorage.setItem('recent_session', state.sessionCode);
+        sendToSheets({ action: 'save_state', sessionCode: state.sessionCode, state });
       } catch (e) { console.warn('Could not save state', e); }
     }
 
