@@ -364,8 +364,8 @@ function safeSetupOrMigrate_() {
 
   // Sessions sheet cleanup and setup
   cleanSessionsSheet_(ss);
-  ensureSheetWithHeaders_(ss, 'Sessions', [
-    'Session Code','Participant ID','Email','Created Date','Last Activity','Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status'
+  var sessionsSheet = ensureSheetWithHeaders_(ss, 'Sessions', [
+    'Session Code','Participant ID','Email','Created Date','Last Activity','Total Time (min)','Active Time (min)','Tasks Completed','Status','Device Type','Consent Status','Hearing Status','Fluency'
   ]);
 
   // Task Progress
@@ -423,13 +423,14 @@ function safeSetupOrMigrate_() {
   dash.getRange('A17').setValue('WIAT Scores Entered');
   dash.getRange('B17').setFormula('=COUNTA(\'WIAT Scores\'!A2:A)');
 
-  dash.getRange('A19').setValue('EEG Interested');
-  dash.getRange('B19').setFormula('=COUNTIF(Sessions!O2:O,"Interested")');
-  dash.autoResizeColumns(1, 2);
-
   // Dynamic columns on Sessions
   ensureConsentColumns_(ss);
-  ensureEEGColumns_(ss);
+  var eegCols = ensureEEGColumns_(ss);
+
+  dash.getRange('A19').setValue('EEG Interested');
+  var eegStatusCol = sessionsSheet.getRange(1, eegCols.status).getA1Notation().replace(/[0-9]/g, '');
+  dash.getRange('B19').setFormula('=COUNTIF(Sessions!' + eegStatusCol + '2:' + eegStatusCol + ',"Interested")');
+  dash.autoResizeColumns(1, 2);
 
   // Pre-create Drive root folder
   getOrCreateStudyFolder();
@@ -657,7 +658,9 @@ function createSession(ss, data) {
     'Pending',
     'Active',
     deviceType,
-    'Created on ' + deviceType
+    'Created on ' + deviceType,
+    data.hearingStatus || '',
+    data.fluency || ''
   ]);
 
   logSessionEvent(ss, {
