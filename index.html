@@ -2098,7 +2098,7 @@ async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
   }
 }
 
-    sync function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
+    async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
   try {
     updateUploadProgress(50, 'Preparing Google Drive upload...');
 
@@ -2201,39 +2201,7 @@ function updateUploadProgress(percent, message) {
       await saveRecording();
     }
 
-    // Continue without upload function
-    function continueWithoutUpload() {
-      if (confirm('Continue without uploading the video? The recording will only be saved locally in your browser.')) {
-        // Store the recording info without Drive details
-        state.recording.recordings.push({ 
-          image: state.recording.currentImage + 1, 
-          blob: state.recording.currentBlob, 
-          timestamp: new Date().toISOString(),
-          uploadSkipped: true
-        });
-
-        // Log that recording was saved but not uploaded
-        sendToSheets({ 
-          action: 'image_recorded_no_upload', 
-          sessionCode: state.sessionCode, 
-          imageNumber: state.recording.currentImage + 1,
-          reason: 'Upload failed - continued locally',
-          timestamp: new Date().toISOString() 
-        });
-
-        // Continue to next image or complete task
-        if (state.recording.currentImage === 0) { 
-          state.recording.currentImage = 1; 
-          updateRecordingImage(); 
-        } else { 
-          completeTask('ID'); 
-        }
-        
-        document.getElementById('recording-error').style.display = 'none';
-      }
-    }
-
-    function cleanupRecording(keepPreviewUI = false) {
+      function cleanupRecording(keepPreviewUI = false) {
       return new Promise(resolve => {
         try {
           if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
