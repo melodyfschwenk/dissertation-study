@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spatial Cognition & Sign Language Research Study</title>
+  <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -791,9 +792,22 @@ function closeEEGModal() {
   }
 };
 
+// Handle Dropbox OAuth redirect
+function handleDropboxAuth() {
+  const urlParams = new URLSearchParams(window.location.hash.substring(1));
+  const accessToken = urlParams.get('access_token');
+  
+  if (accessToken) {
+    localStorage.setItem('dropbox_access_token', accessToken);
+    // Clean up URL
+    window.location.hash = '';
+    console.log('Dropbox authorized successfully');
+  }
+}
 
-    // ----- Init (single handler) -----
-    document.addEventListener('DOMContentLoaded', () => {
+// Call on page load
+document.addEventListener('DOMContentLoaded', () => {
+  handleDropboxAuth();
       setupEventListeners();
       // Secure-context guard: disable inline recording if not https
 if (!window.isSecureContext) {
@@ -1744,116 +1758,358 @@ if (instructionBox) {
     function reRecord() { cleanupRecording(true).finally(() => updateRecordingImage()); }
 
     // Updated saveRecording function with Google Drive upload
-    async function saveRecording() {
-      if (!state.recording.currentBlob) { 
-        alert('Please record or upload a video first.'); 
-        return; 
-      }
+// Updated saveRecording function with enhanced logging
+async function saveRecording() {
+  if (!state.recording.currentBlob) { 
+    alert('Please record or upload a video first.'); 
+    return; 
+  }
 
-      // Show uploading status
-      // Show uploading status
-const saveBtn = document.getElementById('save-recording-btn');
-const originalText = saveBtn.textContent;
-saveBtn.disabled = true;
-saveBtn.textContent = 'Processing...';
+  const saveBtn = document.getElementById('save-recording-btn');
+  const originalText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Processing...';
 
-// Update status and show progress
-const status = document.getElementById('recording-status');
-status.textContent = '⚙️ Processing video...';
-status.className = 'recording-status recording';
+  const status = document.getElementById('recording-status');
+  status.textContent = '⚙️ Processing video...';
+  status.className = 'recording-status recording';
 
-const uploadProgress = document.getElementById('upload-progress');
-uploadProgress.style.display = 'block';
+  const uploadProgress = document.getElementById('upload-progress');
+  uploadProgress.style.display = 'block';
 
-      try {
-        // Upload to Google Drive
-        const uploadResult = await uploadVideoToDrive(
-          state.recording.currentBlob, 
-          state.sessionCode, 
-          state.recording.currentImage + 1
-        );
+  try {
+    // Upload with enhanced tracking
+    const uploadResult = await uploadVideoToDrive(
+      state.recording.currentBlob, 
+      state.sessionCode, 
+      state.recording.currentImage + 1
+    );
 
-        if (uploadResult.success) {
-          // Store the upload info
-          state.recording.recordings.push({ 
-            image: state.recording.currentImage + 1, 
-            blob: state.recording.currentBlob, 
-            timestamp: new Date().toISOString(),
-            driveFileId: uploadResult.fileId,
-            driveFileUrl: uploadResult.fileUrl,
-            filename: uploadResult.filename
-          });
+    if (uploadResult.success) {
+      // Store the upload info with method tracking
+      state.recording.recordings.push({ 
+        image: state.recording.currentImage + 1, 
+        blob: state.recording.currentBlob, 
+        timestamp: new Date().toISOString(),
+        driveFileId: uploadResult.fileId,
+        driveFileUrl: uploadResult.fileUrl,
+        filename: uploadResult.filename,
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || ''
+      });
 
-          // Log the successful recording and upload
-          sendToSheets({ 
-            action: 'image_recorded_and_uploaded', 
-            sessionCode: state.sessionCode, 
-            imageNumber: state.recording.currentImage + 1,
-            driveFileId: uploadResult.fileId,
-            filename: uploadResult.filename,
-            timestamp: new Date().toISOString() 
-          });
+      // Enhanced logging to Google Sheets
+      const logData = { 
+        action: 'image_recorded_and_uploaded', 
+        sessionCode: state.sessionCode, 
+        imageNumber: state.recording.currentImage + 1,
+        driveFileId: uploadResult.fileId,
+        filename: uploadResult.filename,
+        timestamp: new Date().toISOString(),
+        // Enhanced fields
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || '',
+        fileSize: Math.round(state.recording.currentBlob.size / 1024),
+        uploadStatus: 'success'
+      };
 
-          // Update status to success
-          status.textContent = '✅ Upload complete!';
-          status.className = 'recording-status recorded';
-          uploadProgress.style.display = 'none';
+      // Send to both the task logging and video upload logging
+      sendToSheets(logData);
+      
+      // Also log specifically to video uploads table
+      sendToSheets({
+        action: 'log_video_upload',
+        sessionCode: state.sessionCode,
+        imageNumber: state.recording.currentImage + 1,
+        filename: uploadResult.filename,
+        fileId: uploadResult.fileId,
+        fileUrl: uploadResult.fileUrl,
+        fileSize: Math.round(state.recording.currentBlob.size / 1024),
+        uploadTime: new Date().toISOString(),
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || '',
+        uploadStatus: 'success'
+      });
 
-          // Continue to next image or complete task
-          setTimeout(() => {
-            if (state.recording.currentImage === 0) { 
-              state.recording.currentImage = 1; 
-              updateRecordingImage(); 
-            } else { 
-              completeTask('ID'); 
-            }
-          }, 1000);
+      status.textContent = `✅ Upload complete via ${uploadResult.uploadMethod}!`;
+      status.className = 'recording-status recorded';
+      uploadProgress.style.display = 'none';
 
-        } else {
-          throw new Error(uploadResult.error || 'Upload failed');
+      setTimeout(() => {
+        if (state.recording.currentImage === 0) { 
+          state.recording.currentImage = 1; 
+          updateRecordingImage(); 
+        } else { 
+          completeTask('ID'); 
         }
+      }, 1000);
 
-      } catch (error) {
-        console.error('Upload error:', error);
-        
-        // Hide progress and show error message
-        uploadProgress.style.display = 'none';
-        const errorDiv = document.getElementById('recording-error');
-        errorDiv.style.display = 'block';
-        errorDiv.innerHTML = `
-          <strong>Upload failed</strong>
-          <p style="margin-top: 6px;">
-            Error: ${error.message}. You can try again or continue without uploading. 
-            The video is saved locally in your browser.
-          </p>
-          <div class="button-group" style="margin-top: 10px;">
-            <button class="button" onclick="retryVideoUpload()">Try Again</button>
-            <button class="button secondary" onclick="continueWithoutUpload()">Continue Without Upload</button>
-          </div>
-        `;
-
-        // Reset status
-        status.textContent = '❌ Upload failed';
-        status.className = 'recording-status ready';
-      } finally {
-        // Reset button
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalText;
-      }
+    } else {
+      throw new Error(uploadResult.error || 'Upload failed');
     }
 
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    // Enhanced error logging
+    sendToSheets({
+      action: 'log_video_upload_error',
+      sessionCode: state.sessionCode,
+      imageNumber: state.recording.currentImage + 1,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      attemptedMethod: 'dropbox_then_drive',
+      fallbackUsed: error.message.includes('Google Drive')
+    });
+    
+    uploadProgress.style.display = 'none';
+    const errorDiv = document.getElementById('recording-error');
+    errorDiv.style.display = 'block';
+    errorDiv.innerHTML = `
+      <strong>Upload failed</strong>
+      <p style="margin-top: 6px;">
+        Error: ${error.message}. You can try again or continue without uploading. 
+        The video is saved locally in your browser.
+      </p>
+      <div class="button-group" style="margin-top: 10px;">
+        <button class="button" onclick="retryVideoUpload()">Try Again</button>
+        <button class="button secondary" onclick="continueWithoutUpload()">Continue Without Upload</button>
+      </div>
+    `;
+
+    status.textContent = '❌ Upload failed';
+    status.className = 'recording-status ready';
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+  }
+}
+
+// Updated continueWithoutUpload with enhanced logging
+function continueWithoutUpload() {
+  if (confirm('Continue without uploading the video? The recording will only be saved locally in your browser.')) {
+    state.recording.recordings.push({ 
+      image: state.recording.currentImage + 1, 
+      blob: state.recording.currentBlob, 
+      timestamp: new Date().toISOString(),
+      uploadSkipped: true,
+      uploadMethod: 'local_only'
+    });
+
+    // Enhanced logging for skipped upload
+    sendToSheets({ 
+      action: 'image_recorded_no_upload', 
+      sessionCode: state.sessionCode, 
+      imageNumber: state.recording.currentImage + 1,
+      reason: 'Upload failed - continued locally',
+      timestamp: new Date().toISOString(),
+      uploadMethod: 'local_only',
+      uploadStatus: 'skipped'
+    });
+
+    if (state.recording.currentImage === 0) { 
+      state.recording.currentImage = 1; 
+      updateRecordingImage(); 
+    } else { 
+      completeTask('ID'); 
+    }
+    
+    document.getElementById('recording-error').style.display = 'none';
+  }
+}
+
+// Enhanced upload function - tries Dropbox first, Google Drive as fallback
 async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    updateUploadProgress(10, 'Preparing upload...');
+    updateUploadProgress(5, 'Starting upload...');
+    
+    // Try Dropbox first
+    try {
+      updateUploadProgress(10, 'Connecting to Dropbox...');
+      const dropboxResult = await uploadToDropbox(videoBlob, sessionCode, imageNumber);
+      
+      if (dropboxResult.success) {
+        updateUploadProgress(100, 'Upload complete to Dropbox!');
+        return {
+          success: true,
+          filename: dropboxResult.filename,
+          fileId: dropboxResult.fileId,
+          fileUrl: dropboxResult.fileUrl,
+          uploadMethod: 'dropbox'
+        };
+      } else {
+        console.warn('Dropbox upload failed, trying Google Drive fallback:', dropboxResult.error);
+        updateUploadProgress(30, 'Dropbox failed, trying Google Drive...');
+      }
+    } catch (dropboxError) {
+      console.warn('Dropbox upload error, trying Google Drive fallback:', dropboxError);
+      updateUploadProgress(30, 'Dropbox failed, trying Google Drive...');
+    }
+
+    // Fallback to Google Drive
+    updateUploadProgress(40, 'Uploading to Google Drive...');
+    const driveResult = await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
+    
+    if (driveResult.success) {
+      updateUploadProgress(100, 'Upload complete to Google Drive!');
+      return {
+        success: true,
+        filename: driveResult.filename,
+        fileId: driveResult.fileId,
+        fileUrl: driveResult.fileUrl,
+        uploadMethod: 'google_drive'
+      };
+    } else {
+      throw new Error(`Both uploads failed. Dropbox: failed, Google Drive: ${driveResult.error}`);
+    }
+
+  } catch (error) {
+    console.error('All upload methods failed:', error);
+    return { 
+      success: false, 
+      error: error.message || String(error) 
+    };
+  }
+}
+
+// NEW: Dropbox upload function
+async function uploadToDropbox(videoBlob, sessionCode, imageNumber) {
+  try {
+    // Initialize Dropbox client
+    const dbx = new Dropbox.Dropbox({ 
+      clientId: 'nvkm67mvluiu4pf',
+      fetch: fetch
+    });
+
+    // Get access token (user will need to authorize once)
+    let accessToken = localStorage.getItem('dropbox_access_token');
+    
+    if (!accessToken) {
+      // Start OAuth flow
+      updateUploadProgress(15, 'Authorizing Dropbox access...');
+      
+      // Get authorization URL
+      const authUrl = dbx.getAuthenticationUrl('https://melodyfschwenk.github.io/spatial-cognition-study/');
+      
+      // Open popup for authorization
+      const popup = window.open(authUrl, 'dropbox_auth', 'width=600,height=700');
+      
+      // Wait for authorization
+      accessToken = await new Promise((resolve, reject) => {
+        const checkClosed = setInterval(() => {
+          try {
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              reject(new Error('Authorization cancelled'));
+            }
+            
+            // Check if we got redirected back with a token
+            const currentUrl = popup.location.href;
+            if (currentUrl.includes('access_token=')) {
+              const token = currentUrl.split('access_token=')[1].split('&')[0];
+              localStorage.setItem('dropbox_access_token', token);
+              popup.close();
+              clearInterval(checkClosed);
+              resolve(token);
+            }
+          } catch (e) {
+            // Cross-origin error is expected during auth flow
+          }
+        }, 1000);
+        
+        // Timeout after 5 minutes
+        setTimeout(() => {
+          clearInterval(checkClosed);
+          popup.close();
+          reject(new Error('Authorization timeout'));
+        }, 300000);
+      });
+    }
+
+    // Set the access token
+    dbx.setAccessToken(accessToken);
+    updateUploadProgress(25, 'Preparing file...');
+
+    // Check file size (Dropbox allows up to 150MB for upload API)
+    if (videoBlob.size > 150 * 1024 * 1024) {
+      throw new Error('Video too large for direct upload (max 150MB)');
+    }
+
+    // Create filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${sessionCode}_image${imageNumber}_${timestamp}.webm`;
+    
+    // Create folder path
+    const folderPath = `/Participant_${sessionCode}`;
+    const fullPath = `${folderPath}/${filename}`;
+
+    updateUploadProgress(30, 'Uploading to Dropbox...');
+
+    // Upload file
+    const response = await dbx.filesUpload({
+      path: fullPath,
+      contents: videoBlob,
+      mode: 'add',
+      autorename: true
+    });
+
+    updateUploadProgress(80, 'Getting shareable link...');
+
+    // Get a shareable link
+    let shareUrl = '';
+    try {
+      const shareResponse = await dbx.sharingCreateSharedLinkWithSettings({
+        path: fullPath,
+        settings: {
+          access: 'viewer',
+          allow_download: true,
+          audience: 'public'
+        }
+      });
+      shareUrl = shareResponse.result.url;
+    } catch (shareError) {
+      console.warn('Could not create share link:', shareError);
+      shareUrl = `https://dropbox.com/preview${fullPath}`;
+    }
+
+    updateUploadProgress(90, 'Upload complete!');
+
+    return {
+      success: true,
+      filename: filename,
+      fileId: response.result.id,
+      fileUrl: shareUrl,
+      dropboxPath: fullPath,
+      fileSize: Math.round(videoBlob.size / 1024)
+    };
+
+  } catch (error) {
+    console.error('Dropbox upload failed:', error);
+    
+    // If it's an auth error, clear the stored token
+    if (error.message?.includes('auth') || error.status === 401) {
+      localStorage.removeItem('dropbox_access_token');
+    }
+    
+    return {
+      success: false,
+      error: error.message || String(error)
+    };
+  }
+}
+
+    sync function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
+  try {
+    updateUploadProgress(50, 'Preparing Google Drive upload...');
 
     // Check blob size before encoding
     if (videoBlob.size > 35 * 1024 * 1024) {
-      throw new Error('Video too large (max 35MB). Please record a shorter video.');
+      throw new Error('Video too large for Google Drive (max 35MB)');
     }
 
-const base64DataUrl = await blobToBase64(videoBlob);
-const base64VideoData = base64DataUrl.split(',').pop(); 
-    updateUploadProgress(30, 'Encoding complete...');
+    const base64DataUrl = await blobToBase64(videoBlob);
+    const base64VideoData = base64DataUrl.split(',').pop(); 
+    updateUploadProgress(70, 'Encoding complete...');
 
     const uploadData = {
       action: 'upload_video',
@@ -1864,25 +2120,22 @@ const base64VideoData = base64DataUrl.split(',').pop();
       timestamp: new Date().toISOString()
     };
 
-    updateUploadProgress(60, 'Sending to server...');
+    updateUploadProgress(80, 'Sending to Google Drive...');
 
-    // Use text/plain to avoid CORS preflight
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(uploadData)
     });
 
-    updateUploadProgress(80, 'Processing response...');
+    updateUploadProgress(90, 'Processing response...');
 
-    // Handle both text and JSON responses
     let result;
     const contentType = response.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
       result = await response.json();
     } else {
-      // Try to parse as JSON even if content-type is text
       const text = await response.text();
       try {
         result = JSON.parse(text);
@@ -1896,8 +2149,6 @@ const base64VideoData = base64DataUrl.split(',').pop();
       throw new Error(result.error || result.details || `Upload failed (${response.status})`);
     }
 
-    updateUploadProgress(100, 'Upload complete!');
-
     return {
       success: true,
       filename: result.filename,
@@ -1906,13 +2157,15 @@ const base64VideoData = base64DataUrl.split(',').pop();
     };
     
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Google Drive upload error:', error);
     return { 
       success: false, 
       error: error.message || String(error) 
     };
   }
 }
+
+    
 
 
     // Add this NEW function after uploadVideoToDrive
@@ -2386,3 +2639,4 @@ window.openSupportEmail = openSupportEmail;
   </script>
 </body>
 </html>
+
