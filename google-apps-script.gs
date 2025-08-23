@@ -1100,6 +1100,22 @@ function logEEGInterest(ss, data) {
   if (data.sessionCode && data.sessionCode !== 'none') {
     setEEGStatus_(ss, data.sessionCode, 'Interested', data.timestamp, 'self-report', 'EEG Interest');
   }
+
+  if (data.email) addEEGReminder(ss, data.sessionCode || 'none', data.email);
+}
+
+function addEEGReminder(ss, sessionCode, email) {
+  var sheet = ss.getSheetByName('Email Reminders');
+  if (!sheet) return;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === sessionCode) {
+      sheet.getRange(i + 1, 2).setValue(email || data[i][1] || '');
+      sheet.getRange(i + 1, 5).setValue('EEG Reminder Requested');
+      return;
+    }
+  }
+  sheet.appendRow([sessionCode, email || '', '', 0, 'EEG Reminder Requested']);
 }
 
 function completeStudy(ss, data) {
@@ -1496,7 +1512,7 @@ function setConsentVerify_(ss, sessionCode, which, status, source, codeSuffix, t
 // Diagnostics
 // ===============================
 function quickDiagnostic() {
-  var ok = true;
+var ok = true;
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     console.log('Spreadsheet:', ss.getName());
@@ -1508,6 +1524,29 @@ function quickDiagnostic() {
   } catch (e2) { ok = false; console.error(e2); }
 
   return ok;
+}
+
+function sendEEGReminderEmails() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Email Reminders');
+  if (!sheet) return;
+  var rows = sheet.getDataRange().getValues();
+  var now = new Date();
+  if (now.getMonth() !== 8 || now.getDate() !== 22) return; // Only run on Sept 22
+  var link = 'https://calendly.com/action-brain-lab-gallaudet/spatial-cognition-eeg-only';
+
+  for (var i = 1; i < rows.length; i++) {
+    var status = rows[i][4];
+    var email = rows[i][1];
+    if (status === 'EEG Reminder Requested' && email) {
+      MailApp.sendEmail(email,
+        'EEG scheduling now open',
+        'Scheduling for EEG sessions has reopened. You can now choose your time here: ' + link + '\n\nThank you!');
+      sheet.getRange(i + 1, 3).setValue(now);
+      sheet.getRange(i + 1, 4).setValue((rows[i][3] || 0) + 1);
+      sheet.getRange(i + 1, 5).setValue('EEG Reminder Sent');
+    }
+  }
 }
 
 // ===============================
