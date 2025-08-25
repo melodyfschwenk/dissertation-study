@@ -1194,7 +1194,7 @@ function logVideoRecording(ss, data) {
     data.sessionCode,
     data.participantID || '',
     'Image Description',
-    'Video Recorded - Image ' + data.imageNumber',
+    'Video Recorded - Image ' + data.imageNumber,
     '',
     '',
     0,
