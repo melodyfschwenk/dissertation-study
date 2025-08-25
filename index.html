@@ -1010,12 +1010,13 @@ let taskTimer = {
   },
   getSummary() {
     const elapsed = (this.endTime || Date.now()) - this.startTime;
-    const activityScore = elapsed > 0 ? (this.activeTime / elapsed) * 100 : 0;
+    const active = Math.min(this.activeTime, elapsed);
+    const activityScore = elapsed > 0 ? (active / elapsed) * 100 : 0;
     return {
       start: new Date(this.startTime).toISOString(),
       end: new Date(this.endTime).toISOString(),
       elapsed,
-      active: this.activeTime,
+      active,
       pauseCount: this.pauseCount,
       inactive: this.inactivityTime,
       activity: activityScore
@@ -1228,7 +1229,6 @@ function showScreen(screenId) {
         email: state.email,
         hearingStatus: state.hearingStatus,
         fluency: state.fluency,
-        sequenceIndex: state.sequenceIndex,
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         timestamp: new Date().toISOString()
       });
@@ -1288,6 +1288,10 @@ function checkSavedSession() {
 
     function saveState() {
       try {
+        if (!state || !state.sessionCode) {
+          console.warn('Invalid state, not saving');
+          return;
+        }
         state.lastActivity = new Date().toISOString();
         localStorage.setItem(`study_${state.sessionCode}`, JSON.stringify(state));
         localStorage.setItem('recent_session', state.sessionCode);
@@ -1441,6 +1445,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#consent2-card .status-icon').textContent = '⚠️';
         saveState(); updateConsentDisplay();
         sendToSheets({ action: 'video_declined', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
+        updateSessionWidget();
+        updateProgressBar();
       }
     }
     function updateConsentDisplay() {
@@ -1515,21 +1521,30 @@ document.addEventListener('DOMContentLoaded', () => {
         list.appendChild(li);
       });
     }
+    function getTaskCounts() {
+      const isRequired = code => !(code === 'ID' && state.consentStatus.videoDeclined);
+      return {
+        total: state.sequence.filter(isRequired).length,
+        completed: state.completedTasks.filter(isRequired).length
+      };
+    }
     function updateProgressBar() {
-      if (!state.sequence.length) return;
-      const progress = (state.completedTasks.length / state.sequence.length) * 100;
+      const { total, completed } = getTaskCounts();
+      if (!total) return;
+      const progress = (completed / total) * 100;
       const pct = `${Math.round(progress)}%`;
       const fill = document.getElementById('progress-fill');
       const topFill = document.getElementById('top-progress-fill');
       if (fill) { fill.style.width = `${progress}%`; document.getElementById('progress-text').textContent = pct; }
       if (topFill) { topFill.style.width = `${progress}%`; topFill.textContent = pct; }
       const step = document.getElementById('step-indicator');
-      if (step) step.textContent = `Step ${state.currentTaskIndex + 1} of ${state.sequence.length}`;
+      if (step) step.textContent = `Step ${Math.min(completed + 1, total)} of ${total}`;
     }
     function updateSessionWidget() {
       if (!state.sessionCode) return;
+      const { total, completed } = getTaskCounts();
       document.getElementById('widget-code').textContent = state.sessionCode + (state.isMobile ? ' (Mobile)' : '');
-      document.getElementById('widget-progress').textContent = `${state.completedTasks.length}/${state.sequence.length}`;
+      document.getElementById('widget-progress').textContent = `${completed}/${total}`;
       document.getElementById('widget-time').textContent = `${Math.round(state.totalTimeSpent / 60000)} min`;
       const currentTask = state.sequence[state.currentTaskIndex];
       document.getElementById('widget-current').textContent = currentTask ? TASKS[currentTask].name : 'Complete';

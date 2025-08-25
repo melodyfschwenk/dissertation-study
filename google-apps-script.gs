@@ -643,28 +643,40 @@ function getOrCreateParticipantFolder(parent, sessionCode) {
 // ===============================
 function createSession(ss, data) {
   var sheet = ss.getSheetByName('Sessions');
-  var isMobile = (data.sequenceIndex === -1) || data.deviceType === 'mobile/tablet';
+  var isMobile = data.deviceType === 'mobile/tablet';
   var totalTasks = isMobile ? 6 : 7;
   var deviceType = isMobile ? 'Mobile/Tablet' : 'Desktop';
 
+  // Columns:
+  // 1 Session Code
+  // 2 Participant ID
+  // 3 Email
+  // 4 Created Date
+  // 5 Last Activity
+  // 6 Total Time (min)
+  // 7 Active Time (min)
+  // 8 Tasks Completed
+  // 9 Status
+  //10 Device Type
+  //11 Consent Status
+  //12 Hearing Status
+  //13 Fluency
+  //14 State JSON
   sheet.appendRow([
     data.sessionCode,
     data.participantID,
     data.email || '',
-    data.sequenceIndex,
     data.timestamp,
     data.timestamp,
-    0,
     0,
     0,
     '0/' + totalTasks,
-    'Pending',
-    'Pending',
     'Active',
     deviceType,
-    'Created on ' + deviceType,
+    'Pending',
     data.hearingStatus || '',
-    data.fluency || ''
+    data.fluency || '',
+    ''
   ]);
 
   logSessionEvent(ss, {
@@ -1168,14 +1180,10 @@ function updateTotalTime(ss, sessionCode) {
   var rows = s.getDataRange().getValues();
   for (var r = 1; r < rows.length; r++) {
     if (rows[r][0] === sessionCode) {
-      s.getRange(r + 1, 7).setValue(Math.round(totalElapsed / 60));
-      s.getRange(r + 1, 8).setValue(Math.round(totalActive / 60));
-      var pct = totalElapsed ? Math.round((totalActive / totalElapsed) * 100) : 0;
-      s.getRange(r + 1, 9).setValue(pct);
-      if (pct < 30) {
-        var notes = rows[r][14] || '';
-        s.getRange(r + 1, 15).setValue(notes ? (notes + ' | Low activity') : 'Low activity');
-      }
+      // Column 6: Total Time (min)
+      // Column 7: Active Time (min)
+      s.getRange(r + 1, 6).setValue(Math.round(totalElapsed / 60));
+      s.getRange(r + 1, 7).setValue(Math.round(totalActive / 60));
       break;
     }
   }
@@ -1183,13 +1191,17 @@ function updateTotalTime(ss, sessionCode) {
 
 function getRequiredTasksForSession_(ss, sessionCode) {
   var sessionsSheet = ss.getSheetByName('Sessions');
-  var s = sessionsSheet.getDataRange().getValues();
+  var rows = sessionsSheet.getDataRange().getValues();
+  var headers = rows[0].map(function (v) { return String(v || ''); });
+  var map = {};
+  for (var i = 0; i < headers.length; i++) map[headers[i]] = i;
+
   var deviceType = 'Desktop';
-  var consent2 = '';
-  for (var r = 1; r < s.length; r++) {
-    if (s[r][0] === sessionCode) {
-      deviceType = s[r][13] || 'Desktop'; // col N
-      consent2   = s[r][11]  || '';       // col L
+  var consentStatus = '';
+  for (var r = 1; r < rows.length; r++) {
+    if (rows[r][0] === sessionCode) {
+      if (map['Device Type'] != null) deviceType = rows[r][map['Device Type']] || 'Desktop';
+      if (map['Consent Status'] != null) consentStatus = rows[r][map['Consent Status']] || '';
       break;
     }
   }
@@ -1205,7 +1217,7 @@ function getRequiredTasksForSession_(ss, sessionCode) {
   ];
   if (!isMobile) required.splice(3, 0, 'Virtual Campus Navigation'); // add VCN after ASLCT
 
-  if (String(consent2).toLowerCase() === 'declined') {
+  if (String(consentStatus).toLowerCase() === 'declined') {
     required = required.filter(function (t) { return t !== 'Image Description'; });
   }
 
