@@ -1,10 +1,14 @@
 /**
  * Spatial Cognition Study - Backend (Apps Script)
- * Complete version with Dropbox logging and enhanced video tracking
+ * End-to-end version with:
+ * - Fixed safeSetupOrMigrate_ (ss defined, no dup vars)
+ * - Header-safe writes everywhere
+ * - Hard text formatting for "Tasks Completed" to prevent date coercion
+ * - Timestamp normalization + device detection
  */
 
 // ===============================
-// Entry point - Fixed CORS handling
+// Entry points + CORS helper
 // ===============================
 function doPost(e) {
   try {
@@ -18,12 +22,12 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents || '{}');
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Always allow ping
+    // Ping
     if (data.action === 'test_connection') {
       return createCorsOutput({ success: true, pong: true, now: new Date().toISOString() });
     }
 
-    // Allow an explicit setup call
+    // Explicit setup
     if (data.action === 'safe_setup') {
       safeSetupOrMigrate_();
       return createCorsOutput({ success: true, migrated: true });
@@ -166,7 +170,6 @@ function doPost(e) {
 
       case 'image_recorded_and_uploaded':
         logImageRecordedAndUploaded(ss, data);
-        // Also log to video uploads table with enhanced data
         logVideoUpload({
           sessionCode: data.sessionCode,
           imageNumber: data.imageNumber,
@@ -183,7 +186,6 @@ function doPost(e) {
 
       case 'image_recorded_no_upload':
         logImageRecordedNoUpload(ss, data);
-        // Also log the non-upload to video uploads table
         logVideoUpload({
           sessionCode: data.sessionCode,
           imageNumber: data.imageNumber,
@@ -194,7 +196,7 @@ function doPost(e) {
           uploadTime: data.timestamp,
           uploadMethod: data.uploadMethod || 'local_only',
           dropboxPath: '',
-          uploadStatus: 'skipped'
+          uploadStatus: data.uploadStatus || 'skipped'
         });
         break;
 
@@ -233,20 +235,19 @@ function doPost(e) {
   }
 }
 
-// Handle OPTIONS requests for CORS preflight
 function doGet(e) {
   return createCorsOutput({ success: true, status: 'ok', method: 'GET' });
 }
 
-// Proper CORS output helper - FIXED VERSION
 function createCorsOutput(data) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
-  // Note: ContentService handles CORS for deployed web apps
   return output;
 }
 
-// >>> CANONICAL SESSIONS HEADERS AND HELPERS
+// ===============================
+// Canonical headers + header helpers
+// ===============================
 var SESSIONS_HEADERS = [
   'Session Code','Participant ID','Email','Created Date','Last Activity',
   'Total Time (min)','Active Time (min)','Idle Time (min)','Tasks Completed','Status',
@@ -255,7 +256,6 @@ var SESSIONS_HEADERS = [
   'Hearing Status','Fluency','State JSON'
 ];
 
-// Older header names mapped to canonical names
 var CONSENT_HEADER_VARIANTS = {
   'Consent1 Verify': 'Consent Status',
   'Consent2 Verify': 'Consent Status',
@@ -266,7 +266,6 @@ var CONSENT_HEADER_VARIANTS = {
   'Consent Verify Timestamp': 'Consent Timestamp'
 };
 
-// Header utils
 function headerMap_(sheet) {
   var lastCol = sheet.getLastColumn();
   if (lastCol < 1) return {};
@@ -343,7 +342,6 @@ function ensureSheetWithHeaders_(ss, name, headers) {
   return sheet;
 }
 
-// ---- Data migration & cleanup helpers ----
 function normalizeSessionsSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var old = ss.getSheetByName('Sessions');
@@ -351,21 +349,17 @@ function normalizeSessionsSheet_() {
 
   var data = old.getDataRange().getValues();
   var headers = (data.length ? data[0] : []).map(function(v){return String(v || '').trim();});
-
-  // Build lookup of existing header -> index
   var idxByName = {};
   for (var i = 0; i < headers.length; i++) {
     if (headers[i]) idxByName[headers[i]] = i;
   }
 
-  // Create temp target with canonical headers
   var tmp = ss.getSheetByName('Sessions__normalized__tmp');
   if (tmp) ss.deleteSheet(tmp);
   tmp = ss.insertSheet('Sessions__normalized__tmp');
   tmp.getRange(1, 1, 1, SESSIONS_HEADERS.length).setValues([SESSIONS_HEADERS]);
   formatHeaders(tmp, SESSIONS_HEADERS.length);
 
-  // Copy rows, mapping header variants to canonical
   for (var r = 1; r < data.length; r++) {
     var row = data[r];
     var out = new Array(SESSIONS_HEADERS.length).fill('');
@@ -375,7 +369,6 @@ function normalizeSessionsSheet_() {
       var sourceName = targetName;
 
       if (!(sourceName in idxByName)) {
-        // try variant that maps to this target
         for (var variant in CONSENT_HEADER_VARIANTS) {
           if (CONSENT_HEADER_VARIANTS[variant] === targetName && (variant in idxByName)) {
             sourceName = variant;
@@ -388,7 +381,6 @@ function normalizeSessionsSheet_() {
       }
     }
 
-    // Extra merge rule for Consent Status if still blank
     var csIdx = SESSIONS_HEADERS.indexOf('Consent Status');
     if (csIdx !== -1 && !out[csIdx]) {
       var c1i = headers.indexOf('Consent 1');
@@ -401,7 +393,6 @@ function normalizeSessionsSheet_() {
     tmp.appendRow(out);
   }
 
-  // Swap sheets safely
   var oldName = 'Sessions__backup_' + new Date().toISOString().replace(/[:.]/g, '-');
   old.setName(oldName);
   tmp.setName('Sessions');
@@ -485,9 +476,10 @@ function safeSetupOrMigrate_() {
 
   backupParticipantData_(ss);
 
-  // Sessions sheet cleanup and setup - seed with canonical order
+  // Sessions sheet cleanup and setup
   cleanSessionsSheet_(ss);
   var sessionsSheet = ensureSheetWithHeaders_(ss, 'Sessions', SESSIONS_HEADERS);
+  enforceColumnFormats_(ss);
 
   // Task Progress
   ensureSheetWithHeaders_(ss, 'Task Progress', [
@@ -507,7 +499,7 @@ function safeSetupOrMigrate_() {
     'Session Code','Email','Last Reminder Sent','Reminders Count','Status'
   ]);
 
-  // Score tracking sheets
+  // Score tracking
   ensureSheetWithHeaders_(ss, 'ASLCT Scores', ['Session Code','ASLCT Score','Entry Time','Notes']);
   ensureSheetWithHeaders_(ss, 'WIAT Scores', ['Session Code','WIAT Score','Entry Time','Notes']);
   var summary = ensureSheetWithHeaders_(ss, 'Scores Summary', ['Session Code','ASLCT Score','WIAT Score']);
@@ -516,7 +508,10 @@ function safeSetupOrMigrate_() {
     summary.getRange('C2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'WIAT Scores\'!A:B,2,false),"")))');
   }
 
-  // Dashboard (dynamic column references)
+  // Dynamic columns + dashboard
+  ensureConsentColumns_(ss);
+  var eegCols = ensureEEGColumns_(ss);
+
   var dash = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard');
   dash.getRange('A1').setValue('Dashboard').setFontSize(16).setFontWeight('bold');
   dash.getRange('A3').setValue('Total Sessions');
@@ -550,10 +545,6 @@ function safeSetupOrMigrate_() {
   dash.getRange('A17').setValue('WIAT Scores Entered');
   dash.getRange('B17').setFormula('=COUNTA(\'WIAT Scores\'!A2:A)');
 
-  // Dynamic columns on Sessions
-  ensureConsentColumns_(ss);
-  var eegCols = ensureEEGColumns_(ss);
-
   dash.getRange('A19').setValue('EEG Interested');
   var eegStatusCol = sessionsSheet.getRange(1, eegCols.status).getA1Notation().replace(/[0-9]/g, '');
   dash.getRange('B19').setFormula('=COUNTIF(Sessions!' + eegStatusCol + '2:' + eegStatusCol + ',"Interested")');
@@ -566,7 +557,7 @@ function safeSetupOrMigrate_() {
 }
 
 // ===============================
-// Video upload - Fixed version
+// Video upload
 // ===============================
 function handleVideoUpload(data) {
   try {
@@ -576,19 +567,16 @@ function handleVideoUpload(data) {
       throw new Error('Missing required fields: sessionCode, imageNumber, videoData');
     }
 
-    // Check size (~50MB practical limit for base64 in Apps Script)
     var base64Length = data.videoData.length;
-    var approxBytes = base64Length * 0.75; // rough estimate
+    var approxBytes = base64Length * 0.75;
     console.log('Video size estimate:', Math.round(approxBytes / 1024), 'KB');
     if (approxBytes > 50 * 1024 * 1024) {
       throw new Error('Video file too large (limit ~50MB)');
     }
 
-    // Get or create folders
     var studyFolder = getOrCreateStudyFolder();
     var participantFolder = getOrCreateParticipantFolder(studyFolder, data.sessionCode);
 
-    // Decode base64
     var bytes;
     try {
       bytes = Utilities.base64Decode(data.videoData);
@@ -598,22 +586,18 @@ function handleVideoUpload(data) {
       throw new Error('Invalid video data encoding');
     }
 
-    // Generate filename
     var ts = new Date().toISOString().replace(/[:.]/g, '-');
     var filename = data.sessionCode + '_image' + data.imageNumber + '_' + ts + '.webm';
 
-    // Create blob and save to Drive
     var blob = Utilities.newBlob(bytes, 'video/webm', filename);
     var file = participantFolder.createFile(blob);
 
-    // Private permissions
     try {
       file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.VIEW);
     } catch (e) {
       console.warn('Could not set file sharing:', e);
     }
 
-    // Log the upload
     logVideoUpload({
       sessionCode: data.sessionCode,
       imageNumber: data.imageNumber,
@@ -639,7 +623,6 @@ function handleVideoUpload(data) {
   } catch (err) {
     console.error('Video upload error:', err);
 
-    // Log the error
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       logVideoUploadError(ss, {
@@ -663,10 +646,9 @@ function handleVideoUpload(data) {
 }
 
 // ===============================
-// Setup helpers (legacy destructive; avoid on live data)
+// Setup helpers (destructive — only for brand new spreadsheets)
 // ===============================
 function initialSetup() {
-  // USE ONLY ON A BRAND NEW SPREADSHEET - THIS CLEARS SHEETS
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   var sessionsSheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
@@ -771,7 +753,6 @@ function getOrCreateParticipantFolder(parent, sessionCode) {
 // ===============================
 // Sessions and events
 // ===============================
-// Header-safe createSession
 function createSession(ss, data) {
   var sheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
   if (sheet.getLastRow() === 0) {
@@ -779,9 +760,10 @@ function createSession(ss, data) {
     formatHeaders(sheet, SESSIONS_HEADERS.length);
   }
 
-  var isMobile = data.deviceType === 'mobile/tablet';
-  var totalTasks = isMobile ? 6 : 7;
-  var deviceType = isMobile ? 'Mobile/Tablet' : 'Desktop';
+  var createdIso = normalizeIso_(data.created || data.timestamp);
+  var lastIso    = normalizeIso_(data.timestamp || data.created);
+  var dev        = detectDeviceType_(data);
+  var totalTasks = dev.isMobile ? 6 : 7;
 
   var row = findRowBySessionCode_(sheet, data.sessionCode);
   if (!row) {
@@ -792,24 +774,33 @@ function createSession(ss, data) {
   setByHeader_(sheet, row, 'Session Code', data.sessionCode);
   setByHeader_(sheet, row, 'Participant ID', data.participantID);
   setByHeader_(sheet, row, 'Email', data.email || '');
-  setByHeader_(sheet, row, 'Created Date', data.timestamp);
-  setByHeader_(sheet, row, 'Last Activity', data.timestamp);
+  setByHeader_(sheet, row, 'Created Date', createdIso);
+  setByHeader_(sheet, row, 'Last Activity', lastIso);
   setByHeader_(sheet, row, 'Total Time (min)', 0);
   setByHeader_(sheet, row, 'Active Time (min)', 0);
   setByHeader_(sheet, row, 'Idle Time (min)', 0);
-  setByHeader_(sheet, row, 'Tasks Completed', '0/' + totalTasks);
+
+  // Force Tasks Completed to text before writing
+  var hmap = headerMap_(sheet);
+  if (hmap['Tasks Completed']) {
+    sheet.getRange(row, hmap['Tasks Completed']).setNumberFormat('@');
+  }
+  setByHeader_(sheet, row, 'Tasks Completed', (dev.isMobile ? '0/6' : '0/7'));
+
   setByHeader_(sheet, row, 'Status', 'Active');
-  setByHeader_(sheet, row, 'Device Type', deviceType);
+  setByHeader_(sheet, row, 'Device Type', dev.label);
   setByHeader_(sheet, row, 'Consent Status', 'Pending');
   setByHeader_(sheet, row, 'Hearing Status', data.hearingStatus || '');
   setByHeader_(sheet, row, 'Fluency', data.fluency || '');
   setByHeader_(sheet, row, 'State JSON', '');
 
+  enforceColumnFormats_(SpreadsheetApp.getActiveSpreadsheet());
+
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Session Created',
-    details: 'ID: ' + (data.participantID || '') + ', Device: ' + deviceType + ', Tasks: ' + totalTasks,
-    timestamp: data.timestamp,
+    details: 'ID: ' + (data.participantID || '') + ', Device: ' + dev.label + ', Tasks: ' + totalTasks,
+    timestamp: lastIso,
     userAgent: data.userAgent || ''
   });
 
@@ -924,7 +915,7 @@ function saveSessionState(ss, data) {
 }
 
 // ===============================
-// Tasks
+// Task summaries
 // ===============================
 function getSessionActivitySummary(sessionCode) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -943,7 +934,6 @@ function getSessionActivitySummary(sessionCode) {
     startedCount: 0
   };
 
-  // Process task progress
   for (var i = 1; i < progressData.length; i++) {
     if (progressData[i][1] === sessionCode) {
       var taskName = progressData[i][3];
@@ -972,7 +962,6 @@ function getSessionActivitySummary(sessionCode) {
     }
   }
 
-  // Process events
   for (var j = 1; j < eventsData.length; j++) {
     if (eventsData[j][1] === sessionCode) {
       summary.events.push({
@@ -985,35 +974,31 @@ function getSessionActivitySummary(sessionCode) {
 
   return summary;
 }
-
-// Add to menu for testing
 function testActivitySummary() {
   var code = SpreadsheetApp.getUi().prompt('Enter session code:').getResponseText();
   var summary = getSessionActivitySummary(code);
   SpreadsheetApp.getUi().alert(JSON.stringify(summary, null, 2));
 }
 
+// ===============================
+// Task logging
+// ===============================
 function logTaskStart(ss, data) {
   var sheet = ss.getSheetByName('Task Progress');
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
-    data.participantID || getParticipantIDFromSession(ss, data.sessionCode), // Fetch if missing
+    data.participantID || getParticipantIDFromSession(ss, data.sessionCode),
     data.task,
     'Started',
     data.startTime || data.timestamp,
     '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0,
     '',
     false
   ]);
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
 
-  // Add to Session Events
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Task Started',
@@ -1036,7 +1021,7 @@ function logTaskComplete(ss, data) {
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
-    data.participantID || getParticipantIDFromSession(ss, data.sessionCode), // Fetch if missing
+    data.participantID || getParticipantIDFromSession(ss, data.sessionCode),
     data.task,
     'Completed',
     data.startTime || '',
@@ -1053,7 +1038,6 @@ function logTaskComplete(ss, data) {
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
   updateTotalTime(ss, data.sessionCode);
 
-  // Add to Session Events
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Task Completed',
@@ -1070,7 +1054,6 @@ function logTaskComplete(ss, data) {
   }
 }
 
-// Header-safe participant ID getter
 function getParticipantIDFromSession(ss, sessionCode) {
   var sheet = ss.getSheetByName('Sessions');
   if (!sheet) return '';
@@ -1089,11 +1072,7 @@ function logTaskSkipped(ss, data) {
     'Skipped',
     '',
     '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0,
     data.reason || 'User choice',
     true
   ]);
@@ -1108,7 +1087,9 @@ function logTaskSkipped(ss, data) {
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
 }
 
-// Special events around image/video
+// ===============================
+// Image / video task events
+// ===============================
 function logImageRecorded(ss, data) {
   var p = ss.getSheetByName('Task Progress');
   p.appendRow([
@@ -1117,13 +1098,7 @@ function logImageRecorded(ss, data) {
     data.participantID || '',
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded',
-    '',
-    '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    '', '', 0, 0, 0, 0, 0,
     'Image ' + data.imageNumber + '/2',
     false
   ]);
@@ -1143,13 +1118,7 @@ function logImageRecordedAndUploaded(ss, data) {
     data.participantID || '',
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded & Uploaded',
-    '',
-    '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    '', '', 0, 0, 0, 0, 0,
     'File: ' + data.filename,
     false
   ]);
@@ -1169,13 +1138,7 @@ function logImageRecordedNoUpload(ss, data) {
     data.participantID || '',
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded (Local Only)',
-    '',
-    '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    '', '', 0, 0, 0, 0, 0,
     'Reason: ' + data.reason,
     false
   ]);
@@ -1195,13 +1158,7 @@ function logVideoRecording(ss, data) {
     data.participantID || '',
     'Image Description',
     'Video Recorded - Image ' + data.imageNumber,
-    '',
-    '',
-    0,
-    0,
-    0,
-    0,
-    0,
+    '', '', 0, 0, 0, 0, 0,
     'Image ' + data.imageNumber + ' of 2 recorded',
     false
   ]);
@@ -1214,6 +1171,9 @@ function logVideoRecording(ss, data) {
   });
 }
 
+// ===============================
+// Calendly / EEG interest
+// ===============================
 function logCalendlyOpened(ss, data) {
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
@@ -1252,24 +1212,29 @@ function addEEGReminder(ss, sessionCode, email) {
   sheet.appendRow([sessionCode, email || '', '', 0, 'EEG Reminder Requested']);
 }
 
+// ===============================
+// Study completion
+// ===============================
 function completeStudy(ss, data) {
   var required = getRequiredTasksForSession_(ss, data.sessionCode);
-  var sheet = ss.getSheetByName('Sessions');
-  var rows = sheet.getDataRange().getValues();
+  var s = ss.getSheetByName('Sessions');
+  if (!s) return;
 
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.sessionCode) {
-      setByHeader_(sheet, i + 1, 'Total Time (min)', data.totalDuration || 0);
-      setByHeader_(sheet, i + 1, 'Tasks Completed', required.length + '/' + required.length);
-      setByHeader_(sheet, i + 1, 'Status', 'Complete');
-      break;
-    }
+  var row = findRowBySessionCode_(s, data.sessionCode);
+  if (!row) return;
+
+  var hmap = headerMap_(s);
+  if (hmap['Tasks Completed']) {
+    s.getRange(row, hmap['Tasks Completed']).setNumberFormat('@');
   }
+  setByHeader_(s, row, 'Total Time (min)', data.totalDuration || 0);
+  setByHeader_(s, row, 'Tasks Completed', required.length + '/' + required.length);
+  setByHeader_(s, row, 'Status', 'Complete');
 
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
     eventType: 'Study Completed',
-    details: 'Duration: ' + data.totalDuration + ' min, Device: ' + data.deviceType,
+    details: 'Duration: ' + (data.totalDuration || 0) + ' min, Device: ' + (data.deviceType || ''),
     timestamp: data.timestamp
   });
 }
@@ -1277,6 +1242,86 @@ function completeStudy(ss, data) {
 // ===============================
 // Sheet utilities
 // ===============================
+// Robust parse -> ms since epoch or null (accepts Date, ISO, seconds/ms epoch-like)
+function parseTsMs_(v) {
+  if (!v && v !== 0) return null;
+  if (v instanceof Date) return v.getTime();
+  var s = String(v).trim();
+
+  // ISO-ish string
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  // Pure number? try epoch
+  var n = Number(s);
+  if (isFinite(n)) {
+    if (n > 1e12) return n;           // ms epoch
+    if (n >= 1e9 && n <= 2e10) return n * 1000; // s epoch (1e9..2e10 safety)
+    // Anything else numeric is likely junk (e.g., sequence index) → ignore
+  }
+  return null;
+}
+
+// Get earliest + latest timestamps we can trust for a session (progress + events + session row)
+function computeSessionWindowMs_(ss, sessionCode) {
+  var s = ss.getSheetByName('Sessions');
+  var p = ss.getSheetByName('Task Progress');
+  var e = ss.getSheetByName('Session Events');
+
+  var minMs = null, maxMs = null;
+
+  // Sessions row fields
+  var row = findRowBySessionCode_(s, sessionCode);
+  if (row) {
+    var created = parseTsMs_(getByHeader_(s, row, 'Created Date'));
+    var lastAct = parseTsMs_(getByHeader_(s, row, 'Last Activity'));
+    if (created != null) minMs = (minMs == null) ? created : Math.min(minMs, created);
+    if (lastAct != null) maxMs = (maxMs == null) ? lastAct : Math.max(maxMs, lastAct);
+  }
+
+  // Task Progress: Timestamp (col 1==session, col0=timestamp), Start Time (5), End Time (6)
+  if (p && p.getLastRow() > 1) {
+    var pv = p.getDataRange().getValues();
+    for (var i = 1; i < pv.length; i++) {
+      if (pv[i][1] !== sessionCode) continue;
+      var t0 = parseTsMs_(pv[i][0]); // row timestamp
+      var st = parseTsMs_(pv[i][5]);
+      var et = parseTsMs_(pv[i][6]);
+      [t0, st, et].forEach(function(ms){
+        if (ms != null) {
+          if (minMs == null || ms < minMs) minMs = ms;
+          if (maxMs == null || ms > maxMs) maxMs = ms;
+        }
+      });
+    }
+  }
+
+  // Session Events: Timestamp (col0)
+  if (e && e.getLastRow() > 1) {
+    var ev = e.getDataRange().getValues();
+    for (var j = 1; j < ev.length; j++) {
+      if (ev[j][1] !== sessionCode) continue;
+      var ms = parseTsMs_(ev[j][0]);
+      if (ms != null) {
+        if (minMs == null || ms < minMs) minMs = ms;
+        if (maxMs == null || ms > maxMs) maxMs = ms;
+      }
+    }
+  }
+
+  // Fallbacks
+  var now = Date.now();
+  if (minMs == null) minMs = now;
+  if (maxMs == null) maxMs = minMs;
+
+  // Never allow negative window
+  if (maxMs < minMs) maxMs = minMs;
+
+  return { startMs: minMs, endMs: maxMs };
+}
+
 function updateSessionActivity(ss, sessionCode, timestamp) {
   var sheet = ss.getSheetByName('Sessions');
   if (!sheet) return;
@@ -1286,29 +1331,54 @@ function updateSessionActivity(ss, sessionCode, timestamp) {
 }
 
 function updateTotalTime(ss, sessionCode) {
-  var p = ss.getSheetByName('Task Progress').getDataRange().getValues();
-  var totalElapsed = 0;
-  var totalActive = 0;
-  for (var i = 1; i < p.length; i++) {
-    if (p[i][1] === sessionCode && p[i][4] === 'Completed') {
-      totalElapsed += Number(p[i][7]) || 0;
-      totalActive += Number(p[i][8]) || 0;
-    }
-  }
-
   var s = ss.getSheetByName('Sessions');
   if (!s) return;
   var row = findRowBySessionCode_(s, sessionCode);
   if (!row) return;
 
-  var totalMin = Math.round(totalElapsed / 60);
-  var activeMin = Math.round(totalActive / 60);
-  var idleMin = Math.max(0, totalMin - activeMin);
+  // 1) Rebuild session window from all logs
+  var win = computeSessionWindowMs_(ss, sessionCode);
+  var totalSecByWindow = Math.max(0, Math.round((win.endMs - win.startMs) / 1000));
+
+  // 2) Sum ACTIVE seconds from Task Progress (prefer any positive Active Time rows)
+  var p = ss.getSheetByName('Task Progress');
+  var activeSec = 0;
+  if (p && p.getLastRow() > 1) {
+    var pv = p.getDataRange().getValues();
+    for (var i = 1; i < pv.length; i++) {
+      if (pv[i][1] !== sessionCode) continue;
+      var eventType = pv[i][4];            // 'Started' / 'Completed' / 'Skipped'...
+      var act = Number(pv[i][8]) || 0;     // Active Time (sec)
+      // If you only want to count completed rows, keep the check below uncommented.
+      // if (eventType !== 'Completed') continue;
+      if (act > 0) activeSec += act;
+    }
+  }
+
+  // 3) Derive idle as "everything else in the window"
+  var idleSec = Math.max(0, totalSecByWindow - activeSec);
+
+  // 4) Write minutes (rounded)
+  var totalMin = Math.round(totalSecByWindow / 60);
+  var activeMin = Math.round(activeSec / 60);
+  var idleMin = Math.round(idleSec / 60);
 
   setByHeader_(s, row, 'Total Time (min)', totalMin);
   setByHeader_(s, row, 'Active Time (min)', activeMin);
   setByHeader_(s, row, 'Idle Time (min)', idleMin);
+
+  // 5) Self-heal Created Date & Last Activity if they were bad
+  var createdCell = getByHeader_(s, row, 'Created Date');
+  var lastCell    = getByHeader_(s, row, 'Last Activity');
+
+  if (parseTsMs_(createdCell) == null) {
+    setByHeader_(s, row, 'Created Date', new Date(win.startMs).toISOString());
+  }
+  if (parseTsMs_(lastCell) == null || parseTsMs_(lastCell) < win.endMs) {
+    setByHeader_(s, row, 'Last Activity', new Date(win.endMs).toISOString());
+  }
 }
+
 
 function getRequiredTasksForSession_(ss, sessionCode) {
   var sessionsSheet = ss.getSheetByName('Sessions');
@@ -1336,7 +1406,7 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     'Image Description',
     'Demographics Survey'
   ];
-  if (!isMobile) required.splice(3, 0, 'Virtual Campus Navigation'); // add VCN after ASLCT
+  if (!isMobile) required.splice(3, 0, 'Virtual Campus Navigation');
 
   if (String(consentStatus).toLowerCase() === 'declined') {
     required = required.filter(function (t) { return t !== 'Image Description'; });
@@ -1373,14 +1443,14 @@ function updateCompletedTasksCount(ss, sessionCode) {
   for (var i = 1; i < progress.length; i++) {
     if (progress[i][1] !== sessionCode) continue;
 
-    var eventType = progress[i][4]; // Column E: Event Type
-    var taskName = progress[i][3];  // Column D: Task Name
-    var details = String(progress[i][12] || '');
+    var eventType = progress[i][4];
+    var taskName  = progress[i][3];
+    var details   = String(progress[i][12] || '').toLowerCase();
 
     var isCompleted = (eventType === 'Completed');
     var isValidSkip = (eventType === 'Skipped' && (
-      (taskName === 'ASL Comprehension Test' && details.toLowerCase().indexOf('does not know asl') !== -1) ||
-      (taskName === 'Image Description' && details.toLowerCase().indexOf('video consent declined') !== -1)
+      (taskName === 'ASL Comprehension Test' && details.indexOf('does not know asl') !== -1) ||
+      (taskName === 'Image Description'      && details.indexOf('video consent declined') !== -1)
     ));
 
     if ((isCompleted || isValidSkip) && requiredSet[taskName]) {
@@ -1390,17 +1460,17 @@ function updateCompletedTasksCount(ss, sessionCode) {
 
   var completedCount = Object.keys(completedSet).length;
 
-  var sessionsSheet = ss.getSheetByName('Sessions');
-  var rows = sessionsSheet.getDataRange().getValues();
-  for (var r = 1; r < rows.length; r++) {
-    if (rows[r][0] === sessionCode) {
-      setByHeader_(sessionsSheet, r + 1, 'Tasks Completed', completedCount + '/' + required.length);
-      if (completedCount === required.length) {
-        setByHeader_(sessionsSheet, r + 1, 'Status', 'Complete');
-      }
-      break;
-    }
+  var s = ss.getSheetByName('Sessions');
+  if (!s) return;
+  var row = findRowBySessionCode_(s, sessionCode);
+  if (!row) return;
+
+  var hmap = headerMap_(s);
+  if (hmap['Tasks Completed']) {
+    s.getRange(row, hmap['Tasks Completed']).setNumberFormat('@');
   }
+  setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + required.length);
+  setByHeader_(s, row, 'Status', completedCount === required.length ? 'Complete' : 'Active');
 }
 
 function repairAllSessionCounts() {
@@ -1445,7 +1515,7 @@ function viewSessionActivity() {
 }
 
 // ===============================
-// Logging and utilities
+// Logging & lookups
 // ===============================
 function logSessionEvent(ss, ev) {
   var sheet = ss.getSheetByName('Session Events');
@@ -1503,7 +1573,7 @@ function getSessionData(ss, sessionCode) {
 }
 
 // ===============================
-// Enhanced video logging functions
+// Enhanced video logging
 // ===============================
 function logVideoEvent(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1541,7 +1611,7 @@ function logVideoUploadError(ss, data) {
 }
 
 // ===============================
-// EEG columns helpers
+// EEG columns + consent verify
 // ===============================
 function ensureEEGColumns_(ss) {
   var sheet = ss.getSheetByName('Sessions');
@@ -1588,7 +1658,6 @@ function setEEGStatus_(ss, sessionCode, status, scheduledAt, source, note) {
   }
 }
 
-// ---------- Consent verification columns ----------
 function ensureConsentColumns_(ss) {
   var sheet = ss.getSheetByName('Sessions');
   if (!sheet) return null;
@@ -1634,7 +1703,7 @@ function setConsentVerify_(ss, sessionCode, which, status, source, codeSuffix, t
 }
 
 // ===============================
-// Diagnostics
+// Diagnostics / utilities
 // ===============================
 function quickDiagnostic() {
   var ok = true;
@@ -1674,11 +1743,27 @@ function sendEEGReminderEmails() {
   }
 }
 
-// ===============================
-// Test function for debugging
-// ===============================
+function repairAllSessionTimes() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var s = ss.getSheetByName('Sessions');
+  if (!s || s.getLastRow() < 2) return 0;
+  enforceColumnFormats_(ss);
+
+  var vals = s.getDataRange().getValues();
+  var fixed = 0;
+  for (var r = 1; r < vals.length; r++) {
+    var code = vals[r][0];
+    if (!code) continue;
+    updateTotalTime(ss, code);
+    updateCompletedTasksCount(ss, code);
+    fixed++;
+  }
+  SpreadsheetApp.getUi().alert('Recomputed times for ' + fixed + ' sessions.');
+  return fixed;
+}
+
+
 function testVideoUpload() {
-  // Create a small test video
   var testData = 'dGVzdCB2aWRlbyBkYXRh'; // "test video data" in base64
 
   var result = handleVideoUpload({
@@ -1692,16 +1777,429 @@ function testVideoUpload() {
   SpreadsheetApp.getUi().alert('Test result: ' + JSON.stringify(result));
 }
 
-// ---- Convenience wrapper + menu ----
+// ---- Menu
 function safeSetupOrMigrate() { return safeSetupOrMigrate_(); }
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Study Admin')
     .addItem('Normalize Sessions sheet', 'normalizeSessionsSheet')
+    .addItem('Repair session times', 'repairAllSessionTimes')
     .addItem('Safe setup / migrate', 'safeSetupOrMigrate')
     .addItem('Test video upload', 'testVideoUpload')
     .addItem('Repair task counts', 'repairAllSessionCounts')
     .addItem('Test activity summary', 'testActivitySummary')
     .addItem('View session activity', 'viewSessionActivity')
+    .addItem('Repair sessions (formats + values)', 'repairCorruptedSessionCells')
+    .addSeparator()
+.addItem('Housekeeping → Inventory & clean (safe)', 'housekeepingSafeClean')
+.addItem('Housekeeping → Hide task raw sheets', 'hideTaskRawSheets')
+.addItem('Housekeeping → Unhide ALL sheets', 'unhideAllSheets')
+
     .addToUi();
+}
+
+// ===============================
+// Formats, timestamp normalizer, device detect, repairer
+// ===============================
+function enforceColumnFormats_(ss) {
+  var sh = ss.getSheetByName('Sessions');
+  if (!sh) return;
+  var map = headerMap_(sh);
+  var nRows = Math.max(1, sh.getMaxRows() - 1);
+
+  function fmt(h, format) {
+    if (map[h]) sh.getRange(2, map[h], nRows).setNumberFormat(format);
+  }
+
+  // Force text where Sheets loves to "help"
+  ['Tasks Completed','Status','Device Type','Consent Status','Consent Source','Consent Code',
+   'EEG Status','EEG Scheduling Source','Hearing Status','Fluency']
+    .forEach(function(h){ fmt(h, '@'); });
+
+  // ISO-like timestamps (24h clock)
+  ['Created Date','Last Activity','Consent Timestamp','EEG Scheduled At']
+    .forEach(function(h){ fmt(h, 'yyyy-mm-dd"T"HH:mm:ss.000"Z"'); });
+
+  // Plain integers
+  ['Total Time (min)','Active Time (min)','Idle Time (min)']
+    .forEach(function(h){ fmt(h, '0'); });
+}
+
+
+function normalizeIso_(val) {
+  if (!val) return new Date().toISOString();
+  if (val instanceof Date) return val.toISOString();
+
+  var s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s;
+
+  var n = Number(s);
+  if (!isNaN(n) && isFinite(n)) {
+    if (n > 1e12) return new Date(n).toISOString();
+    if (n > 1e9)  return new Date(n * 1000).toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function detectDeviceType_(data) {
+  var raw = (data.deviceType || '').toString();
+  var ua  = (data.userAgent || '').toString();
+  var mobile = /mobile|tablet/i.test(raw) || /Android|iPhone|iPad|Mobile/i.test(ua);
+  return { label: mobile ? 'Mobile/Tablet' : 'Desktop', isMobile: mobile };
+}
+
+function repairCorruptedSessionCells() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('Sessions');
+  if (!sh) return;
+
+  enforceColumnFormats_(ss);
+
+  var map = headerMap_(sh);
+  var lastRow = sh.getLastRow();
+  for (var r = 2; r <= lastRow; r++) {
+    var code = map['Session Code'] ? sh.getRange(r, map['Session Code']).getValue() : '';
+    if (!code) continue;
+
+    // Fix Created Date if not ISO-ish
+    if (map['Created Date']) {
+      var cd = sh.getRange(r, map['Created Date']).getValue();
+      var cdStr = cd instanceof Date ? cd.toISOString() : String(cd || '');
+      if (!/^\d{4}-\d{2}-\d{2}T/.test(cdStr)) {
+        var la = map['Last Activity'] ? sh.getRange(r, map['Last Activity']).getValue() : '';
+        var use = la ? normalizeIso_(la) : new Date().toISOString();
+        sh.getRange(r, map['Created Date']).setNumberFormat('@').setValue(use);
+      }
+    }
+
+    // Recompute times and tasks
+    updateTotalTime(ss, code);
+    updateCompletedTasksCount(ss, code);
+
+    // If Status is numeric/blank, set from tasks
+    if (map['Status']) {
+      var status = sh.getRange(r, map['Status']).getValue();
+      if (!status || typeof status === 'number') {
+        var tc = map['Tasks Completed'] ? String(sh.getRange(r, map['Tasks Completed']).getValue() || '') : '';
+        var parts = tc.split('/');
+        var st = (parts.length === 2 && Number(parts[0]) === Number(parts[1])) ? 'Complete' : 'Active';
+        sh.getRange(r, map['Status']).setValue(st);
+      }
+    }
+
+    // If Device Type is blank/garbled, default from State JSON
+    if (map['Device Type']) {
+      var dt = sh.getRange(r, map['Device Type']).getValue();
+      var looksBad = (dt instanceof Date) || (typeof dt === 'number') || /AM|PM/.test(String(dt));
+      if (!dt || looksBad) {
+        var state = map['State JSON'] ? String(sh.getRange(r, map['State JSON']).getValue() || '') : '';
+        var isMobile = /"isMobile"\s*:\s*true/i.test(state);
+        sh.getRange(r, map['Device Type']).setValue(isMobile ? 'Mobile/Tablet' : 'Desktop');
+      }
+    }
+
+    // Default Consent Status if missing
+    if (map['Consent Status']) {
+      var cs = sh.getRange(r, map['Consent Status']).getValue();
+      if (!cs) sh.getRange(r, map['Consent Status']).setValue('Pending');
+    }
+  }
+
+  enforceColumnFormats_(ss);
+  SpreadsheetApp.getUi().alert('Repair complete 👍');
+}
+
+/**************
+ * HOUSEKEEPING MODULE
+ * - Inventory all sheets
+ * - Consolidate old video logs into "Video Tracking"
+ * - Hide/Archive deprecated or duplicate/empty sheets
+ * - Keep WIAT/MRT/Spatial Navigation raw sheets (hidden)
+ **************/
+
+var HOUSEKEEPING_CONFIG = {
+  // Sheets we want to keep visible as the clean “home”
+  mustKeep: [
+    'Sessions','Task Progress','Session Events',
+    'Video Tracking','Email Reminders',
+    'Scores Summary','ASLCT Scores','WIAT Scores',
+    'Dashboard'
+  ],
+
+  // Sheets to hide (but keep) if they match this prefix/regex (raw task data)
+  taskRawRegex: /^(WIAT|MRT|Spatial\s*Navigation)/i,
+
+  // Known legacy or noise sheets we can archive/hide (delete only if truly empty)
+  deprecatedNames: [
+    'Video_Uploads','Video_Upload_Errors','Sessions__normalized__tmp',
+    'Events','Logs','tmp','test','Sheet1'
+  ],
+
+  // Never delete; if present we just hide them.
+  neverDeleteRegex: [/^Sessions__backup_/i],
+
+  // “Archive” is just rename + hide (safer than moving to a new file)
+  archivePrefix: 'zzz_ARCHIVE_',
+
+  // Consider a sheet deletable only if it has no data and no headers
+  deleteIfTrulyEmpty: true
+};
+
+
+// ---------- Inventory helpers ----------
+function listSheets_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var all = ss.getSheets();
+  return all.map(function(sh){
+    var name = sh.getName();
+    var lastRow = sh.getLastRow();
+    var lastCol = sh.getLastColumn();
+    var isHidden = sh.isSheetHidden();
+    var looksRawTask = HOUSEKEEPING_CONFIG.taskRawRegex.test(name);
+    var isDeprecated = HOUSEKEEPING_CONFIG.deprecatedNames.indexOf(name) !== -1;
+    var isMustKeep = HOUSEKEEPING_CONFIG.mustKeep.indexOf(name) !== -1;
+    var neverDelete = HOUSEKEEPING_CONFIG.neverDeleteRegex.some(function(rx){return rx.test(name);});
+    return {
+      name: name,
+      lastRow: lastRow,
+      lastCol: lastCol,
+      isHidden: isHidden,
+      looksRawTask: looksRawTask,
+      isDeprecated: isDeprecated,
+      isMustKeep: isMustKeep,
+      neverDelete: neverDelete
+    };
+  });
+}
+
+function sheetIsTrulyEmpty_(sheet) {
+  var lr = sheet.getLastRow();
+  var lc = sheet.getLastColumn();
+  if (lr === 0 || lc === 0) return true;
+  if (lr > 1) return false; // has data rows
+  // lr === 1 → check if header row is actually blank
+  var vals = sheet.getRange(1,1,1,lc).getValues()[0];
+  var any = vals.some(function(v){ return String(v||'').trim() !== ''; });
+  return !any;
+}
+
+
+// ---------- Consolidation of legacy video logs ----------
+function consolidateVideoSheets_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // If your main script already migrates, calling this is harmless (idempotent).
+  if (typeof migrateVideoSheets_ === 'function') {
+    migrateVideoSheets_(ss);
+    return 'migrated via migrateVideoSheets_()';
+  }
+
+  // Fallback: copy rows manually if migrateVideoSheets_ doesn't exist
+  var tracking = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
+  if (tracking.getLastRow() === 0) {
+    tracking.getRange(1,1,1,12).setValues([[
+      'Timestamp','Session Code','Image Number','Filename','File ID','File URL',
+      'File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'
+    ]]);
+  }
+
+  var moved = 0;
+  ['Video_Uploads','Video_Upload_Errors'].forEach(function(oldName){
+    var old = ss.getSheetByName(oldName);
+    if (!old) return;
+    var data = old.getDataRange().getValues();
+    if (data.length > 1) {
+      // Normalize columns if needed
+      for (var r = 1; r < data.length; r++) {
+        var row = data[r];
+        if (oldName === 'Video_Upload_Errors') {
+          // best-effort map into standard shape
+          tracking.appendRow([
+            row[0], row[1], row[2], '', '', '', '', row[4] || '', row[5] || '',
+            '', 'error', row[3] || ''
+          ]);
+        } else {
+          // assume close enough to current schema
+          tracking.appendRow(row.concat(Array(Math.max(0,12-row.length)).fill('')).slice(0,12));
+        }
+        moved++;
+      }
+    }
+    // rename & hide old sheet rather than delete
+    if (old.getName().indexOf(HOUSEKEEPING_CONFIG.archivePrefix) !== 0) {
+      old.setName(HOUSEKEEPING_CONFIG.archivePrefix + old.getName());
+    }
+    old.hideSheet();
+  });
+
+  return 'moved ' + moved + ' rows';
+}
+
+
+// ---------- Decide what to do with each sheet ----------
+function planHousekeeping_() {
+  var rows = listSheets_();
+  return rows.map(function(info){
+    var action = 'keep';
+    var notes = [];
+
+    if (info.isMustKeep) {
+      action = 'keep';
+    } else if (info.neverDelete) {
+      action = 'hide';
+      notes.push('never-delete pattern');
+    } else if (info.looksRawTask) {
+      action = 'hide';
+      notes.push('raw task sheet');
+    } else if (info.isDeprecated) {
+      // empty → delete; not empty → archive+hide
+      if (HOUSEKEEPING_CONFIG.deleteIfTrulyEmpty) {
+        var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(info.name);
+        if (sh && sheetIsTrulyEmpty_(sh)) {
+          action = 'delete';
+          notes.push('deprecated & empty');
+        } else {
+          action = 'archive';
+          notes.push('deprecated, archiving');
+        }
+      } else {
+        action = 'archive';
+        notes.push('deprecated, archiving');
+      }
+    } else if (/^Copy of /i.test(info.name) || /\(\d+\)$/.test(info.name)) {
+      // duplicates or imports
+      var sh2 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(info.name);
+      if (sh2 && sheetIsTrulyEmpty_(sh2)) {
+        action = 'delete';
+        notes.push('duplicate & empty');
+      } else {
+        action = 'archive';
+        notes.push('duplicate, archiving');
+      }
+    } else if (/^Sheet\d*$/.test(info.name)) {
+      // default Sheets created by accident
+      var sh3 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(info.name);
+      if (sh3 && sheetIsTrulyEmpty_(sh3)) {
+        action = 'delete';
+        notes.push('unused default & empty');
+      } else {
+        action = 'hide';
+        notes.push('unused default');
+      }
+    } else {
+      action = 'keep';
+    }
+
+    // We never propose action on "Housekeeping Report" itself (always keep)
+    if (info.name === 'Housekeeping Report') {
+      action = 'keep';
+      notes.push('this report');
+    }
+
+    return {
+      name: info.name,
+      lastRow: info.lastRow,
+      visible: !info.isHidden,
+      action: action,
+      notes: notes.join('; ')
+    };
+  });
+}
+
+
+// ---------- Execute plan (safe) ----------
+function housekeepingSafeClean() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Always consolidate video legacy sheets first
+  var consolidation = consolidateVideoSheets_();
+
+  var plan = planHousekeeping_();
+  var log = [];
+  plan.forEach(function(item){
+    var sh = ss.getSheetByName(item.name);
+    if (!sh) return;
+
+    if (HOUSEKEEPING_CONFIG.mustKeep.indexOf(item.name) !== -1 || item.name === 'Housekeeping Report') {
+      // ensure visible
+      sh.showSheet();
+      log.push([item.name, 'keep', sh.getLastRow(), item.notes || '']);
+      return;
+    }
+
+    switch (item.action) {
+      case 'keep':
+        sh.showSheet();
+        log.push([item.name, 'keep', sh.getLastRow(), item.notes || '']);
+        break;
+
+      case 'hide':
+        sh.hideSheet();
+        log.push([item.name, 'hide', sh.getLastRow(), item.notes || '']);
+        break;
+
+      case 'archive':
+        if (sh.getName().indexOf(HOUSEKEEPING_CONFIG.archivePrefix) !== 0) {
+          sh.setName(HOUSEKEEPING_CONFIG.archivePrefix + sh.getName());
+        }
+        sh.hideSheet();
+        log.push([item.name, 'archive+hide', sh.getLastRow(), item.notes || '']);
+        break;
+
+      case 'delete':
+        // Only delete truly empty sheets
+        if (sheetIsTrulyEmpty_(sh)) {
+          ss.deleteSheet(sh);
+          log.push([item.name, 'deleted', 0, item.notes || '']);
+        } else {
+          // Failsafe: archive+hide if we found data
+          if (sh.getName().indexOf(HOUSEKEEPING_CONFIG.archivePrefix) !== 0) {
+            sh.setName(HOUSEKEEPING_CONFIG.archivePrefix + sh.getName());
+          }
+          sh.hideSheet();
+          log.push([item.name, 'archive+hide (was not empty)', sh.getLastRow(), item.notes || '']);
+        }
+        break;
+    }
+  });
+
+  // Write report
+  createOrReplaceHousekeepingReport_(log, consolidation);
+
+  SpreadsheetApp.getUi().alert('Housekeeping complete. See "Housekeeping Report".');
+}
+
+
+// ---------- Report ----------
+function createOrReplaceHousekeepingReport_(rows, consolidationNote) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('Housekeeping Report');
+  if (sh) ss.deleteSheet(sh);
+  sh = ss.insertSheet('Housekeeping Report');
+  sh.getRange(1,1,1,4).setValues([['Sheet Name','Action','Last Row','Notes']]);
+  if (rows && rows.length) {
+    sh.getRange(2,1,rows.length,4).setValues(rows);
+  }
+  sh.autoResizeColumns(1,4);
+  sh.getRange('A1:D1').setFontWeight('bold').setBackground('#f1f3f4');
+  if (consolidationNote) {
+    sh.getRange(1,6).setValue('Video consolidation: ' + consolidationNote);
+  }
+}
+
+
+// ---------- Quick utilities ----------
+function hideTaskRawSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.getSheets().forEach(function(sh){
+    if (HOUSEKEEPING_CONFIG.taskRawRegex.test(sh.getName())) {
+      sh.hideSheet();
+    }
+  });
+  SpreadsheetApp.getUi().alert('Task raw sheets hidden.');
+}
+
+function unhideAllSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.getSheets().forEach(function(sh){ sh.showSheet(); });
+  SpreadsheetApp.getUi().alert('All sheets unhidden.');
 }
