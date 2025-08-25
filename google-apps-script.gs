@@ -643,7 +643,7 @@ function getOrCreateParticipantFolder(parent, sessionCode) {
 // ===============================
 function createSession(ss, data) {
   var sheet = ss.getSheetByName('Sessions');
-  var isMobile = (data.sequenceIndex === -1) || data.deviceType === 'mobile/tablet';
+  var isMobile = data.deviceType === 'mobile/tablet';
   var totalTasks = isMobile ? 6 : 7;
   var deviceType = isMobile ? 'Mobile/Tablet' : 'Desktop';
 
