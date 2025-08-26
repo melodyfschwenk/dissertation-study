@@ -724,7 +724,7 @@
           </div>
           <p style="margin-top: 20px;">Total time: <strong id="total-time">0</strong> minutes</p>
           <div class="button-group" style="margin-top:30px;">
-            <button class="button success" id="mark-complete-btn" onclick="markComplete()">Mark Me Complete</button>
+            <button class="button success" id="mark-complete-btn" onclick="markComplete()">I'm finished</button>
           </div>
           <p id="completion-message" style="display:none; margin-top:20px; color: var(--text-secondary);">
             ✅ Your participation has been recorded. You may now close this window.
@@ -876,6 +876,12 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
         [a[i], a[j]] = [a[j], a[i]];
       }
       return a;
+    }
+
+    function ensureDemographicsLast(sequence) {
+      const filtered = (sequence || []).filter(code => code !== 'DEMO');
+      filtered.push('DEMO');
+      return filtered;
     }
 
     // Detect if mobile/tablet
@@ -1216,7 +1222,7 @@ function showScreen(screenId) {
         state.sequence = shuffleWithSeed(DESKTOP_TASKS, seed);
         state.isMobile = false;
       }
-      state.sequence.push('DEMO');
+      state.sequence = ensureDemographicsLast(state.sequence);
 
       state.startTime = Date.now();
       state.lastActivity = new Date().toISOString();
@@ -1252,6 +1258,7 @@ function showScreen(screenId) {
           return;
         }
         state = JSON.parse(data.session.state);
+        state.sequence = ensureDemographicsLast(state.sequence);
         saveState();
         updateSessionWidget();
         if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
@@ -1276,7 +1283,11 @@ function checkSavedSession() {
       // Delay so it doesn’t clash with initial UI
       setTimeout(() => {
         if (confirm(`Welcome back! Resume session ${recentCode}?`)) {
-          state = data; updateSessionWidget(); showProgressScreen();
+          state = data;
+          state.sequence = ensureDemographicsLast(state.sequence);
+          saveState();
+          updateSessionWidget();
+          showProgressScreen();
         }
       }, 700); // ~0.7s feels smooth with your animations
     }
