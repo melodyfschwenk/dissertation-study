@@ -513,11 +513,11 @@ function safeSetupOrMigrate_() {
 
   // Score tracking
   ensureSheetWithHeaders_(ss, 'ASLCT Scores', ['Session Code','ASLCT Score','Entry Time','Notes']);
-  ensureSheetWithHeaders_(ss, 'WIAT Scores', ['Session Code','WIAT Score','Entry Time','Notes']);
-  var summary = ensureSheetWithHeaders_(ss, 'Scores Summary', ['Session Code','ASLCT Score','WIAT Score']);
+  ensureSheetWithHeaders_(ss, 'RC Scores', ['Session Code','RC Score','Entry Time','Notes']);
+  var summary = ensureSheetWithHeaders_(ss, 'Scores Summary', ['Session Code','ASLCT Score','RC Score']);
   if (summary.getLastRow() < 2) {
     summary.getRange('B2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'ASLCT Scores\'!A:B,2,false),"")))');
-    summary.getRange('C2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'WIAT Scores\'!A:B,2,false),"")))');
+    summary.getRange('C2').setFormula('=ARRAYFORMULA(IF(A2:A="",,IFERROR(VLOOKUP(A2:A,\'RC Scores\'!A:B,2,false),"")))');
   }
 
   // Dynamic columns + dashboard
@@ -554,8 +554,8 @@ function safeSetupOrMigrate_() {
   dash.getRange('A15').setValue('Score Entries');
   dash.getRange('A16').setValue('ASLCT Scores Entered');
   dash.getRange('B16').setFormula('=COUNTA(\'ASLCT Scores\'!A2:A)');
-  dash.getRange('A17').setValue('WIAT Scores Entered');
-  dash.getRange('B17').setFormula('=COUNTA(\'WIAT Scores\'!A2:A)');
+  dash.getRange('A17').setValue('RC Scores Entered');
+  dash.getRange('B17').setFormula('=COUNTA(\'RC Scores\'!A2:A)');
 
   dash.getRange('A19').setValue('EEG Interested');
   var eegStatusCol = sessionsSheet.getRange(1, eegCols.status).getA1Notation().replace(/[0-9]/g, '');
@@ -1407,7 +1407,7 @@ function updateTotalTime(ss, sessionCode) {
 
 function normalizeTaskName_(name) {
   var map = {
-    'Reading Comprehension (WIAT)': 'Reading Comprehension Task'
+    'Reading Comprehension (RC)': 'Reading Comprehension Task'
   };
   return map[name] || name;
 }
@@ -1949,7 +1949,7 @@ function repairCorruptedSessionCells() {
  * - Inventory all sheets
  * - Consolidate old video logs into "Video Tracking"
  * - Hide/Archive deprecated or duplicate/empty sheets
- * - Keep WIAT/MRT/Spatial Navigation raw sheets (hidden)
+ * - Keep RC/MRT/Spatial Navigation raw sheets (hidden)
  **************/
 
 var HOUSEKEEPING_CONFIG = {
@@ -1957,12 +1957,12 @@ var HOUSEKEEPING_CONFIG = {
   mustKeep: [
     'Sessions','Task Progress','Session Events',
     'Video Tracking','Email Reminders',
-    'Scores Summary','ASLCT Scores','WIAT Scores',
+    'Scores Summary','ASLCT Scores','RC Scores',
     'Dashboard'
   ],
 
   // Sheets to hide (but keep) if they match this prefix/regex (raw task data)
-  taskRawRegex: /^(WIAT|MRT|Spatial\s*Navigation)/i,
+  taskRawRegex: /^(RC|MRT|Spatial\s*Navigation)/i,
 
   // Known legacy or noise sheets we can archive/hide (delete only if truly empty)
   deprecatedNames: [
