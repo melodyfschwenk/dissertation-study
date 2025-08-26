@@ -127,6 +127,8 @@
     .button.optional:hover:not(:disabled) { background: var(--info-light); }
     .button.outline { background: white; color: var(--primary); border: 1px solid var(--primary); }
     .button.outline:hover:not(:disabled) { background: var(--primary-light); color: white; }
+    .button.skip { background: var(--gray-200); color: var(--text-secondary); border: 1px solid var(--gray-300); font-size: 14px; padding: 6px 12px; min-height: 32px; }
+    .button.skip:hover:not(:disabled) { background: var(--gray-300); }
     .button-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
 
     /* Session widget */
@@ -513,6 +515,10 @@
     </p>
   </div>
 
+  <div class="info-box friendly-tip" role="status" style="margin-top: 12px;">
+    Participation is your choice. We ask that you try every task. Your answers help our research the most when you complete all tasks. There is no judgment. Try your best. If you have trouble, email us at <a class="support-email"></a> for help instead of skipping.
+  </div>
+
   <p style="color: var(--text-secondary); margin-bottom: 16px;">
     If you already completed these in the Qualtrics screener, you can verify with a code (optional) or affirm completion below.
   </p>
@@ -589,16 +595,12 @@
       <!-- Progress -->
       <div class="screen" id="progress-screen">
         <h2>Your Study Progress</h2>
-        <div class="policy-callout" id="completion-policy">
-  <h3><strong>For full compensation</strong></h3>
-  <ul>
-    <li>Please complete all tasks shown below in the order listed.</li>
-    <li>Estimated total time: <strong>45–60 minutes</strong>.</li>
-    <li>You can pause and resume anytime with your code.</li>
-    <li>If you run into any issues, <strong>email us</strong>—we're happy to help!</li>
-    <li style="margin-top:6px; color:#444;"><em>Note:</em> If you <em>decline</em> the optional video consent, the video task won’t be required.</li>
-  </ul>
+        <div class="policy-callout" id="completion-policy" role="status">
+  <h3>Why every task matters</h3>
+  <p>Each task measures a different skill. Missing a task makes it harder to understand the full picture. If you can, please try every task. You can stop at any time.</p>
 </div>
+
+        <div class="info-box friendly-tip" id="skipped-notice" role="status" style="display:none; margin-top:12px;"></div>
 
         <div class="info-box friendly-tip" id="tech-vs-intent" style="margin-top: 12px;">
   <strong>🤝 Need help? We're here to help you succeed!</strong>
@@ -622,6 +624,9 @@
       <!-- Task Host -->
       <div class="screen" id="task-screen">
         <h2 id="task-title">Task Title</h2>
+        <div class="info-box friendly-tip" id="task-encouragement" role="status" style="margin-top:12px;">
+          Your effort matters. Please give this task your best try. There are no wrong answers. Partial completion is better than skipping.
+        </div>
         <div id="task-instructions" style="margin: 20px 0;"></div>
         <div id="task-content"></div>
       </div>
@@ -635,7 +640,7 @@
           <p>Please complete the video consent form to proceed with this task.</p>
           <div class="button-group" style="margin-top: 10px;">
             <button class="button optional" onclick="openConsent('CONSENT2')">Open Video Consent</button>
-            <button class="button secondary" id="skip-recording-consent-btn">Skip Task</button>
+            <button class="button skip" id="skip-recording-consent-btn">Unable to complete</button>
           </div>
         </div>
 
@@ -709,7 +714,7 @@
             </div>
           </div>
 
-          <button class="button secondary" id="skip-recording-btn" style="display: block; margin: 20px auto;">Skip This Task</button>
+          <button class="button skip" id="skip-recording-btn" style="display: block; margin: 20px auto;">Unable to complete</button>
         </div>
       </div>
 
@@ -734,7 +739,7 @@
     </div>
 
     <div class="footer">
-      <p>For technical support: <a href="mailto:action.brain.lab@gallaudet.edu">action.brain.lab@gallaudet.edu</a></p>
+      <p>For technical support: <a class="support-email"></a></p>
       <p style="margin-top: 10px; font-size: 14px;">Your progress is automatically saved after each task.</p>
     </div>
   </div>
@@ -762,7 +767,7 @@
       <div class="info-box helpful" style="margin: 20px 0;">
         <strong>Contact the Action Brain Lab:</strong>
         <p style="margin-top: 10px;">
-          Email: <strong>action.brain.lab@gallaudet.edu</strong>
+          Email: <strong class="support-email"></strong>
           <button class="button optional outline" onclick="copyEmail(this)" style="margin-left: 10px;">Copy Email</button>
         </p>
       </div>
@@ -784,25 +789,37 @@
     </div>
   </div>
   
+<!-- Pre-Skip Modal -->
+<div class="modal" id="pre-skip-modal">
+  <div class="modal-content">
+    <h3>Before you skip, can we help?</h3>
+    <p>This task is important to the study.</p>
+    <div class="button-group">
+      <button class="button primary" id="pre-skip-try-btn">I will try it</button>
+      <button class="button secondary" id="pre-skip-help-btn">Get help by email</button>
+      <button class="button secondary" id="pre-skip-break-btn">Take a break</button>
+      <button class="button skip" id="pre-skip-skip-btn">I still need to skip</button>
+    </div>
+  </div>
+</div>
+
 <!-- Skip Modal -->
 <div class="modal" id="skip-modal">
   <div class="modal-content">
-    <h3>⚠️ Before skipping <span id="skip-task-name">this task</span></h3>
-    <p style="margin-top: 8px;">Having trouble? We'd love to help you complete it!</p>
+    <h3>Important: Skipping reduces research quality</h3>
+    <p>When a task is skipped, we lose data that cannot be replaced. If you can, please try the task first. There are no wrong answers.</p>
     <ul style="text-align:left; margin: 12px 0 0 20px;">
-      <li>Try refreshing or switching browsers first</li>
-      <li>Email us for technical support</li>
-      <li>Let us know about accessibility needs</li>
-      <li>We can often find solutions together!</li>
+      <li>The task looks hard: That is OK. Try your best.</li>
+      <li>Tech problem: We can help. Email <a class="support-email"></a>.</li>
+      <li>Instructions are not clear: We can explain. Email <a class="support-email"></a>.</li>
+      <li>Feeling frustrated: Take a short break, then come back.</li>
     </ul>
     <div class="button-group" style="margin-top: 16px;">
-      <button class="button outline" id="skip-help-btn">Get Help First</button>
-      <button class="button secondary" id="skip-confirm-btn">Skip if Necessary</button>
+      <button class="button primary" id="skip-help-btn">Get help</button>
+      <button class="button secondary" id="skip-try-btn">Try it now</button>
+      <button class="button secondary" id="skip-break-btn">Take a break</button>
+      <button class="button skip" id="skip-confirm-btn">Unable to complete</button>
     </div>
-    <p style="margin-top:12px; color:#444;">
-  <em>Note:</em> If you are skipping due to a technical issue, email us so we can help
-</p>
-    <button class="button" style="margin-top:10px;" id="skip-cancel-btn">Never mind</button>
   </div>
 </div>
 
@@ -813,9 +830,19 @@
   IMAGE_1: 'images/description1.jpg',
   IMAGE_2: 'images/description2.jpg',
   ASLCT_ACCESS_CODE: 'DVCWHNABJ',
-  EEG_CALENDLY_URL: 'https://calendly.com/action-brain-lab-gallaudet/spatial-cognition-eeg-only'
+  EEG_CALENDLY_URL: 'https://calendly.com/action-brain-lab-gallaudet/spatial-cognition-eeg-only',
+  SUPPORT_EMAIL: 'action.brain.lab@gallaudet.edu'
 };
 const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
+
+document.querySelectorAll('.support-email').forEach(el => {
+  el.textContent = CONFIG.SUPPORT_EMAIL;
+  if (el.tagName === 'A') el.href = `mailto:${CONFIG.SUPPORT_EMAIL}`;
+});
+
+document.querySelectorAll('.button.skip').forEach(btn => {
+  btn.title = `Please try the task first or email ${CONFIG.SUPPORT_EMAIL} for help`;
+});
 
 
     // ----- Tasks -----
@@ -892,7 +919,7 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
       return hasTouch && (mobileUA || isSmallScreen);
     }
 function tryMailto() {
-  const addr = 'action.brain.lab@gallaudet.edu';
+  const addr = CONFIG.SUPPORT_EMAIL;
   const subject = encodeURIComponent('[EEG Add-On] Scheduling — Session ' + (state.sessionCode || ''));
   const body = encodeURIComponent(`Hi Action Brain Lab,
 
@@ -907,7 +934,7 @@ Session code: ${state.sessionCode || ''}`);
 }
 
 function copyEmail(btn) {
-  const addr = 'action.brain.lab@gallaudet.edu';
+  const addr = CONFIG.SUPPORT_EMAIL;
   navigator.clipboard.writeText(addr).then(() => {
     if (btn) { const t = btn.textContent; btn.textContent = '✅ Copied!'; setTimeout(()=>btn.textContent=t, 1500); }
   });
@@ -928,6 +955,7 @@ function closeEEGModal() {
   sequence: [],
   currentTaskIndex: 0,
   completedTasks: [],
+  skippedTasks: [],
   startTime: null,
   totalTimeSpent: 0,
   totalActiveTime: 0,
@@ -1509,7 +1537,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ----- Progress -----
-    function showProgressScreen() { updateTaskList(); updateProgressBar(); updateSessionWidget(); showScreen('progress-screen'); }
+    function showProgressScreen() { updateTaskList(); updateProgressBar(); updateSessionWidget(); updateSkippedNotice(); showScreen('progress-screen'); }
+    function updateSkippedNotice() {
+      const box = document.getElementById('skipped-notice');
+      if (!box) return;
+      const count = state.skippedTasks.length;
+      if (count > 0) {
+        box.style.display = 'block';
+        box.textContent = `You have skipped ${count} task${count>1?'s':''}. Each task gives unique data. If you can, go back and try them. Even partial answers help. There is no judgment.`;
+      } else {
+        box.style.display = 'none';
+      }
+    }
     function updateTaskList() {
       const list = document.getElementById('task-list');
       list.innerHTML = '';
@@ -1662,7 +1701,7 @@ const reqs = TASKS[taskCode]?.requirements || '—';
     <div class="button-group" style="margin-top:12px;">
       <button class="button" id="start-embed">Continue</button>
       <button class="button outline" type="button" onclick="openSupportEmail('${taskCode}')">Report Technical Issue Instead</button>
-      ${task.canSkip ? `<button class="button secondary" onclick="showSkipDialog('${taskCode}')">Skip This Task</button>` : ''}
+      ${task.canSkip ? `<button class="button skip" onclick="showSkipDialog('${taskCode}')" title="Please try the task first or email ${CONFIG.SUPPORT_EMAIL} for help">Unable to complete</button>` : ''}
     </div>
   </div>
 
@@ -1821,8 +1860,8 @@ function showExternalTask(taskCode) {
   `;
   if (task.canSkip) {
     content.innerHTML += `
-      <button class="button secondary" onclick="showSkipDialog('${taskCode}')" style="display: block; margin: 20px auto;">
-        ${taskCode === 'ASLCT' ? 'Skip - I Do Not Know ASL' : 'Skip This Task'}
+      <button class="button skip" onclick="showSkipDialog('${taskCode}')" style="display: block; margin: 20px auto;" title="Please try the task first or email ${CONFIG.SUPPORT_EMAIL} for help">
+        ${taskCode === 'ASLCT' ? 'Unable to complete - I do not know ASL' : 'Unable to complete'}
       </button>
     `;
   }
@@ -2581,7 +2620,7 @@ function updateUploadProgress(percent, message) {
     }
 
     async function skipRecording() {
-      if (!confirm('Skip the image description task?')) return;
+      if (!confirm('Unable to complete the image description task?')) return;
       try { await cleanupRecording(); } catch(e) { console.warn('Cleanup on skip failed silently:', e); }
       ensureTaskPointer('ID'); skipTask('ID');
     }
@@ -2612,6 +2651,7 @@ function updateUploadProgress(percent, message) {
       state.totalTimeSpent += summary.elapsed;
       state.totalActiveTime += summary.active;
       if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
+      state.skippedTasks = state.skippedTasks.filter(code => code !== taskCode);
       state.currentTaskIndex++;
       while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
@@ -2647,6 +2687,7 @@ function updateUploadProgress(percent, message) {
         }
       }
       if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
+      if (!state.skippedTasks.includes(taskCode)) state.skippedTasks.push(taskCode);
       state.currentTaskIndex++;
       while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
@@ -2748,33 +2789,44 @@ function markEEGScheduled() {
   alert('Thanks. We marked EEG as scheduled on our side.');
 }
 
+    let pendingSkipTask = null;
     function showSkipDialog(taskCode) {
-  const modal = document.getElementById('skip-modal');
-  const nameEl = document.getElementById('skip-task-name');
-  nameEl.textContent = (TASKS[taskCode]?.name) || 'this task';
-  modal.classList.add('active');
+      pendingSkipTask = taskCode;
+      const pre = document.getElementById('pre-skip-modal');
+      pre.classList.add('active');
+    }
+    document.getElementById('pre-skip-try-btn').onclick = () => {
+      document.getElementById('pre-skip-modal').classList.remove('active');
+    };
+    document.getElementById('pre-skip-help-btn').onclick = () => {
+      document.getElementById('pre-skip-modal').classList.remove('active');
+      openSupportEmail(pendingSkipTask);
+      sendToSheets({ action: 'help_requested', sessionCode: state.sessionCode || 'none', task: getStandardTaskName(pendingSkipTask), timestamp: new Date().toISOString() });
+    };
+    document.getElementById('pre-skip-break-btn').onclick = () => {
+      document.getElementById('pre-skip-modal').classList.remove('active');
+      pauseSession();
+    };
+    document.getElementById('pre-skip-skip-btn').onclick = () => {
+      document.getElementById('pre-skip-modal').classList.remove('active');
+      document.getElementById('skip-modal').classList.add('active');
+    };
 
-  const helpBtn = document.getElementById('skip-help-btn');
-  const confirmBtn = document.getElementById('skip-confirm-btn');
-  const cancelBtn = document.getElementById('skip-cancel-btn');
-
-  helpBtn.onclick = () => {
-    openSupportEmail(taskCode);
-    sendToSheets({
-      action: 'help_requested',
-      sessionCode: state.sessionCode || 'none',
-      task: getStandardTaskName(taskCode),
-      timestamp: new Date().toISOString()
-    });
-  };
-
-  confirmBtn.onclick = async () => {
-    modal.classList.remove('active');
-    await skipTaskProceed(taskCode);
-  };
-
-  cancelBtn.onclick = () => modal.classList.remove('active');
-}
+    document.getElementById('skip-help-btn').onclick = () => {
+      openSupportEmail(pendingSkipTask);
+      sendToSheets({ action: 'help_requested', sessionCode: state.sessionCode || 'none', task: getStandardTaskName(pendingSkipTask), timestamp: new Date().toISOString() });
+    };
+    document.getElementById('skip-try-btn').onclick = () => {
+      document.getElementById('skip-modal').classList.remove('active');
+    };
+    document.getElementById('skip-break-btn').onclick = () => {
+      document.getElementById('skip-modal').classList.remove('active');
+      pauseSession();
+    };
+    document.getElementById('skip-confirm-btn').onclick = async () => {
+      document.getElementById('skip-modal').classList.remove('active');
+      await skipTaskProceed(pendingSkipTask);
+    };
 
 function openSupportEmail() {
   const subject = encodeURIComponent('Technical Support Request - Spatial Cognition Study');
@@ -2788,7 +2840,7 @@ What I've tried:
 Accessibility needs (if any): 
 
 Thank you!`);
-  window.open(`mailto:action.brain.lab@gallaudet.edu?subject=${subject}&body=${body}`, '_blank');
+  window.open(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_blank');
 }
 
 // Do the actual skip (handles video task cleanup)
