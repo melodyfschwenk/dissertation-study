@@ -2676,6 +2676,7 @@ function updateUploadProgress(percent, message) {
       await sendToSheets({
         action: 'study_completed',
         sessionCode: state.sessionCode,
+        status: 'Complete',
         totalDuration: Math.round(state.totalTimeSpent / 60000),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         timestamp: new Date().toISOString()
