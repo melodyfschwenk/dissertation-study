@@ -838,6 +838,7 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
     // Add this after TASKS definition
     function getStandardTaskName(taskCode) {
       const mapping = {
+        'WIAT': 'Reading Comprehension Task',
         'RC': 'Reading Comprehension Task',
         'MRT': 'Mental Rotation Task',
         'ASLCT': 'ASL Comprehension Test',

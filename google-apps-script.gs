@@ -1405,6 +1405,12 @@ function updateTotalTime(ss, sessionCode) {
   }
 }
 
+function normalizeTaskName_(name) {
+  var map = {
+    'Reading Comprehension (WIAT)': 'Reading Comprehension Task'
+  };
+  return map[name] || name;
+}
 
 function getRequiredTasksForSession_(ss, sessionCode) {
   var sessionsSheet = ss.getSheetByName('Sessions');
@@ -1455,13 +1461,15 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     required = required.filter(function (t) { return t !== 'ASL Comprehension Test'; });
   }
 
-  return required;
+  return required.map(normalizeTaskName_);
 }
 
 function updateCompletedTasksCount(ss, sessionCode) {
   var required = getRequiredTasksForSession_(ss, sessionCode);
   var requiredSet = {};
-  for (var k = 0; k < required.length; k++) requiredSet[required[k]] = true;
+  for (var k = 0; k < required.length; k++) {
+    requiredSet[normalizeTaskName_(required[k])] = true;
+  }
 
   var progress = ss.getSheetByName('Task Progress').getDataRange().getValues();
   var completedSet = {};
@@ -1470,7 +1478,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
     if (progress[i][1] !== sessionCode) continue;
 
     var eventType = progress[i][5];
-    var taskName  = progress[i][4];
+    var taskName  = normalizeTaskName_(progress[i][4]);
     var details   = String(progress[i][13] || '').toLowerCase();
 
     var isCompleted = (eventType === 'Completed');
@@ -1485,6 +1493,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
   }
 
   var completedCount = Object.keys(completedSet).length;
+  var requiredTotal = Object.keys(requiredSet).length;
 
   var s = ss.getSheetByName('Sessions');
   if (!s) return;
@@ -1495,8 +1504,8 @@ function updateCompletedTasksCount(ss, sessionCode) {
   if (hmap['Tasks Completed']) {
     s.getRange(row, hmap['Tasks Completed']).setNumberFormat('@');
   }
-  setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + required.length);
-  setByHeader_(s, row, 'Status', completedCount === required.length ? 'Complete' : 'Active');
+  setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + requiredTotal);
+  setByHeader_(s, row, 'Status', completedCount === requiredTotal ? 'Complete' : 'Active');
 }
 
 function repairAllSessionCounts() {
