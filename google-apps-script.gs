@@ -331,6 +331,18 @@ function ensureSheetWithHeaders_(ss, name, headers) {
         sheet.getRange(1, newCol).setValue(h);
       }
     });
+
+    // Re-fetch headers after any additions and reorder columns to match
+    headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+      .map(function (v) { return (v == null) ? '' : String(v); });
+    for (var i = 0; i < headers.length; i++) {
+      var desired = headers[i];
+      var currentIndex = headerRow.indexOf(desired);
+      if (currentIndex > -1 && currentIndex !== i) {
+        sheet.moveColumns(sheet.getRange(1, currentIndex + 1, sheet.getMaxRows(), 1), i + 1);
+        headerRow.splice(i, 0, headerRow.splice(currentIndex, 1)[0]);
+      }
+    }
   }
 
   var finalCols = sheet.getLastColumn();
