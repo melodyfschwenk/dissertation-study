@@ -1255,7 +1255,7 @@ function completeStudy(ss, data) {
   }
   setByHeader_(s, row, 'Total Time (min)', data.totalDuration || 0);
   setByHeader_(s, row, 'Tasks Completed', required.length + '/' + required.length);
-  setByHeader_(s, row, 'Status', 'Complete');
+  setByHeader_(s, row, 'Status', data.status || 'Complete');
 
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
