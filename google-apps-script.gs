@@ -1116,7 +1116,7 @@ function logImageRecorded(ss, data) {
     data.sessionCode,
     data.participantID || '',
     dev,
-    'Image Description',
+    'ID',
     'Image ' + data.imageNumber + ' Recorded',
     '', '', 0, 0, 0, 0, 0,
     'Image ' + data.imageNumber + '/2',
@@ -1138,7 +1138,7 @@ function logImageRecordedAndUploaded(ss, data) {
     data.sessionCode,
     data.participantID || '',
     dev,
-    'Image Description',
+    'ID',
     'Image ' + data.imageNumber + ' Recorded & Uploaded',
     '', '', 0, 0, 0, 0, 0,
     'File: ' + data.filename,
@@ -1160,7 +1160,7 @@ function logImageRecordedNoUpload(ss, data) {
     data.sessionCode,
     data.participantID || '',
     dev,
-    'Image Description',
+    'ID',
     'Image ' + data.imageNumber + ' Recorded (Local Only)',
     '', '', 0, 0, 0, 0, 0,
     'Reason: ' + data.reason,
@@ -1182,7 +1182,7 @@ function logVideoRecording(ss, data) {
     data.sessionCode,
     data.participantID || '',
     dev,
-    'Image Description',
+    'ID',
     'Video Recorded - Image ' + data.imageNumber,
     '', '', 0, 0, 0, 0, 0,
     'Image ' + data.imageNumber + ' of 2 recorded',
@@ -1405,6 +1405,19 @@ function updateTotalTime(ss, sessionCode) {
   }
 }
 
+function normalizeTaskName_(name) {
+  var map = {
+    'Reading Comprehension (WIAT)': 'WIAT',
+    'Reading Comprehension Task': 'WIAT',
+    'Mental Rotation Task': 'MRT',
+    'ASL Comprehension Test': 'ASLCT',
+    'Virtual Campus Navigation': 'VCN',
+    'Spatial Navigation': 'SN',
+    'Image Description': 'ID',
+    'Demographics Survey': 'DEMO'
+  };
+  return map[name] || name;
+}
 
 function getRequiredTasksForSession_(ss, sessionCode) {
   var sessionsSheet = ss.getSheetByName('Sessions');
@@ -1422,27 +1435,28 @@ function getRequiredTasksForSession_(ss, sessionCode) {
       break;
     }
   }
-  var isMobile = String(deviceType).toLowerCase().indexOf('mobile') !== -1;
+  var dt = String(deviceType).toLowerCase();
+  var isMobile = dt.indexOf('mobile') !== -1 || dt.indexOf('tablet') !== -1;
 
   var required = [
-    'Reading Comprehension Task',
-    'Mental Rotation Task',
-    'ASL Comprehension Test',
-    'Spatial Navigation',
-    'Image Description',
-    'Demographics Survey'
+    'WIAT',
+    'MRT',
+    'ASLCT',
+    'SN',
+    'ID',
+    'DEMO'
   ];
-  if (!isMobile) required.splice(3, 0, 'Virtual Campus Navigation');
+  if (!isMobile) required.splice(3, 0, 'VCN');
 
   if (String(consentStatus).toLowerCase() === 'declined') {
-    required = required.filter(function (t) { return t !== 'Image Description'; });
+    required = required.filter(function (t) { return t !== 'ID'; });
   }
 
   var progress = ss.getSheetByName('Task Progress').getDataRange().getValues();
   var aslctOptional = false;
   for (var i = 1; i < progress.length; i++) {
     if (progress[i][1] === sessionCode &&
-        progress[i][4] === 'ASL Comprehension Test' &&
+        normalizeTaskName_(progress[i][4]) === 'ASLCT' &&
         progress[i][5] === 'Skipped') {
       var details = String(progress[i][13] || '').toLowerCase();
       if (details.indexOf('does not know asl') !== -1) {
@@ -1452,16 +1466,18 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     }
   }
   if (aslctOptional) {
-    required = required.filter(function (t) { return t !== 'ASL Comprehension Test'; });
+    required = required.filter(function (t) { return t !== 'ASLCT'; });
   }
 
-  return required;
+  return required.map(normalizeTaskName_);
 }
 
 function updateCompletedTasksCount(ss, sessionCode) {
   var required = getRequiredTasksForSession_(ss, sessionCode);
   var requiredSet = {};
-  for (var k = 0; k < required.length; k++) requiredSet[required[k]] = true;
+  for (var k = 0; k < required.length; k++) {
+    requiredSet[normalizeTaskName_(required[k])] = true;
+  }
 
   var progress = ss.getSheetByName('Task Progress').getDataRange().getValues();
   var completedSet = {};
@@ -1470,13 +1486,13 @@ function updateCompletedTasksCount(ss, sessionCode) {
     if (progress[i][1] !== sessionCode) continue;
 
     var eventType = progress[i][5];
-    var taskName  = progress[i][4];
+    var taskName  = normalizeTaskName_(progress[i][4]);
     var details   = String(progress[i][13] || '').toLowerCase();
 
     var isCompleted = (eventType === 'Completed');
     var isValidSkip = (eventType === 'Skipped' && (
-      (taskName === 'ASL Comprehension Test' && details.indexOf('does not know asl') !== -1) ||
-      (taskName === 'Image Description'      && details.indexOf('video consent declined') !== -1)
+      (taskName === 'ASLCT' && details.indexOf('does not know asl') !== -1) ||
+      (taskName === 'ID'    && details.indexOf('video consent declined') !== -1)
     ));
 
     if ((isCompleted || isValidSkip) && requiredSet[taskName]) {
@@ -1485,6 +1501,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
   }
 
   var completedCount = Object.keys(completedSet).length;
+  var requiredTotal = Object.keys(requiredSet).length;
 
   var s = ss.getSheetByName('Sessions');
   if (!s) return;
@@ -1495,8 +1512,8 @@ function updateCompletedTasksCount(ss, sessionCode) {
   if (hmap['Tasks Completed']) {
     s.getRange(row, hmap['Tasks Completed']).setNumberFormat('@');
   }
-  setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + required.length);
-  setByHeader_(s, row, 'Status', completedCount === required.length ? 'Complete' : 'Active');
+  setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + requiredTotal);
+  setByHeader_(s, row, 'Status', completedCount === requiredTotal ? 'Complete' : 'Active');
 }
 
 function repairAllSessionCounts() {

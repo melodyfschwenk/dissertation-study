@@ -269,7 +269,7 @@
           </div>
           <div class="session-detail">
             <label>Progress</label>
-            <div class="value" id="widget-progress">0/7</div>
+        <div class="value" id="widget-progress">0/0</div>
           </div>
           <div class="session-detail">
             <label>Time Spent</label>
@@ -838,15 +838,15 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
     // Add this after TASKS definition
     function getStandardTaskName(taskCode) {
       const mapping = {
-        'RC': 'Reading Comprehension Task',
-        'MRT': 'Mental Rotation Task',
-        'ASLCT': 'ASL Comprehension Test',
-        'VCN': 'Virtual Campus Navigation',
-        'SN': 'Spatial Navigation',
-        'ID': 'Image Description',
-        'DEMO': 'Demographics Survey'
+        'WIAT': 'WIAT',
+        'MRT': 'MRT',
+        'ASLCT': 'ASLCT',
+        'VCN': 'VCN',
+        'SN': 'SN',
+        'ID': 'ID',
+        'DEMO': 'DEMO'
       };
-      return mapping[taskCode] || TASKS[taskCode]?.name || taskCode;
+      return mapping[taskCode] || taskCode;
     }
 
     // ----- Consents -----
@@ -1079,19 +1079,23 @@ function handleDropboxAuth() {
 // Call on page load
 document.addEventListener('DOMContentLoaded', () => {
   handleDropboxAuth();
-      setupEventListeners();
-      // Secure-context guard: disable inline recording if not https
-if (!window.isSecureContext) {
-  // Hide the record button if the recording screen gets opened
-  const style = document.createElement('style');
-  style.textContent = `#record-btn { display: none !important; }`;
-  document.head.appendChild(style);
-}
+  setupEventListeners();
 
-      checkSavedSession();
+  const widgetProgress = document.getElementById('widget-progress');
+  if (widgetProgress) widgetProgress.textContent = `0/${isMobileDevice() ? 6 : 7}`;
 
-      // Gentle mobile notice content swap
-      if (isMobileDevice()) {
+  // Secure-context guard: disable inline recording if not https
+  if (!window.isSecureContext) {
+    // Hide the record button if the recording screen gets opened
+    const style = document.createElement('style');
+    style.textContent = `#record-btn { display: none !important; }`;
+    document.head.appendChild(style);
+  }
+
+  checkSavedSession();
+
+  // Gentle mobile notice content swap
+  if (isMobileDevice()) {
         const warning = document.getElementById('device-warning');
         if (warning) {
           warning.className = 'info-box friendly-tip';
