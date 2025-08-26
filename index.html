@@ -1025,7 +1025,7 @@ let taskTimer = {
 };
 
 function showInactivityPrompt() {
-  sendToSheets({ action: 'inactivity', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), timestamp: new Date().toISOString() });
+  sendToSheets({ action: 'inactivity', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
   if (confirm('Are you still there?')) {
     taskTimer.resume();
     taskTimer.recordActivity();
@@ -1044,7 +1044,7 @@ window.addEventListener('blur', () => {
   taskTimer.pause('blur');
   if (state.currentTaskType === 'external') {
     state.externalDepart = Date.now();
-    sendToSheets({ action: 'task_departed', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), timestamp: new Date().toISOString() });
+    sendToSheets({ action: 'task_departed', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
   }
 });
 
@@ -1054,7 +1054,7 @@ window.addEventListener('focus', () => {
     const away = Date.now() - state.externalDepart;
     taskTimer.activeTime += away;
     taskTimer.lastTick = Date.now();
-    sendToSheets({ action: 'task_returned', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), away: Math.round(away/1000), timestamp: new Date().toISOString() });
+    sendToSheets({ action: 'task_returned', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), away: Math.round(away/1000), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
     state.externalDepart = null;
   }
 });
@@ -1569,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else showExternalTask(taskCode);
 
       const startISO = new Date().toISOString();
-      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), timestamp: startISO, startTime: startISO });
+      sendToSheets({ action: 'task_started', sessionCode: state.sessionCode, task: getStandardTaskName(taskCode), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: startISO, startTime: startISO });
     }
 
     // ----- Distraction-free fallback -----
@@ -1801,7 +1801,7 @@ function showExternalTask(taskCode) {
     <div class="button-group">
       <a class="button" href="${task.url}" target="_blank" rel="noopener"
          aria-label="Open Task (opens in new tab)"
-         onclick="sendToSheets({ action: 'task_opened', sessionCode: state.sessionCode || 'none', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });">
+         onclick="sendToSheets({ action: 'task_opened', sessionCode: state.sessionCode || 'none', timestamp: new Date().toISOString(), userAgent: navigator.userAgent, deviceType: state.isMobile ? 'mobile/tablet' : 'desktop' });">
          Open Task
       </a>
       <button class="button success" onclick="completeTask('${taskCode}')">Mark Complete</button>
@@ -2135,13 +2135,14 @@ async function saveRecording() {
       });
 
       // Enhanced logging to Google Sheets
-      const logData = { 
-        action: 'image_recorded_and_uploaded', 
-        sessionCode: state.sessionCode, 
+      const logData = {
+        action: 'image_recorded_and_uploaded',
+        sessionCode: state.sessionCode,
         imageNumber: state.recording.currentImage + 1,
         driveFileId: uploadResult.fileId,
         filename: uploadResult.filename,
         timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         // Enhanced fields
         uploadMethod: uploadResult.uploadMethod,
         dropboxPath: uploadResult.dropboxPath || '',
@@ -2194,6 +2195,7 @@ async function saveRecording() {
       imageNumber: state.recording.currentImage + 1,
       error: error.message,
       timestamp: new Date().toISOString(),
+      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
       attemptedMethod: 'drive_then_dropbox',
       fallbackUsed: error.message.includes('Dropbox')
     });
@@ -2233,12 +2235,13 @@ function continueWithoutUpload() {
     });
 
     // Enhanced logging for skipped upload
-    sendToSheets({ 
-      action: 'image_recorded_no_upload', 
-      sessionCode: state.sessionCode, 
+    sendToSheets({
+      action: 'image_recorded_no_upload',
+      sessionCode: state.sessionCode,
       imageNumber: state.recording.currentImage + 1,
       reason: 'Upload failed - continued locally',
       timestamp: new Date().toISOString(),
+      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
       uploadMethod: 'local_only',
       uploadStatus: 'skipped'
     });
@@ -2612,7 +2615,8 @@ function updateUploadProgress(percent, message) {
         activity: Math.round(summary.activity),
         startTime: summary.start,
         endTime: summary.end,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
       };
       if (taskCode === 'ID' && state.recording && state.recording.recordingDuration) {
         payload.recordingDuration = Math.round(state.recording.recordingDuration/1000);
@@ -2640,7 +2644,8 @@ function updateUploadProgress(percent, message) {
         sessionCode: state.sessionCode,
         task: getStandardTaskName(taskCode),
         reason: taskCode === 'ASLCT' ? 'Does not know ASL' : taskCode === 'ID' ? (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 'User chose to skip',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
       });
       state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
@@ -2806,7 +2811,7 @@ async function skipTaskProceed(taskCode) {
 async function sendToSheets(payload) {
   if (!CONFIG.SHEETS_URL) return;
 
-  const body = { ...payload, userAgent: navigator.userAgent };
+  const body = { ...payload, userAgent: navigator.userAgent, deviceType: payload.deviceType || (state.isMobile ? 'mobile/tablet' : 'desktop') };
 
   try {
     await fetch(CONFIG.SHEETS_URL, {
