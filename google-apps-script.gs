@@ -1582,11 +1582,15 @@ function updateTotalTime(ss, sessionCode) {
     var createdCell = getByHeader_(s, row, 'Created Date');
     var lastCell    = getByHeader_(s, row, 'Last Activity');
 
+    var fixes = {};
     if (parseTsMs_(createdCell) == null) {
-      setByHeader_(s, row, 'Created Date', new Date(win.startMs).toISOString());
+      fixes['Created Date'] = new Date(win.startMs).toISOString();
     }
     if (parseTsMs_(lastCell) == null || parseTsMs_(lastCell) < win.endMs) {
-      setByHeader_(s, row, 'Last Activity', new Date(win.endMs).toISOString());
+      fixes['Last Activity'] = new Date(win.endMs).toISOString();
+    }
+    if (Object.keys(fixes).length) {
+      setManyByHeader_(s, row, fixes);
     }
   });
 }
