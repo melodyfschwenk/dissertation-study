@@ -245,6 +245,14 @@ function createCorsOutput(data) {
   return output;
 }
 
+// Concurrency guard
+function withDocLock_(fn) {
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try { return fn(); }
+  finally { lock.releaseLock(); }
+}
+
 // ===============================
 // Canonical headers + header helpers
 // ===============================
@@ -309,6 +317,7 @@ function findRowBySessionCode_(sheet, sessionCode) {
 // Non-destructive setup / migration
 // ===============================
 function ensureSheetWithHeaders_(ss, name, headers) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
 
@@ -352,9 +361,12 @@ function ensureSheetWithHeaders_(ss, name, headers) {
   sheet.setFrozenRows(1);
   sheet.autoResizeColumns(1, Math.min(finalCols, 20));
   return sheet;
+
+  });
 }
 
 function normalizeSessionsSheet_() {
+  return withDocLock_(function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var old = ss.getSheetByName('Sessions');
   if (!old) return;
@@ -408,6 +420,8 @@ function normalizeSessionsSheet_() {
   var oldName = 'Sessions__backup_' + new Date().toISOString().replace(/[:.]/g, '-');
   old.setName(oldName);
   tmp.setName('Sessions');
+
+  });
 }
 function normalizeSessionsSheet() { return normalizeSessionsSheet_(); }
 
@@ -421,6 +435,7 @@ function backupParticipantData_(ss) {
 }
 
 function cleanSessionsSheet_(ss) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Sessions');
   if (!sheet) return;
   var lastCol = sheet.getLastColumn();
@@ -454,9 +469,12 @@ function cleanSessionsSheet_(ss) {
     var idx = headers.indexOf(name);
     if (idx !== -1) sheet.deleteColumn(idx + 1);
   });
+
+  });
 }
 
 function migrateVideoSheets_(ss) {
+  return withDocLock_(function () {
   var headers = ['Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'];
   var tracking = ensureSheetWithHeaders_(ss, 'Video Tracking', headers);
 
@@ -481,9 +499,12 @@ function migrateVideoSheets_(ss) {
   }
 
   return tracking;
+
+  });
 }
 
 function safeSetupOrMigrate_() {
+  return withDocLock_(function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   backupParticipantData_(ss);
@@ -566,6 +587,8 @@ function safeSetupOrMigrate_() {
   getOrCreateStudyFolder();
 
   return true;
+
+  });
 }
 
 // ===============================
@@ -661,6 +684,7 @@ function handleVideoUpload(data) {
 // Setup helpers (destructive — only for brand new spreadsheets)
 // ===============================
 function initialSetup() {
+  return withDocLock_(function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   var sessionsSheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
@@ -701,6 +725,8 @@ function initialSetup() {
 
   getOrCreateStudyFolder();
   console.log('Destructive setup complete.');
+
+  });
 }
 
 function formatHeaders(sheet, nCols) {
@@ -766,6 +792,7 @@ function getOrCreateParticipantFolder(parent, sessionCode) {
 // Sessions and events
 // ===============================
 function createSession(ss, data) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Sessions') || ss.insertSheet('Sessions');
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, SESSIONS_HEADERS.length).setValues([SESSIONS_HEADERS]);
@@ -824,9 +851,12 @@ function createSession(ss, data) {
   } catch (e) {
     console.warn('Could not pre-create participant folder:', e);
   }
+
+  });
 }
 
 function resumeSession(ss, data) {
+  return withDocLock_(function () {
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
   logSessionEvent(ss, {
     sessionCode: data.sessionCode,
@@ -835,9 +865,12 @@ function resumeSession(ss, data) {
     timestamp: data.timestamp,
     userAgent: data.userAgent || ''
   });
+
+  });
 }
 
 function pauseSession(ss, data) {
+  return withDocLock_(function () {
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
   updateTotalTime(ss, data.sessionCode);
   logSessionEvent(ss, {
@@ -846,6 +879,8 @@ function pauseSession(ss, data) {
     details: 'Progress: ' + (data.progress || 'unknown'),
     timestamp: data.timestamp,
     userAgent: data.userAgent || ''
+  });
+
   });
 }
 
@@ -996,6 +1031,7 @@ function testActivitySummary() {
 // Task logging
 // ===============================
 function logTaskStart(ss, data) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   sheet.appendRow([
@@ -1019,9 +1055,12 @@ function logTaskStart(ss, data) {
     details: data.task,
     timestamp: data.timestamp
   });
+
+  });
 }
 
 function logTaskComplete(ss, data) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Task Progress');
   var details = data.details || '';
   var activityPct = data.activity || (data.elapsed ? (data.active / data.elapsed * 100) : 0);
@@ -1068,6 +1107,8 @@ function logTaskComplete(ss, data) {
       timestamp: data.timestamp
     });
   }
+
+  });
 }
 
 function getParticipantIDFromSession(ss, sessionCode) {
@@ -1079,6 +1120,7 @@ function getParticipantIDFromSession(ss, sessionCode) {
 }
 
 function logTaskSkipped(ss, data) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   sheet.appendRow([
@@ -1103,12 +1145,15 @@ function logTaskSkipped(ss, data) {
     timestamp: data.timestamp
   });
   updateSessionActivity(ss, data.sessionCode, data.timestamp);
+
+  });
 }
 
 // ===============================
 // Image / video task events
 // ===============================
 function logImageRecorded(ss, data) {
+  return withDocLock_(function () {
   var p = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   p.appendRow([
@@ -1128,9 +1173,12 @@ function logImageRecorded(ss, data) {
     details: 'Image ' + data.imageNumber + '/2',
     timestamp: data.timestamp
   });
+
+  });
 }
 
 function logImageRecordedAndUploaded(ss, data) {
+  return withDocLock_(function () {
   var p = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   p.appendRow([
@@ -1150,9 +1198,12 @@ function logImageRecordedAndUploaded(ss, data) {
     details: 'Image ' + data.imageNumber + '/2 - File: ' + data.filename + ' - ID: ' + data.driveFileId + ' - Method: ' + (data.uploadMethod || 'unknown'),
     timestamp: data.timestamp
   });
+
+  });
 }
 
 function logImageRecordedNoUpload(ss, data) {
+  return withDocLock_(function () {
   var p = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   p.appendRow([
@@ -1172,9 +1223,12 @@ function logImageRecordedNoUpload(ss, data) {
     details: 'Image ' + data.imageNumber + '/2 - Reason: ' + data.reason,
     timestamp: data.timestamp
   });
+
+  });
 }
 
 function logVideoRecording(ss, data) {
+  return withDocLock_(function () {
   var p = ss.getSheetByName('Task Progress');
   var dev = detectDeviceType_(data).label;
   p.appendRow([
@@ -1194,6 +1248,8 @@ function logVideoRecording(ss, data) {
     eventType: 'Video Recording',
     details: 'Image ' + data.imageNumber + ' recorded',
     timestamp: data.timestamp
+  });
+
   });
 }
 
@@ -1357,6 +1413,7 @@ function updateSessionActivity(ss, sessionCode, timestamp) {
 }
 
 function updateTotalTime(ss, sessionCode) {
+  return withDocLock_(function () {
   var s = ss.getSheetByName('Sessions');
   if (!s) return;
   var row = findRowBySessionCode_(s, sessionCode);
@@ -1403,6 +1460,8 @@ function updateTotalTime(ss, sessionCode) {
   if (parseTsMs_(lastCell) == null || parseTsMs_(lastCell) < win.endMs) {
     setByHeader_(s, row, 'Last Activity', new Date(win.endMs).toISOString());
   }
+
+  });
 }
 
 function normalizeTaskName_(name) {
@@ -1465,6 +1524,7 @@ function getRequiredTasksForSession_(ss, sessionCode) {
 }
 
 function updateCompletedTasksCount(ss, sessionCode) {
+  return withDocLock_(function () {
   var required = getRequiredTasksForSession_(ss, sessionCode);
   var requiredSet = {};
   for (var k = 0; k < required.length; k++) {
@@ -1506,6 +1566,8 @@ function updateCompletedTasksCount(ss, sessionCode) {
   }
   setByHeader_(s, row, 'Tasks Completed', completedCount + '/' + requiredTotal);
   setByHeader_(s, row, 'Status', completedCount === requiredTotal ? 'Complete' : 'Active');
+
+  });
 }
 
 function repairAllSessionCounts() {
@@ -1553,6 +1615,7 @@ function viewSessionActivity() {
 // Logging & lookups
 // ===============================
 function logSessionEvent(ss, ev) {
+  return withDocLock_(function () {
   var sheet = ss.getSheetByName('Session Events');
   sheet.appendRow([
     ev.timestamp || new Date(),
@@ -1562,6 +1625,8 @@ function logSessionEvent(ss, ev) {
     ev.ip || '',
     ev.userAgent || ''
   ]);
+
+  });
 }
 
 function logEvent(ss, data) {
@@ -2021,6 +2086,7 @@ function sheetIsTrulyEmpty_(sheet) {
 
 // ---------- Consolidation of legacy video logs ----------
 function consolidateVideoSheets_() {
+  return withDocLock_(function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   // If your main script already migrates, calling this is harmless (idempotent).
   if (typeof migrateVideoSheets_ === 'function') {
@@ -2067,6 +2133,8 @@ function consolidateVideoSheets_() {
   });
 
   return 'moved ' + moved + ' rows';
+
+  });
 }
 
 
@@ -2143,6 +2211,7 @@ function planHousekeeping_() {
 
 // ---------- Execute plan (safe) ----------
 function housekeepingSafeClean() {
+  return withDocLock_(function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Always consolidate video legacy sheets first
@@ -2201,6 +2270,8 @@ function housekeepingSafeClean() {
   createOrReplaceHousekeepingReport_(log, consolidation);
 
   SpreadsheetApp.getUi().alert('Housekeeping complete. See "Housekeeping Report".');
+
+  });
 }
 
 
