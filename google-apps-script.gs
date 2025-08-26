@@ -483,7 +483,7 @@ function safeSetupOrMigrate_() {
 
   // Task Progress
   ensureSheetWithHeaders_(ss, 'Task Progress', [
-    'Timestamp','Session Code','Participant ID','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
+    'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
   ]);
 
   // Session Events
@@ -658,10 +658,10 @@ function initialSetup() {
 
   var progressSheet = ss.getSheetByName('Task Progress') || ss.insertSheet('Task Progress');
   progressSheet.clear();
-  progressSheet.getRange(1, 1, 1, 14).setValues([[
-    'Timestamp','Session Code','Participant ID','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
+  progressSheet.getRange(1, 1, 1, 15).setValues([[
+    'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
   ]]);
-  formatHeaders(progressSheet, 14);
+  formatHeaders(progressSheet, 15);
 
   var eventsSheet = ss.getSheetByName('Session Events') || ss.insertSheet('Session Events');
   eventsSheet.clear();
@@ -936,9 +936,9 @@ function getSessionActivitySummary(sessionCode) {
 
   for (var i = 1; i < progressData.length; i++) {
     if (progressData[i][1] === sessionCode) {
-      var taskName = progressData[i][3];
-      var eventType = progressData[i][4];
-      var duration = progressData[i][7];
+      var taskName = progressData[i][4];
+      var eventType = progressData[i][5];
+      var duration = progressData[i][8];
 
       if (!summary.tasks[taskName]) {
         summary.tasks[taskName] = {
@@ -985,10 +985,12 @@ function testActivitySummary() {
 // ===============================
 function logTaskStart(ss, data) {
   var sheet = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || getParticipantIDFromSession(ss, data.sessionCode),
+    dev,
     data.task,
     'Started',
     data.startTime || data.timestamp,
@@ -1018,10 +1020,12 @@ function logTaskComplete(ss, data) {
   if (suspicious) {
     details = (details ? details + ' | ' : '') + 'FLAG: Low activity';
   }
+  var dev = detectDeviceType_(data).label;
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || getParticipantIDFromSession(ss, data.sessionCode),
+    dev,
     data.task,
     'Completed',
     data.startTime || '',
@@ -1064,10 +1068,12 @@ function getParticipantIDFromSession(ss, sessionCode) {
 
 function logTaskSkipped(ss, data) {
   var sheet = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   sheet.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || '',
+    dev,
     data.task,
     'Skipped',
     '',
@@ -1092,10 +1098,12 @@ function logTaskSkipped(ss, data) {
 // ===============================
 function logImageRecorded(ss, data) {
   var p = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   p.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || '',
+    dev,
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded',
     '', '', 0, 0, 0, 0, 0,
@@ -1112,10 +1120,12 @@ function logImageRecorded(ss, data) {
 
 function logImageRecordedAndUploaded(ss, data) {
   var p = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   p.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || '',
+    dev,
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded & Uploaded',
     '', '', 0, 0, 0, 0, 0,
@@ -1132,10 +1142,12 @@ function logImageRecordedAndUploaded(ss, data) {
 
 function logImageRecordedNoUpload(ss, data) {
   var p = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   p.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || '',
+    dev,
     'Image Description',
     'Image ' + data.imageNumber + ' Recorded (Local Only)',
     '', '', 0, 0, 0, 0, 0,
@@ -1152,10 +1164,12 @@ function logImageRecordedNoUpload(ss, data) {
 
 function logVideoRecording(ss, data) {
   var p = ss.getSheetByName('Task Progress');
+  var dev = detectDeviceType_(data).label;
   p.appendRow([
     data.timestamp,
     data.sessionCode,
     data.participantID || '',
+    dev,
     'Image Description',
     'Video Recorded - Image ' + data.imageNumber,
     '', '', 0, 0, 0, 0, 0,
@@ -1281,14 +1295,14 @@ function computeSessionWindowMs_(ss, sessionCode) {
     if (lastAct != null) maxMs = (maxMs == null) ? lastAct : Math.max(maxMs, lastAct);
   }
 
-  // Task Progress: Timestamp (col 1==session, col0=timestamp), Start Time (5), End Time (6)
+  // Task Progress: Timestamp (col 1==session, col0=timestamp), Start Time (6), End Time (7)
   if (p && p.getLastRow() > 1) {
     var pv = p.getDataRange().getValues();
     for (var i = 1; i < pv.length; i++) {
       if (pv[i][1] !== sessionCode) continue;
       var t0 = parseTsMs_(pv[i][0]); // row timestamp
-      var st = parseTsMs_(pv[i][5]);
-      var et = parseTsMs_(pv[i][6]);
+      var st = parseTsMs_(pv[i][6]);
+      var et = parseTsMs_(pv[i][7]);
       [t0, st, et].forEach(function(ms){
         if (ms != null) {
           if (minMs == null || ms < minMs) minMs = ms;
@@ -1347,8 +1361,8 @@ function updateTotalTime(ss, sessionCode) {
     var pv = p.getDataRange().getValues();
     for (var i = 1; i < pv.length; i++) {
       if (pv[i][1] !== sessionCode) continue;
-      var eventType = pv[i][4];            // 'Started' / 'Completed' / 'Skipped'...
-      var act = Number(pv[i][8]) || 0;     // Active Time (sec)
+      var eventType = pv[i][5];            // 'Started' / 'Completed' / 'Skipped'...
+      var act = Number(pv[i][9]) || 0;     // Active Time (sec)
       // If you only want to count completed rows, keep the check below uncommented.
       // if (eventType !== 'Completed') continue;
       if (act > 0) activeSec += act;
@@ -1416,9 +1430,9 @@ function getRequiredTasksForSession_(ss, sessionCode) {
   var aslctOptional = false;
   for (var i = 1; i < progress.length; i++) {
     if (progress[i][1] === sessionCode &&
-        progress[i][3] === 'ASL Comprehension Test' &&
-        progress[i][4] === 'Skipped') {
-      var details = String(progress[i][12] || '').toLowerCase();
+        progress[i][4] === 'ASL Comprehension Test' &&
+        progress[i][5] === 'Skipped') {
+      var details = String(progress[i][13] || '').toLowerCase();
       if (details.indexOf('does not know asl') !== -1) {
         aslctOptional = true;
         break;
@@ -1443,9 +1457,9 @@ function updateCompletedTasksCount(ss, sessionCode) {
   for (var i = 1; i < progress.length; i++) {
     if (progress[i][1] !== sessionCode) continue;
 
-    var eventType = progress[i][4];
-    var taskName  = progress[i][3];
-    var details   = String(progress[i][12] || '').toLowerCase();
+    var eventType = progress[i][5];
+    var taskName  = progress[i][4];
+    var details   = String(progress[i][13] || '').toLowerCase();
 
     var isCompleted = (eventType === 'Completed');
     var isValidSkip = (eventType === 'Skipped' && (
