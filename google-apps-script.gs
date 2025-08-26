@@ -1407,14 +1407,28 @@ function updateTotalTime(ss, sessionCode) {
 
 function normalizeTaskName_(name) {
   var map = {
+    // Collapse all reading comprehension labels to WIAT
     'Reading Comprehension (WIAT)': 'WIAT',
     'Reading Comprehension Task': 'WIAT',
+    'WIAT': 'WIAT',
+
     'Mental Rotation Task': 'MRT',
+    'MRT': 'MRT',
+
     'ASL Comprehension Test': 'ASLCT',
+    'ASLCT': 'ASLCT',
+
     'Virtual Campus Navigation': 'VCN',
+    'VCN': 'VCN',
+
     'Spatial Navigation': 'SN',
+    'SN': 'SN',
+
     'Image Description': 'ID',
-    'Demographics Survey': 'DEMO'
+    'ID': 'ID',
+
+    'Demographics Survey': 'DEMO',
+    'DEMO': 'DEMO'
   };
   return map[name] || name;
 }

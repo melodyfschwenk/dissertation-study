@@ -654,7 +654,7 @@
           <div class="video-container">
             <div class="video-panel">
               <h3>Image to Describe</h3>
-              <img id="current-image" src="" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
+              <img id="current-image" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
             </div>
 
             <div class="video-panel">
@@ -835,7 +835,6 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
 },
   'DEMO':{ name:'Demographics Survey', description:'Background information & payment', url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
 };
-    // Add this after TASKS definition
     function getStandardTaskName(taskCode) {
       const mapping = {
         'WIAT': 'WIAT',
