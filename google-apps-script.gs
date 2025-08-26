@@ -1596,13 +1596,24 @@ function updateTotalTime(ss, sessionCode) {
 }
 
 function normalizeTaskName_(name) {
+  name = String(name || '').trim().toLowerCase();
   var map = {
-    'Reading Comprehension (RC)': 'Reading Comprehension Task',
-    'RC': 'Reading Comprehension Task',
-    'MRT': 'Mental Rotation Task',
-    'Virtual Campus': 'Virtual Campus Navigation',
-    'Spatial Nav': 'Spatial Navigation',
-    'Image Desc': 'Image Description'
+    'reading comprehension (rc)': 'Reading Comprehension Task',
+    'rc': 'Reading Comprehension Task',
+    'reading comprehension task': 'Reading Comprehension Task',
+    'mrt': 'Mental Rotation Task',
+    'mental rotation task': 'Mental Rotation Task',
+    'aslct': 'ASL Comprehension Test',
+    'asl comprehension test': 'ASL Comprehension Test',
+    'virtual campus': 'Virtual Campus Navigation',
+    'virtual campus navigation': 'Virtual Campus Navigation',
+    'spatial nav': 'Spatial Navigation',
+    'spatial navigation': 'Spatial Navigation',
+    'image desc': 'Image Description',
+    'image description': 'Image Description',
+    'demographics survey': 'Demographics Survey',
+    'demographics': 'Demographics Survey',
+    'demo': 'Demographics Survey'
   };
   return map[name] || name;
 }
