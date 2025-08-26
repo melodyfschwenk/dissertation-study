@@ -820,7 +820,7 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
 
     // ----- Tasks -----
     const TASKS = {
-  'WIAT': { name:'Reading Comprehension (WIAT)', description:'Read passages and answer questions', type:'embed', embedUrl:'https://melodyfschwenk.github.io/readingcomp/', canSkip:true, estMinutes:15, requirements:'None' },
+  'RC': { name:'Reading Comprehension Task', description:'Read passages and answer questions', type:'embed', embedUrl:'https://melodyfschwenk.github.io/readingcomp/', canSkip:true, estMinutes:15, requirements:'None' },
   'MRT': { name:'Mental Rotation Task', description:'Decide if two images are the same or not', type:'embed', embedUrl:'https://melodyfschwenk.github.io/mrt/', canSkip:true, estMinutes:6,  requirements:'Keyboard recommended' },
   'ASLCT': { name:'ASL Comprehension Test', description:'For ASL users only', url:'https://vl2portal.gallaudet.edu/assessment/', type:'external', canSkip:true, estMinutes:15, requirements:'ASL users; stable connection' },
   'VCN': { name:'Virtual Campus Navigation', description:'Virtual SILC Test of Navigation (SILCton)', url:'http://www.virtualsilcton.com/study/753798747', type:'external', canSkip:true, estMinutes:20, requirements:'Desktop/laptop; keyboard (WASD) & mouse' },
@@ -838,7 +838,6 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
     // Add this after TASKS definition
     function getStandardTaskName(taskCode) {
       const mapping = {
-        'WIAT': 'Reading Comprehension Task',
         'RC': 'Reading Comprehension Task',
         'MRT': 'Mental Rotation Task',
         'ASLCT': 'ASL Comprehension Test',
@@ -857,8 +856,8 @@ const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
     };
 
     // ----- Task sequencing -----
-    const DESKTOP_TASKS = ['WIAT', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
-    const MOBILE_TASKS = ['WIAT', 'MRT', 'ASLCT', 'SN', 'ID'];
+    const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
+    const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN', 'ID'];
 
     function mulberry32(a) {
       return function() {
