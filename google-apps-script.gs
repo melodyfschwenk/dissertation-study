@@ -45,7 +45,7 @@ function doPost(e) {
       'consent_opened', 'consent_completed', 'consent_verified', 'consent_affirmed',
       'video_declined',
       'task_started', 'task_departed', 'task_returned', 'inactivity',
-      'task_skipped', 'task_completed',
+        'task_skipped', 'task_completed', 'skilled_task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
       'calendly_opened', 'eeg_interest_clicked', 'eeg_interest_opt_in',
@@ -211,9 +211,13 @@ function doPost(e) {
         logTaskSkipped(ss, data);
         break;
 
-      case 'task_completed':
-        logTaskComplete(ss, data);
-        break;
+        case 'task_completed':
+          logTaskComplete(ss, data);
+          break;
+
+        case 'skilled_task_completed':
+          logTaskComplete(ss, data);
+          break;
 
       case 'image_recorded':
         logImageRecorded(ss, data);
