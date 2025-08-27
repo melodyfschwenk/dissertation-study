@@ -1012,19 +1012,25 @@ let taskTimer = {
     this.intervalId = setInterval(() => this.tick(), 1000);
   },
   tick() {
-    const now = Date.now();
-    if (!document.hidden && !this.isPaused) {
-      if (now - this.lastActivity > 120000) {
-        this.pause('inactivity');
-        showInactivityPrompt();
-      } else {
-        this.activeTime += now - this.lastTick;
-      }
-    } else if (this.isPaused && this.pauseReason === 'inactivity') {
-      this.inactivityTime += now - this.lastTick;
+  const now = Date.now();
+  if (!document.hidden && !this.isPaused) {
+    const timeSinceLastActivity = now - this.lastActivity;
+    const timeSinceTick = now - this.lastTick;
+    
+    if (timeSinceLastActivity > 120000) {
+      this.pause('inactivity');
+      showInactivityPrompt();
+    } else if (timeSinceLastActivity < 5000) {  // Consider active if activity within 5 seconds
+      this.activeTime += timeSinceTick;
+    } else {
+      this.inactivityTime += timeSinceTick;  // Track as inactive but not paused
     }
-    this.lastTick = now;
-  },
+  } else if (this.isPaused && this.pauseReason === 'inactivity') {
+    this.inactivityTime += now - this.lastTick;
+  }
+  this.lastTick = now;
+}
+
   recordActivity() {
     this.lastActivity = Date.now();
     if (this.isPaused && this.pauseReason === 'inactivity') this.resume();
@@ -1063,21 +1069,40 @@ let taskTimer = {
     this.endTime = Date.now();
   },
   getSummary() {
-    const elapsed = (this.endTime || Date.now()) - this.startTime;
-    const active = Math.min(this.activeTime, elapsed);
-    const activityScore = elapsed > 0 ? (active / elapsed) * 100 : 0;
+  const elapsed = (this.endTime || Date.now()) - this.startTime;
+  const active = Math.min(this.activeTime, elapsed);
+  const paused = Math.min(this.pausedTime, elapsed);
+  const inactive = Math.min(this.inactivityTime, elapsed);
+  
+  // Ensure they don't exceed elapsed time
+  const total = active + paused + inactive;
+  if (total > elapsed) {
+    // Scale down proportionally
+    const scale = elapsed / total;
     return {
       start: new Date(this.startTime).toISOString(),
-      end: new Date(this.endTime).toISOString(),
+      end: new Date(this.endTime || Date.now()).toISOString(),
       elapsed,
-      active,
+      active: Math.round(active * scale),
       pauseCount: this.pauseCount,
-      paused: this.pausedTime,
-      inactive: this.inactivityTime,
-      activity: activityScore
+      paused: Math.round(paused * scale),
+      inactive: Math.round(inactive * scale),
+      activity: (active / elapsed) * 100
     };
   }
-};
+  
+  return {
+    start: new Date(this.startTime).toISOString(),
+    end: new Date(this.endTime).toISOString(),
+    elapsed,
+    active,
+    pauseCount: this.pauseCount,
+    paused,
+    inactive,
+    activity: elapsed > 0 ? (active / elapsed) * 100 : 0
+  };
+}
+ 
 
 function showInactivityPrompt() {
   sendToSheets({ action: 'inactivity', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
@@ -1115,12 +1140,14 @@ window.addEventListener('blur', () => {
   }
 });
 
+externalTime: 0,
+
+// In focus event:
 window.addEventListener('focus', () => {
-  taskTimer.resume();
   if (state.currentTaskType === 'external' && state.externalDepart) {
     const away = Date.now() - state.externalDepart;
-    taskTimer.activeTime += away;
-    taskTimer.lastTick = Date.now();
+    taskTimer.externalTime += away;  // Track separately
+    taskTimer.lastTick = Date.now();  // Reset tick timer
     sendToSheets({ action: 'task_returned', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), away: Math.round(away/1000), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
     state.externalDepart = null;
   }
