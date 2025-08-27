@@ -41,7 +41,7 @@ function doPost(e) {
       'test_connection', 'safe_setup', 'upload_video',
       'log_video_upload', 'log_video_upload_error',
       'eeg_scheduled',
-      'session_created', 'session_resumed', 'session_paused',
+      'session_created', 'session_resumed', 'session_paused', 'session_timer',
       'consent_opened', 'consent_completed', 'consent_verified', 'consent_affirmed',
       'video_declined',
       'task_started', 'task_departed', 'task_returned', 'inactivity',
@@ -70,7 +70,7 @@ function doPost(e) {
     }
 
     // Ensure required sheets exist
-    var mustHave = ['Sessions', 'Task Progress', 'Session Events'];
+    var mustHave = ['Sessions', 'Task Progress', 'Session Events', 'Session Timer'];
     var missing = mustHave.filter(function (n) { return !ss.getSheetByName(n); });
     if (missing.length) safeSetupOrMigrate_();
 
@@ -131,6 +131,10 @@ function doPost(e) {
 
       case 'session_paused':
         pauseSession(ss, data);
+        break;
+
+      case 'session_timer':
+        logSessionTimer(ss, data);
         break;
 
       case 'consent_opened':
@@ -670,6 +674,13 @@ function safeSetupOrMigrate_() {
     // Session Events
     ensureSheetWithHeaders_(ss, 'Session Events', [
       'Timestamp','Session Code','Event Type','Details','IP Address','User Agent'
+    ]);
+
+    // Session Timer logs
+    ensureSheetWithHeaders_(ss, 'Session Timer', [
+      'Timestamp','Session Code','Stage','Elapsed Time (sec)','Active Time (sec)',
+      'Paused Time (sec)','Inactive Time (sec)','Pause Count','Activity Score (%)',
+      'Start Time','End Time'
     ]);
 
     // Video tracking (single sheet)
@@ -1344,6 +1355,28 @@ function logTaskSkipped(ss, data) {
       timestamp: data.timestamp
     });
     updateSessionActivity(ss, data.sessionCode, data.timestamp);
+  });
+}
+
+function logSessionTimer(ss, data) {
+  withDocLock_(function () {
+    var sheet = ss.getSheetByName('Session Timer');
+    if (!sheet) return;
+    sheet.appendRow([
+      data.timestamp || new Date().toISOString(),
+      data.sessionCode || '',
+      data.stage || '',
+      Number(data.elapsed) || 0,
+      Number(data.active) || 0,
+      Number(data.paused) || 0,
+      Number(data.inactive) || 0,
+      Number(data.pauseCount) || 0,
+      Number(data.activity) || 0,
+      data.startTime || '',
+      data.endTime || ''
+    ]);
+    updateSessionActivity(ss, data.sessionCode, data.timestamp);
+    updateTotalTime(ss, data.sessionCode);
   });
 }
 
