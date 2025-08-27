@@ -617,7 +617,7 @@
         <ul class="task-list" id="task-list"></ul>
         <div class="button-group">
           <button class="button primary" id="continue-task-btn" onclick="continueToCurrentTask()">Continue to Current Task</button>
-          <button class="button secondary" onclick="pauseSession()">Save & Exit</button>
+          <button class="button secondary" onclick="saveAndExit()">Save & Exit</button>
         </div>
       </div>
 
@@ -745,10 +745,22 @@
   </div>
 
   <!-- FAB -->
-  <button class="fab" id="pause-fab" onclick="pauseSession()">⏸️ Save & Exit</button>
+  <button class="fab" id="pause-fab" onclick="pauseStudy()">⏸️ Pause</button>
 
   <!-- Pause Modal -->
   <div class="modal" id="pause-modal">
+    <div class="modal-content">
+      <h3>Paused</h3>
+      <p>Your session is paused. Resume when you're ready.</p>
+      <div class="button-group">
+        <button class="button" onclick="resumeStudy()">Resume</button>
+        <button class="button secondary" onclick="saveAndExit()">Save & Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exit Modal -->
+  <div class="modal" id="exit-modal">
     <div class="modal-content">
       <h3>Session Saved!</h3>
       <p>Your progress has been saved.</p>
@@ -956,6 +968,8 @@ function closeEEGModal() {
   lastActivity: null,
   currentTaskType: '',
   externalDepart: null,
+  pauseStart: null,
+  totalPausedTime: 0,
 
   consentStatus: { consent1: false, consent2: false, videoDeclined: false },
 
@@ -981,6 +995,8 @@ let taskTimer = {
   pauseReason: null,
   pauseCount: 0,
   inactivityTime: 0,
+  pausedTime: 0,
+  pauseStart: null,
   lastTick: 0,
   intervalId: null,
   start() {
@@ -989,8 +1005,10 @@ let taskTimer = {
     this.lastTick = Date.now();
     this.activeTime = 0;
     this.inactivityTime = 0;
+    this.pausedTime = 0;
     this.pauseCount = 0;
     this.isPaused = false;
+    this.pauseStart = null;
     this.intervalId = setInterval(() => this.tick(), 1000);
   },
   tick() {
@@ -1024,6 +1042,9 @@ let taskTimer = {
       if (this.pauseReason === 'inactivity' && this.pauseStart) {
         this.inactivityTime += Date.now() - this.pauseStart;
       }
+      if (this.pauseReason === 'manual' && this.pauseStart) {
+        this.pausedTime += Date.now() - this.pauseStart;
+      }
       this.isPaused = false;
       this.pauseReason = null;
       this.lastActivity = Date.now();
@@ -1031,8 +1052,13 @@ let taskTimer = {
   },
   stop() {
     clearInterval(this.intervalId);
-    if (this.isPaused && this.pauseReason === 'inactivity' && this.pauseStart) {
-      this.inactivityTime += Date.now() - this.pauseStart;
+    if (this.isPaused && this.pauseStart) {
+      if (this.pauseReason === 'inactivity') {
+        this.inactivityTime += Date.now() - this.pauseStart;
+      }
+      if (this.pauseReason === 'manual') {
+        this.pausedTime += Date.now() - this.pauseStart;
+      }
     }
     this.endTime = Date.now();
   },
@@ -1046,6 +1072,7 @@ let taskTimer = {
       elapsed,
       active,
       pauseCount: this.pauseCount,
+      paused: this.pausedTime,
       inactive: this.inactivityTime,
       activity: activityScore
     };
@@ -2684,6 +2711,7 @@ function updateUploadProgress(percent, message) {
           elapsed: Math.round(summary.elapsed/1000),
           active: Math.round(summary.active/1000),
           pauseCount: summary.pauseCount,
+          paused: Math.round(summary.paused/1000),
           inactive: Math.round(summary.inactive/1000),
           activity: Math.round(summary.activity),
           startTime: summary.start,
@@ -2749,11 +2777,36 @@ function updateUploadProgress(percent, message) {
     }
 
     // ----- Utilities -----
-    function pauseSession() {
+    function pauseStudy() {
+      state.pauseStart = Date.now();
+      if (taskTimer.startTime) taskTimer.pause('manual');
+      document.getElementById('pause-modal').classList.add('active');
+      document.getElementById('pause-fab').classList.remove('active');
+      const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
+      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, timestamp: new Date().toISOString() });
+      saveState();
+    }
+
+    function resumeStudy() {
+      if (state.pauseStart) {
+        const pausedMs = Date.now() - state.pauseStart;
+        state.totalPausedTime = (state.totalPausedTime || 0) + pausedMs;
+        state.pauseStart = null;
+        const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
+        sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), timestamp: new Date().toISOString() });
+      }
+      if (taskTimer.startTime) taskTimer.resume();
+      document.getElementById('pause-modal').classList.remove('active');
+      document.getElementById('pause-fab').classList.add('active');
+      saveState();
+    }
+
+    function saveAndExit() {
       saveState();
       document.getElementById('modal-code').textContent = state.sessionCode;
-      document.getElementById('pause-modal').classList.add('active');
-      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
+      document.getElementById('exit-modal').classList.add('active');
+      const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
+      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, timestamp: new Date().toISOString() });
     }
     function copyCode(btnEl) {
       const code = document.getElementById('display-code').textContent;
@@ -2827,7 +2880,7 @@ function markEEGScheduled() {
     };
     document.getElementById('pre-skip-break-btn').onclick = () => {
       document.getElementById('pre-skip-modal').classList.remove('active');
-      pauseSession();
+      pauseStudy();
     };
     document.getElementById('pre-skip-skip-btn').onclick = () => {
       document.getElementById('pre-skip-modal').classList.remove('active');
@@ -2843,7 +2896,7 @@ function markEEGScheduled() {
     };
     document.getElementById('skip-break-btn').onclick = () => {
       document.getElementById('skip-modal').classList.remove('active');
-      pauseSession();
+      pauseStudy();
     };
     document.getElementById('skip-confirm-btn').onclick = async () => {
       document.getElementById('skip-modal').classList.remove('active');
@@ -3039,7 +3092,9 @@ async function sendToSheets(payload) {
     window.declineVideo = declineVideo;
     window.proceedToTasks = proceedToTasks;
     window.continueToCurrentTask = continueToCurrentTask;
-    window.pauseSession = pauseSession;
+    window.pauseStudy = pauseStudy;
+    window.resumeStudy = resumeStudy;
+    window.saveAndExit = saveAndExit;
     window.copyCode = copyCode;
     window.copyASLCTCode = copyASLCTCode;
     window.tryMailto = tryMailto;

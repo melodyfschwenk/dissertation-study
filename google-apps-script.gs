@@ -345,7 +345,7 @@ function createCorsOutput(data) {
 // ===============================
 var SESSIONS_HEADERS = [
   'Session Code','Participant ID','Email','Created Date','Last Activity',
-  'Total Time (min)','Active Time (min)','Idle Time (min)','Tasks Completed','Status',
+  'Total Time (min)','Active Time (min)','Idle Time (min)','Paused Time (min)','Tasks Completed','Status',
   'Device Type','Consent Status','Consent Source','Consent Code','Consent Timestamp',
   'EEG Status','EEG Scheduled At','EEG Scheduling Source',
   'Hearing Status','Fluency','State JSON'
@@ -664,7 +664,7 @@ function safeSetupOrMigrate_() {
 
     // Task Progress
     ensureSheetWithHeaders_(ss, 'Task Progress', [
-      'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
+      'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Paused Time (sec)','Inactive Time (sec)','Activity Score (%)','Details','Completed'
     ]);
 
     // Session Events
@@ -844,10 +844,10 @@ function initialSetup() {
 
     var progressSheet = ss.getSheetByName('Task Progress') || ss.insertSheet('Task Progress');
     progressSheet.clear();
-    progressSheet.getRange(1, 1, 1, 15).setValues([[
-      'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Inactive Time (sec)','Activity Score (%)','Details','Completed'
+    progressSheet.getRange(1, 1, 1, 16).setValues([[
+      'Timestamp','Session Code','Participant ID','Device Type','Task Name','Event Type','Start Time','End Time','Elapsed Time (sec)','Active Time (sec)','Pause Count','Paused Time (sec)','Inactive Time (sec)','Activity Score (%)','Details','Completed'
     ]]);
-    formatHeaders(progressSheet, 15);
+    formatHeaders(progressSheet, 16);
 
     var eventsSheet = ss.getSheetByName('Session Events') || ss.insertSheet('Session Events');
     eventsSheet.clear();
@@ -974,6 +974,7 @@ function createSession(ss, data) {
       'Total Time (min)': 0,
       'Active Time (min)': 0,
       'Idle Time (min)': 0,
+      'Paused Time (min)': 0,
       'Tasks Completed': (dev.isMobile ? '0/6' : '0/7'),
       'Status': 'Active',
       'Device Type': dev.label,
@@ -1023,6 +1024,15 @@ function addEmailReminder(ss, sessionCode, email) {
 function resumeSession(ss, data) {
   withDocLock_(function () {
     updateSessionActivity(ss, data.sessionCode, data.timestamp);
+    if (data.pausedSeconds) {
+      var sheet = ss.getSheetByName('Sessions');
+      var row = findRowBySessionCode_(sheet, data.sessionCode);
+      if (row) {
+        var existing = Number(getByHeader_(sheet, row, 'Paused Time (min)')) || 0;
+        var addMin = Math.round(Number(data.pausedSeconds) / 60);
+        setByHeader_(sheet, row, 'Paused Time (min)', existing + addMin);
+      }
+    }
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
       eventType: 'Session Resumed',
@@ -1030,6 +1040,7 @@ function resumeSession(ss, data) {
       timestamp: data.timestamp,
       userAgent: data.userAgent || ''
     });
+    updateTotalTime(ss, data.sessionCode);
   });
 }
 
@@ -1142,10 +1153,11 @@ function getSessionActivityTracking(sessionCode) {
         elapsed: data[i][8],
         active: data[i][9],
         pauseCount: data[i][10],
-        inactive: data[i][11],
-        activity: data[i][12],
-        details: data[i][13],
-        completed: data[i][14]
+        paused: data[i][11],
+        inactive: data[i][12],
+        activity: data[i][13],
+        details: data[i][14],
+        completed: data[i][15]
       });
     }
   }
@@ -1231,7 +1243,7 @@ function logTaskStart(ss, data) {
       'Started',
       data.startTime || data.timestamp,
       '',
-      0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0,
       '',
       false
     ]);
@@ -1271,6 +1283,7 @@ function logTaskComplete(ss, data) {
       data.elapsed || 0,
       data.active || 0,
       data.pauseCount || 0,
+      data.paused || 0,
       data.inactive || 0,
       activityPct || 0,
       details,
@@ -1538,7 +1551,7 @@ function computeSessionWindowMs_(ss, sessionCode) {
   // Task Progress
   if (p && p.getLastRow() > 1) {
     var lastRow = p.getLastRow();
-    var pv = p.getRange(1,1,lastRow,14).getValues(); // only used columns
+    var pv = p.getRange(1,1,lastRow,15).getValues(); // only used columns
     for (var i = 1; i < pv.length; i++) {
       if (pv[i][1] !== sessionCode) continue;
       var t0 = parseTsMs_(pv[i][0]); // row timestamp
@@ -1602,7 +1615,7 @@ function updateTotalTime(ss, sessionCode) {
     var activeSec = 0;
     if (p && p.getLastRow() > 1) {
       var lastRow = p.getLastRow();
-      var pv = p.getRange(1,1,lastRow,14).getValues();
+      var pv = p.getRange(1,1,lastRow,15).getValues();
       for (var i = 1; i < pv.length; i++) {
         if (pv[i][1] !== sessionCode) continue;
         var act = Number(pv[i][9]) || 0; // Active Time (sec)
@@ -1610,18 +1623,22 @@ function updateTotalTime(ss, sessionCode) {
       }
     }
 
-    // 3) Derive idle as "everything else in the window"
-    var idleSec = Math.max(0, totalSecByWindow - activeSec);
+    // 3) Include paused time from Sessions sheet and derive idle
+    var pausedMinExisting = Number(getByHeader_(s, row, 'Paused Time (min)')) || 0;
+    var pausedSec = pausedMinExisting * 60;
+    var idleSec = Math.max(0, totalSecByWindow - activeSec - pausedSec);
 
     // 4) Write minutes
     var totalMin = Math.round(totalSecByWindow / 60);
     var activeMin = Math.round(activeSec / 60);
     var idleMin = Math.round(idleSec / 60);
+    var pausedMin = Math.round(pausedSec / 60);
 
     setManyByHeader_(s, row, {
       'Total Time (min)': totalMin,
       'Active Time (min)': activeMin,
-      'Idle Time (min)': idleMin
+      'Idle Time (min)': idleMin,
+      'Paused Time (min)': pausedMin
     });
 
     // 5) Self-heal Created Date & Last Activity if bad
@@ -1691,7 +1708,7 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     if (progress[i][1] === sessionCode &&
         progress[i][4] === 'ASL Comprehension Test' &&
         progress[i][5] === 'Skipped') {
-      var details = String(progress[i][13] || '').toLowerCase();
+      var details = String(progress[i][14] || '').toLowerCase();
       if (details.indexOf('does not know asl') !== -1) {
         aslctOptional = true;
         break;
@@ -1721,7 +1738,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
 
       var eventType = progress[i][5];
       var taskName  = normalizeTaskName_(progress[i][4]);
-      var details   = String(progress[i][13] || '').toLowerCase();
+      var details   = String(progress[i][14] || '').toLowerCase();
 
       var isCompleted = (eventType === 'Completed');
       var isValidSkip = (eventType === 'Skipped' && (
@@ -1844,6 +1861,7 @@ function getSessionData(ss, sessionCode) {
           lastActivity: map['Last Activity'] != null ? data[r][map['Last Activity']] : '',
           totalTimeMin: map['Total Time (min)'] != null ? data[r][map['Total Time (min)']] : '',
           activeTimeMin: map['Active Time (min)'] != null ? data[r][map['Active Time (min)']] : '',
+          pausedTimeMin: map['Paused Time (min)'] != null ? data[r][map['Paused Time (min)']] : '',
           tasksCompleted: map['Tasks Completed'] != null ? data[r][map['Tasks Completed']] : '',
           status: map['Status'] != null ? data[r][map['Status']] : '',
           deviceType: map['Device Type'] != null ? data[r][map['Device Type']] : '',
@@ -2128,7 +2146,7 @@ function enforceColumnFormats_(ss) {
     .forEach(function(h){ fmt(h, 'yyyy-mm-dd"T"HH:mm:ss.000"Z"'); });
 
   // Plain integers
-  ['Total Time (min)','Active Time (min)','Idle Time (min)']
+  ['Total Time (min)','Active Time (min)','Idle Time (min)','Paused Time (min)']
     .forEach(function(h){ fmt(h, '0'); });
 }
 
