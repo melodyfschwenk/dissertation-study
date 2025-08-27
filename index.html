@@ -367,57 +367,6 @@
     </div>
   </div>
 
-  <!-- EEG section - prominent but friendly -->
-  <div class="card" style="margin-top: 32px; border: 2px solid var(--info); background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);">
-    <div style="text-align: center;">
-      <div style="font-size: 48px; margin-bottom: 16px;">🧠</div>
-      <h3 style="margin-bottom: 12px; font-size: 22px; color: var(--primary-dark);">
-        EEG Session
-      </h3>
-      <p style="color: var(--text-primary); margin-bottom: 16px; font-size: 16px;">
-        <strong>DC/MD/VA area participants:</strong> We'd love to include you in our EEG component! EEG uses small sensors on your scalp to measure brain activity during tasks. The session takes about 30-45 minutes.
-      </p>
-
-      <div class="info-box helpful" style="text-align: left; background: rgba(255,255,255,0.7); margin: 16px 0;">
-        <div class="icon">⭐</div>
-        <div>
-          <h4 style="margin-bottom: 8px; font-weight: 600;">Why EEG matters for this research</h4>
-          <ul style="margin: 8px 0 0 0; padding-left: 16px; color: inherit;">
-            <li>Captures real-time brain responses to spatial tasks</li>
-            <li>Helps us understand how deaf and hearing brains process space differently</li>
-            <li><strong>Compensation:</strong> $25 for the online portion (you'll receive the full $25 even if it takes less than an hour) and $25 for the EEG session (about $50 total), with additional pay if the EEG session runs longer than expected.</li>
-            <li>ASL or spoken English available</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="info-box friendly-tip" style="text-align: left; background: rgba(255,255,255,0.7); margin: 16px 0;">
-        <div class="icon">📅</div>
-        <div>
-          <h4 style="margin-bottom: 8px; font-weight: 600;">Scheduling update</h4>
-          <p style="margin: 0; color: inherit;">
-            Scheduling for EEG will reopen in late September, but we will keep you updated.
-          </p>
-        </div>
-      </div>
-
-      <div class="button-group" style="margin-top: 20px;">
-        <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
-          🗓️ Schedule My EEG Session
-        </button>
-        <button class="button secondary" onclick="expressEEGInterest()" style="font-size: 16px; padding: 14px 28px;">
-          📬 Can't Find a Time?
-        </button>
-        <button class="button friendly" onclick="markEEGScheduled()">
-          ✓ I Already Scheduled
-        </button>
-      </div>
-
-      <p style="margin-top: 12px; font-size: 14px; color: var(--text-secondary);">
-        Not in the DC area? No problem! You can still participate in the online portion.
-      </p>
-    </div>
-  </div>
 </div>
 
       <!-- New Participant -->
@@ -502,11 +451,92 @@
           </ul>
         </div>
 
-        <button class="button primary" onclick="proceedToConsent()" style="display: block; margin: 20px auto;">
+        <button class="button primary" onclick="proceedToEEGInfo()" style="display: block; margin: 20px auto;">
           I've Saved My Code - Continue
         </button>
       </div>
+      <!-- Study Information and EEG Scheduling -->
+      <div class="screen" id="eeg-info">
+        <h2>About the Study</h2>
+        <p>This study looks at how language relates to spatial thinking, navigation, perspective taking, and mental rotation.</p>
 
+        <h3>How you can participate</h3>
+        <p><strong>Option 1, Online now, optional EEG later</strong><br/>
+        Start today with our online tasks. You can take breaks and come back as needed. If you are local and interested, we will email you to offer a 30 to 45 minute EEG lab visit when sessions resume in late September 2025.</p>
+        <p><strong>Option 2, Online only</strong><br/>
+        Start today with our online tasks. No in person visit is needed.</p>
+
+        <h3>Compensation and gifts</h3>
+        <ul>
+          <li>Rate, $25 per hour, prorated by the minute</li>
+          <li>Minimum, $25 guaranteed for the online session, even if you finish in less than 60 minutes</li>
+          <li>Online time, typically 60 to 90 minutes, online pay is capped at 90 minutes for budgeting</li>
+          <li>Examples, 45 min = $25, 60 min = $25, 75 min = $31.25, 90 min = $37.50</li>
+          <li>EEG visit, paid separately at $25 per hour for actual time in the lab</li>
+          <li>Thank you gifts, a small bison plush toy plus stickers are available only to participants who can pick them up in person at our lab. Gifts are optional to accept, while supplies last, one per participant, and not tied to your answers or performance. We are not able to mail or deliver gifts</li>
+        </ul>
+
+        <h3>Voluntary participation</h3>
+        <p>Participation is voluntary. You may skip any item or stop at any time with no penalty. You will be paid for the time you take, even if you stop early. Your payment and any thank you gift do not depend on how you perform.</p>
+
+        <h3>Questions</h3>
+        <p><a href="mailto:action.brain.lab@gallaudet.edu">action.brain.lab@gallaudet.edu</a></p>
+
+        <div class="card" style="margin-top: 32px; border: 2px solid var(--info); background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);">
+          <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🧠</div>
+            <h3 style="margin-bottom: 12px; font-size: 22px; color: var(--primary-dark);">
+              EEG Session
+            </h3>
+            <p style="color: var(--text-primary); margin-bottom: 16px; font-size: 16px;">
+              <strong>DC/MD/VA area participants:</strong> We'd love to include you in our EEG component! EEG uses small sensors on your scalp to measure brain activity during tasks. The session takes about 30-45 minutes.
+            </p>
+
+            <div class="info-box helpful" style="text-align: left; background: rgba(255,255,255,0.7); margin: 16px 0;">
+              <div class="icon">⭐</div>
+              <div>
+                <h4 style="margin-bottom: 8px; font-weight: 600;">Why EEG matters for this research</h4>
+                <ul style="margin: 8px 0 0 0; padding-left: 16px; color: inherit;">
+                  <li>Captures real-time brain responses to spatial tasks</li>
+                  <li>Helps us understand how deaf and hearing brains process space differently</li>
+                  <li><strong>Compensation:</strong> $25 for the online portion (you'll receive the full $25 even if it takes less than an hour) and $25 for the EEG session (about $50 total), with additional pay if the EEG session runs longer than expected.</li>
+                  <li>ASL or spoken English available</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="info-box friendly-tip" style="text-align: left; background: rgba(255,255,255,0.7); margin: 16px 0;">
+              <div class="icon">📅</div>
+              <div>
+                <h4 style="margin-bottom: 8px; font-weight: 600;">Scheduling update</h4>
+                <p style="margin: 0; color: inherit;">
+                  Scheduling for EEG will reopen in late September, but we will keep you updated.
+                </p>
+              </div>
+            </div>
+
+            <div class="button-group" style="margin-top: 20px;">
+              <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
+                🗓️ Schedule My EEG Session
+              </button>
+              <button class="button secondary" onclick="expressEEGInterest()" style="font-size: 16px; padding: 14px 28px;">
+                📬 Can't Find a Time?
+              </button>
+              <button class="button friendly" onclick="markEEGScheduled()">
+                ✓ I Already Scheduled
+              </button>
+            </div>
+
+            <p style="margin-top: 12px; font-size: 14px; color: var(--text-secondary);">
+              Not in the DC area? No problem! You can still participate in the online portion.
+            </p>
+          </div>
+        </div>
+
+        <div class="button-group" style="margin-top: 20px;">
+          <button class="button primary" onclick="proceedToConsent()">Continue</button>
+        </div>
+      </div>
       <div class="screen" id="consent-screen">
   <h2> Consent Forms</h2>
 <div class="info-box helpful" id="voluntary-consent-box" style="margin-top: 12px;">
@@ -1292,6 +1322,7 @@ function showScreen(screenId) {
 
   const crumbs = ['Home'];
   if (screenId === 'consent-screen') crumbs.push('Consent');
+  else if (screenId === 'eeg-info') crumbs.push('EEG Info');
   else if (screenId === 'progress-screen') crumbs.push('Tasks');
   else if (screenId === 'task-screen' || screenId === 'recording-screen') {
     crumbs.push('Tasks');
@@ -1453,6 +1484,9 @@ function checkSavedSession() {
         localStorage.setItem('recent_session', state.sessionCode);
         sendToSheets({ action: 'save_state', sessionCode: state.sessionCode, state });
       } catch (e) { console.warn('Could not save state', e); }
+    }
+    function proceedToEEGInfo() {
+      showScreen('eeg-info');
     }
 
     // ----- Consent -----
@@ -3166,6 +3200,7 @@ async function sendToSheets(payload) {
     window.showScreen = showScreen;
     window.createNewSession = createNewSession;
     window.resumeSession = resumeSession;
+    window.proceedToEEGInfo = proceedToEEGInfo;
     window.proceedToConsent = proceedToConsent;
     window.openConsent = openConsent;
     window.markConsentDone = markConsentDone;
