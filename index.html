@@ -848,20 +848,14 @@ document.querySelectorAll('.button.skip').forEach(btn => {
 
     // ----- Tasks -----
     const TASKS = {
-  'RC': { name:'Reading Comprehension Task', description:'Read passages and answer questions', type:'embed', embedUrl:'https://melodyfschwenk.github.io/readingcomp/', canSkip:true, estMinutes:15, requirements:'None' },
-  'MRT': { name:'Mental Rotation Task', description:'Decide if two images are the same or not', type:'embed', embedUrl:'https://melodyfschwenk.github.io/mrt/', canSkip:true, estMinutes:6,  requirements:'Keyboard recommended' },
-  'ASLCT': { name:'ASL Comprehension Test', description:'For ASL users only', url:'https://vl2portal.gallaudet.edu/assessment/', type:'external', canSkip:true, estMinutes:15, requirements:'ASL users; stable connection' },
-  'VCN': { name:'Virtual Campus Navigation', description:'Virtual SILC Test of Navigation (SILCton)', url:'http://www.virtualsilcton.com/study/753798747', type:'external', canSkip:true, estMinutes:20, requirements:'Desktop/laptop; keyboard (WASD) & mouse' },
-  'SN':  { name:'Spatial Navigation', description:'Choose the first step from the player to the stop sign (embedded below)', type:'embed', embedUrl:'https://melodyfschwenk.github.io/spatial-navigation-web/', canSkip:true, estMinutes:8, requirements:'Arrow keys' },
-  'ID': {
-  name: 'Image Description',
-  description: 'Record two short videos describing images (or upload if recording is unavailable).',
-  type: 'recording',
-  canSkip: true,
-  estMinutes: 2,
-  requirements: 'Camera & microphone or video upload'
-},
-  'DEMO':{ name:'Demographics Survey', description:'Background information & payment', url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
+  'RC':   { name:'Reading Comprehension Task', description:'Read passages and answer questions',                                type:'embed',   embedUrl:'https://melodyfschwenk.github.io/readingcomp/',              canSkip:true, estMinutes:15, requirements:'None',                                     skilled:true },
+  'MRT':  { name:'Mental Rotation Task',     description:'Decide if two images are the same or not',                             type:'embed',   embedUrl:'https://melodyfschwenk.github.io/mrt/',                  canSkip:true, estMinutes:6,  requirements:'Keyboard recommended',           skilled:true },
+  'ASLCT':{ name:'ASL Comprehension Test',   description:'For ASL users only',                                                 url:'https://vl2portal.gallaudet.edu/assessment/', type:'external', canSkip:true, estMinutes:15, requirements:'ASL users; stable connection', skilled:true },
+  'VCN':  { name:'Virtual Campus Navigation', description:'Virtual SILC Test of Navigation (SILCton)',                         url:'http://www.virtualsilcton.com/study/753798747', type:'external', canSkip:true, estMinutes:20, requirements:'Desktop/laptop; keyboard (WASD) & mouse', skilled:true },
+  'SN':   { name:'Spatial Navigation',        description:'Choose the first step from the player to the stop sign (embedded below)', type:'embed',   embedUrl:'https://melodyfschwenk.github.io/spatial-navigation-web/', canSkip:true, estMinutes:8,  requirements:'Arrow keys',                     skilled:true },
+  'ID':   { name:'Image Description',        description:'Record two short videos describing images (or upload if recording is unavailable).', type:'recording', canSkip:true, estMinutes:2, requirements:'Camera & microphone or video upload' },
+  'DEMO': { name:'Demographics Survey',      description:'Background information & payment',                                    url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
+
 };
     // Add this after TASKS definition
     function getStandardTaskName(taskCode) {
@@ -2656,24 +2650,24 @@ function updateUploadProgress(percent, message) {
       state.currentTaskIndex++;
       while (state.currentTaskIndex < state.sequence.length && state.completedTasks.includes(state.sequence[state.currentTaskIndex])) state.currentTaskIndex++;
       saveState();
-      const payload = {
-        action: 'task_completed',
-        sessionCode: state.sessionCode,
-        task: getStandardTaskName(taskCode),
-        elapsed: Math.round(summary.elapsed/1000),
-        active: Math.round(summary.active/1000),
-        pauseCount: summary.pauseCount,
-        inactive: Math.round(summary.inactive/1000),
-        activity: Math.round(summary.activity),
-        startTime: summary.start,
-        endTime: summary.end,
-        timestamp: new Date().toISOString(),
-        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
-      };
-      if (taskCode === 'ID' && state.recording && state.recording.recordingDuration) {
-        payload.recordingDuration = Math.round(state.recording.recordingDuration/1000);
-      }
-      sendToSheets(payload);
+        const payload = {
+          sessionCode: state.sessionCode,
+          task: getStandardTaskName(taskCode),
+          elapsed: Math.round(summary.elapsed/1000),
+          active: Math.round(summary.active/1000),
+          pauseCount: summary.pauseCount,
+          inactive: Math.round(summary.inactive/1000),
+          activity: Math.round(summary.activity),
+          startTime: summary.start,
+          endTime: summary.end,
+          timestamp: new Date().toISOString(),
+          deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
+        };
+        payload.action = task.skilled ? 'skilled_task_completed' : 'task_completed';
+        if (taskCode === 'ID' && state.recording && state.recording.recordingDuration) {
+          payload.recordingDuration = Math.round(state.recording.recordingDuration/1000);
+        }
+        sendToSheets(payload);
       state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
