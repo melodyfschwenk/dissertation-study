@@ -48,7 +48,7 @@ function doPost(e) {
         'task_skipped', 'task_completed', 'skilled_task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
-      'calendly_opened',
+      'calendly_opened', 'eeg_interest',
       'study_completed',
       'save_state',
       'get_session'
@@ -267,6 +267,13 @@ function doPost(e) {
         withDocLock_(function () {
           logCalendlyOpened(ss, data);
           setEEGStatus_(ss, data.sessionCode || 'none', 'Scheduling started', data.timestamp, 'Calendly', 'Calendly link opened');
+        });
+        break;
+
+      case 'eeg_interest':
+        withDocLock_(function () {
+          logEEGInterest(ss, data);
+          setEEGStatus_(ss, data.sessionCode || 'none', 'Interested', data.timestamp, 'Interest button', 'Participant requested EEG assistance');
         });
         break;
 
@@ -1375,6 +1382,17 @@ function logCalendlyOpened(ss, data) {
       sessionCode: data.sessionCode,
       eventType: 'Calendly Opened',
       details: 'Participant opened Calendly scheduling',
+      timestamp: data.timestamp
+    });
+  });
+}
+
+function logEEGInterest(ss, data) {
+  withDocLock_(function () {
+    logSessionEvent(ss, {
+      sessionCode: data.sessionCode,
+      eventType: 'EEG Interest',
+      details: 'Participant requested EEG scheduling assistance',
       timestamp: data.timestamp
     });
   });

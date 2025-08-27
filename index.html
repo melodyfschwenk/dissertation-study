@@ -391,6 +391,9 @@
         <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
           🗓️ Schedule My EEG Session
         </button>
+        <button class="button secondary" onclick="expressEEGInterest()" style="font-size: 16px; padding: 14px 28px;">
+          📬 Can't Find a Time?
+        </button>
         <button class="button friendly" onclick="markEEGScheduled()">
           ✓ I Already Scheduled
         </button>
@@ -656,7 +659,7 @@
           <div class="video-container">
             <div class="video-panel">
               <h3>Image to Describe</h3>
-              <img id="current-image" src="" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
+              <img id="current-image" src="about:blank" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
             </div>
 
             <div class="video-panel">
@@ -2744,7 +2747,7 @@ function updateUploadProgress(percent, message) {
       if (f) f.src = f.src;
     }
 
-    function scheduleEEG() {
+function scheduleEEG() {
   // Log the intent then open Calendly in a new tab
   sendToSheets({
     action: 'calendly_opened',
@@ -2753,6 +2756,16 @@ function updateUploadProgress(percent, message) {
     timestamp: new Date().toISOString()
   });
   window.open(CONFIG.EEG_CALENDLY_URL, '_blank', 'noopener');
+}
+
+function expressEEGInterest() {
+  sendToSheets({
+    action: 'eeg_interest',
+    sessionCode: state.sessionCode || 'none',
+    participantID: state.participantID || 'none',
+    timestamp: new Date().toISOString()
+  });
+  alert('Thanks! We will contact you when more EEG times are available.');
 }
 
 function markEEGScheduled() {
@@ -3014,10 +3027,11 @@ async function sendToSheets(payload) {
     window.submitASLCTIssue = submitASLCTIssue;
     window.markComplete = markComplete;
     window.scheduleEEG = scheduleEEG;
-window.markEEGScheduled = markEEGScheduled;
-window.showSkipDialog = showSkipDialog;
-window.skipTaskProceed = skipTaskProceed;
-window.openSupportEmail = openSupportEmail;
+    window.expressEEGInterest = expressEEGInterest;
+    window.markEEGScheduled = markEEGScheduled;
+    window.showSkipDialog = showSkipDialog;
+    window.skipTaskProceed = skipTaskProceed;
+    window.openSupportEmail = openSupportEmail;
 
   </script>
 </body>
