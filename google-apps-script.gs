@@ -1626,7 +1626,18 @@ function updateTotalTime(ss, sessionCode) {
     // 3) Include paused time from Sessions sheet and derive idle
     var pausedMinExisting = Number(getByHeader_(s, row, 'Paused Time (min)')) || 0;
     var pausedSec = pausedMinExisting * 60;
-    var idleSec = Math.max(0, totalSecByWindow - activeSec - pausedSec);
+   var activeSec = 0;
+var inactiveSec = 0;
+for (var i = 1; i < pv.length; i++) {
+  if (pv[i][1] !== sessionCode) continue;
+  var act = Number(pv[i][9]) || 0;  // Active Time (sec)
+  var inact = Number(pv[i][12]) || 0;  // Inactive Time (sec)
+  if (act > 0) activeSec += act;
+  if (inact > 0) inactiveSec += inact;
+}
+
+// Then idle is what's left
+var idleSec = Math.max(0, totalSecByWindow - activeSec - pausedSec - inactiveSec);
 
     // 4) Write minutes
     var totalMin = Math.round(totalSecByWindow / 60);
@@ -2544,4 +2555,45 @@ function debugSmokeTests_() {
   updateTotalTime(ss, code);
   updateCompletedTasksCount(ss, code);
   SpreadsheetApp.getUi().alert('Smoke tests passed for ' + code);
+}
+
+function quickTimeAdjustment() {
+  // Reduces all active times by 30% and increases idle accordingly
+  // This is a rough correction based on the overcounting issue
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Sessions');
+  var data = sheet.getDataRange().getValues();
+  
+  // Add backup columns if not exist
+  if (data[0].indexOf('Original Active Time (min)') === -1) {
+    sheet.insertColumnAfter(sheet.getLastColumn());
+    sheet.getRange(1, sheet.getLastColumn()).setValue('Original Active Time (min)');
+    sheet.insertColumnAfter(sheet.getLastColumn());
+    sheet.getRange(1, sheet.getLastColumn()).setValue('Quick Fix Applied');
+  }
+  
+  for (var i = 1; i < data.length; i++) {
+    var activeCol = data[0].indexOf('Active Time (min)');
+    var idleCol = data[0].indexOf('Idle Time (min)');
+    
+    if (activeCol === -1 || idleCol === -1) continue;
+    
+    var currentActive = data[i][activeCol];
+    var currentIdle = data[i][idleCol];
+    
+    // Store original
+    sheet.getRange(i + 1, sheet.getLastColumn() - 1).setValue(currentActive);
+    
+    // Apply 30% reduction to active time
+    var newActive = Math.round(currentActive * 0.7);
+    var difference = currentActive - newActive;
+    var newIdle = currentIdle + difference;
+    
+    sheet.getRange(i + 1, activeCol + 1).setValue(newActive);
+    sheet.getRange(i + 1, idleCol + 1).setValue(newIdle);
+    sheet.getRange(i + 1, sheet.getLastColumn()).setValue(new Date().toISOString());
+  }
+  
+  SpreadsheetApp.getUi().alert('Applied quick 30% correction to active times');
 }
