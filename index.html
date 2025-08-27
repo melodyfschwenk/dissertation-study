@@ -388,9 +388,6 @@
       </div>
 
       <div class="button-group" style="margin-top: 20px;">
-        <button class="button secondary" onclick="eegInterestChanged()" style="font-size: 16px; padding: 14px 28px;">
-          📧 Email me when scheduling opens
-        </button>
         <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
           🗓️ Schedule My EEG Session
         </button>
@@ -2747,17 +2744,6 @@ function updateUploadProgress(percent, message) {
       if (f) f.src = f.src;
     }
 
-    function eegInterestChanged() {
-      sendToSheets({
-        action: 'eeg_interest_opt_in',
-        sessionCode: state.sessionCode || 'none',
-        participantID: state.participantID || 'none',
-        email: state.email || '',
-        timestamp: new Date().toISOString()
-      });
-      alert('Thanks! We\'ll email you when EEG scheduling opens.');
-    }
-
     function scheduleEEG() {
   // Log the intent then open Calendly in a new tab
   sendToSheets({
@@ -3028,7 +3014,6 @@ async function sendToSheets(payload) {
     window.submitASLCTIssue = submitASLCTIssue;
     window.markComplete = markComplete;
     window.scheduleEEG = scheduleEEG;
-window.eegInterestChanged = eegInterestChanged;
 window.markEEGScheduled = markEEGScheduled;
 window.showSkipDialog = showSkipDialog;
 window.skipTaskProceed = skipTaskProceed;

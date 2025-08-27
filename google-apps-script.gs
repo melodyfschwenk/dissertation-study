@@ -48,7 +48,7 @@ function doPost(e) {
         'task_skipped', 'task_completed', 'skilled_task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
-      'calendly_opened', 'eeg_interest_clicked', 'eeg_interest_opt_in',
+      'calendly_opened',
       'study_completed',
       'save_state',
       'get_session'
@@ -268,11 +268,6 @@ function doPost(e) {
           logCalendlyOpened(ss, data);
           setEEGStatus_(ss, data.sessionCode || 'none', 'Scheduling started', data.timestamp, 'Calendly', 'Calendly link opened');
         });
-        break;
-
-      case 'eeg_interest_clicked':
-      case 'eeg_interest_opt_in':
-        logEEGInterest(ss, data);
         break;
 
       case 'study_completed':
@@ -1372,7 +1367,7 @@ function logVideoRecording(ss, data) {
 }
 
 // ===============================
-// Calendly / EEG interest
+// Calendly
 // ===============================
 function logCalendlyOpened(ss, data) {
   withDocLock_(function () {
@@ -1382,39 +1377,6 @@ function logCalendlyOpened(ss, data) {
       details: 'Participant opened Calendly scheduling',
       timestamp: data.timestamp
     });
-  });
-}
-
-function logEEGInterest(ss, data) {
-  withDocLock_(function () {
-    logSessionEvent(ss, {
-      sessionCode: data.sessionCode || 'none',
-      eventType: 'EEG Interest',
-      details: 'Participant ID: ' + (data.participantID || 'none'),
-      timestamp: data.timestamp
-    });
-
-    if (data.sessionCode && data.sessionCode !== 'none') {
-      setEEGStatus_(ss, data.sessionCode, 'Interested', data.timestamp, 'self-report', 'EEG Interest');
-    }
-
-    if (data.email) addEEGReminder(ss, data.sessionCode || 'none', data.email);
-  });
-}
-
-function addEEGReminder(ss, sessionCode, email) {
-  return withDocLock_(function () {
-    var sheet = ss.getSheetByName('Email Reminders');
-    if (!sheet) return;
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === sessionCode) {
-        sheet.getRange(i + 1, 2).setValue(email || data[i][1] || '');
-        sheet.getRange(i + 1, 5).setValue('EEG Reminder Requested');
-        return;
-      }
-    }
-    sheet.appendRow([sessionCode, email || '', '', 0, 'EEG Reminder Requested']);
   });
 }
 
