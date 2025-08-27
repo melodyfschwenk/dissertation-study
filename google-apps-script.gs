@@ -1626,9 +1626,6 @@ function updateTotalTime(ss, sessionCode) {
     // 3) Include paused time from Sessions sheet and derive idle
     var pausedMinExisting = Number(getByHeader_(s, row, 'Paused Time (min)')) || 0;
     var pausedSec = pausedMinExisting * 60;
-   var activeSec = 0;
-var inactiveSec = 0;
-for (var i = 1; i < pv.length; i++) {
   if (pv[i][1] !== sessionCode) continue;
   var act = Number(pv[i][9]) || 0;  // Active Time (sec)
   var inact = Number(pv[i][12]) || 0;  // Inactive Time (sec)
