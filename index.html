@@ -388,10 +388,9 @@
       </div>
 
       <div class="button-group" style="margin-top: 20px;">
-        <label style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="eeg-interest-checkbox" onchange="eegInterestChanged(this)">
-          <span>📧 Email me when scheduling opens</span>
-        </label>
+        <button class="button secondary" onclick="eegInterestChanged()" style="font-size: 16px; padding: 14px 28px;">
+          📧 Email me when scheduling opens
+        </button>
         <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
           🗓️ Schedule My EEG Session
         </button>
@@ -2748,8 +2747,7 @@ function updateUploadProgress(percent, message) {
       if (f) f.src = f.src;
     }
 
-    function eegInterestChanged(el) {
-      if (!el.checked) return;
+    function eegInterestChanged() {
       sendToSheets({
         action: 'eeg_interest_opt_in',
         sessionCode: state.sessionCode || 'none',
