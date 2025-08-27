@@ -999,140 +999,170 @@ function closeEEGModal() {
   }
 };
 
-// Task timer to track active engagement
-let taskTimer = {
-  startTime: null,
-  endTime: null,
-  activeTime: 0,
-  lastActivity: 0,
-  isPaused: false,
-  pauseReason: null,
-  pauseCount: 0,
-  inactivityTime: 0,
-  pausedTime: 0,
-  pauseStart: null,
-  lastTick: 0,
-  intervalId: null,
-  externalTime: 0,
-  
-  start() {
-    this.startTime = Date.now();
-    this.lastActivity = Date.now();
-    this.lastTick = Date.now();
-    this.activeTime = 0;
-    this.inactivityTime = 0;
-    this.pausedTime = 0;
-    this.pauseCount = 0;
-    this.isPaused = false;
-    this.pauseStart = null;
-    this.intervalId = setInterval(() => this.tick(), 1000);
-  },
-  
-  tick() {
-    const now = Date.now();
-    if (!document.hidden && !this.isPaused) {
-      const timeSinceLastActivity = now - this.lastActivity;
-      const timeSinceTick = now - this.lastTick;
-      
-      if (timeSinceLastActivity > 120000) {
-        this.pause('inactivity');
-        showInactivityPrompt();
-      } else if (timeSinceLastActivity < 5000) {
-        this.activeTime += timeSinceTick;
-      } else {
-        this.inactivityTime += timeSinceTick;
-      }
-    } else if (this.isPaused && this.pauseReason === 'inactivity') {
-      this.inactivityTime += now - this.lastTick;
-    }
-    this.lastTick = now;
-  },
+// Reusable activity timer for tasks and session tracking
+function createTimer() {
+  return {
+    startTime: null,
+    endTime: null,
+    activeTime: 0,
+    lastActivity: 0,
+    isPaused: false,
+    pauseReason: null,
+    pauseCount: 0,
+    inactivityTime: 0,
+    pausedTime: 0,
+    pauseStart: null,
+    lastTick: 0,
+    intervalId: null,
+    externalTime: 0,
+    onInactivity: null,
 
-  recordActivity() {
-    this.lastActivity = Date.now();
-    if (this.isPaused && this.pauseReason === 'inactivity') this.resume();
-  },
-  
-  pause(reason) {
-    if (!this.isPaused) {
-      this.isPaused = true;
-      this.pauseReason = reason;
-      this.pauseCount++;
-      this.pauseStart = Date.now();
-    }
-  },
-  
-  resume() {
-    if (this.isPaused) {
-      if (this.pauseReason === 'inactivity' && this.pauseStart) {
-        this.inactivityTime += Date.now() - this.pauseStart;
-      }
-      if (this.pauseReason === 'manual' && this.pauseStart) {
-        this.pausedTime += Date.now() - this.pauseStart;
-      }
-      this.isPaused = false;
-      this.pauseReason = null;
+    start() {
+      this.startTime = Date.now();
       this.lastActivity = Date.now();
-    }
-  },
-  
-  stop() {
-    clearInterval(this.intervalId);
-    if (this.isPaused && this.pauseStart) {
-      if (this.pauseReason === 'inactivity') {
-        this.inactivityTime += Date.now() - this.pauseStart;
+      this.lastTick = Date.now();
+      this.activeTime = 0;
+      this.inactivityTime = 0;
+      this.pausedTime = 0;
+      this.pauseCount = 0;
+      this.isPaused = false;
+      this.pauseStart = null;
+      this.intervalId = setInterval(() => this.tick(), 1000);
+    },
+
+    tick() {
+      const now = Date.now();
+      if (!document.hidden && !this.isPaused) {
+        const timeSinceLastActivity = now - this.lastActivity;
+        const timeSinceTick = now - this.lastTick;
+
+        if (timeSinceLastActivity > 120000) {
+          this.pause('inactivity');
+          if (this.onInactivity) this.onInactivity();
+        } else if (timeSinceLastActivity < 5000) {
+          this.activeTime += timeSinceTick;
+        } else {
+          this.inactivityTime += timeSinceTick;
+        }
+      } else if (this.isPaused && this.pauseReason === 'inactivity') {
+        this.inactivityTime += now - this.lastTick;
       }
-      if (this.pauseReason === 'manual') {
-        this.pausedTime += Date.now() - this.pauseStart;
+      this.lastTick = now;
+    },
+
+    recordActivity() {
+      this.lastActivity = Date.now();
+      if (this.isPaused && this.pauseReason === 'inactivity') this.resume();
+    },
+
+    pause(reason) {
+      if (!this.isPaused) {
+        this.isPaused = true;
+        this.pauseReason = reason;
+        this.pauseCount++;
+        this.pauseStart = Date.now();
       }
-    }
-    this.endTime = Date.now();
-  },
-  
-  getSummary() {
-    const elapsed = (this.endTime || Date.now()) - this.startTime;
-    const active = Math.min(this.activeTime, elapsed);
-    const paused = Math.min(this.pausedTime, elapsed);
-    const inactive = Math.min(this.inactivityTime, elapsed);
-    
-    const total = active + paused + inactive;
-    if (total > elapsed) {
-      const scale = elapsed / total;
+    },
+
+    resume() {
+      if (this.isPaused) {
+        if (this.pauseReason === 'inactivity' && this.pauseStart) {
+          this.inactivityTime += Date.now() - this.pauseStart;
+        }
+        if (this.pauseReason === 'manual' && this.pauseStart) {
+          this.pausedTime += Date.now() - this.pauseStart;
+        }
+        this.isPaused = false;
+        this.pauseReason = null;
+        this.lastActivity = Date.now();
+      }
+    },
+
+    stop() {
+      clearInterval(this.intervalId);
+      if (this.isPaused && this.pauseStart) {
+        if (this.pauseReason === 'inactivity') {
+          this.inactivityTime += Date.now() - this.pauseStart;
+        }
+        if (this.pauseReason === 'manual') {
+          this.pausedTime += Date.now() - this.pauseStart;
+        }
+      }
+      this.endTime = Date.now();
+    },
+
+    getSummary() {
+      const elapsed = (this.endTime || Date.now()) - this.startTime;
+      const active = Math.min(this.activeTime, elapsed);
+      const paused = Math.min(this.pausedTime, elapsed);
+      const inactive = Math.min(this.inactivityTime, elapsed);
+
+      const total = active + paused + inactive;
+      if (total > elapsed) {
+        const scale = elapsed / total;
+        return {
+          start: new Date(this.startTime).toISOString(),
+          end: new Date(this.endTime || Date.now()).toISOString(),
+          elapsed,
+          active: Math.round(active * scale),
+          pauseCount: this.pauseCount,
+          paused: Math.round(paused * scale),
+          inactive: Math.round(inactive * scale),
+          activity: (active / elapsed) * 100
+        };
+      }
+
       return {
         start: new Date(this.startTime).toISOString(),
         end: new Date(this.endTime || Date.now()).toISOString(),
         elapsed,
-        active: Math.round(active * scale),
+        active,
         pauseCount: this.pauseCount,
-        paused: Math.round(paused * scale),
-        inactive: Math.round(inactive * scale),
-        activity: (active / elapsed) * 100
+        paused,
+        inactive,
+        activity: elapsed > 0 ? (active / elapsed) * 100 : 0
       };
     }
-    
-    return {
-      start: new Date(this.startTime).toISOString(),
-      end: new Date(this.endTime || Date.now()).toISOString(),
-      elapsed,
-      active,
-      pauseCount: this.pauseCount,
-      paused,
-      inactive,
-      activity: elapsed > 0 ? (active / elapsed) * 100 : 0
-    };
-  }
-};
+  };
+}
+
+const sessionTimer = createTimer();
+const taskTimer = createTimer();
 
 function showInactivityPrompt() {
   sendToSheets({ action: 'inactivity', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
   if (confirm('Are you still there?')) {
     taskTimer.resume();
     taskTimer.recordActivity();
+    sessionTimer.resume();
+    sessionTimer.recordActivity();
   }
+}
+taskTimer.onInactivity = showInactivityPrompt;
+
+function logSessionTime(stage, summary = sessionTimer.getSummary()) {
+  if (!state.sessionCode) return;
+  sendToSheets({
+    action: 'session_timer',
+    stage,
+    sessionCode: state.sessionCode,
+    elapsed: Math.round(summary.elapsed / 1000),
+    active: Math.round(summary.active / 1000),
+    pauseCount: summary.pauseCount,
+    paused: Math.round(summary.paused / 1000),
+    inactive: Math.round(summary.inactive / 1000),
+    activity: Math.round(summary.activity),
+    startTime: summary.start,
+    endTime: summary.end,
+    timestamp: new Date().toISOString()
+  });
 }
 
 ['mousemove','mousedown','keydown','touchstart'].forEach(ev => {
-  document.addEventListener(ev, () => taskTimer.recordActivity(), { passive: true });
+  document.addEventListener(ev, () => {
+    taskTimer.recordActivity();
+    sessionTimer.recordActivity();
+  }, { passive: true });
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -1144,15 +1174,18 @@ document.addEventListener('visibilitychange', () => {
   };
   if (document.hidden) {
     taskTimer.pause('visibility');
+    sessionTimer.pause('visibility');
     sendToSheets({ action: 'tab_hidden', ...payload });
   } else {
     taskTimer.resume();
+    sessionTimer.resume();
     sendToSheets({ action: 'tab_visible', ...payload });
   }
 });
 
 window.addEventListener('blur', () => {
   taskTimer.pause('blur');
+  sessionTimer.pause('blur');
   if (state.currentTaskType === 'external') {
     state.externalDepart = Date.now();
     sendToSheets({ action: 'task_departed', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
@@ -1161,17 +1194,18 @@ window.addEventListener('blur', () => {
 
 window.addEventListener('focus', () => {
   taskTimer.resume();
+  sessionTimer.resume();
   if (state.currentTaskType === 'external' && state.externalDepart) {
     const away = Date.now() - state.externalDepart;
     taskTimer.externalTime += away;
     taskTimer.lastTick = Date.now();
-    sendToSheets({ 
-      action: 'task_returned', 
-      sessionCode: state.sessionCode, 
-      task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), 
-      away: Math.round(away/1000), 
-      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', 
-      timestamp: new Date().toISOString() 
+    sendToSheets({
+      action: 'task_returned',
+      sessionCode: state.sessionCode,
+      task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
+      away: Math.round(away/1000),
+      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+      timestamp: new Date().toISOString()
     });
     state.externalDepart = null;
   }
@@ -1372,6 +1406,7 @@ function showScreen(screenId) {
         saveState();
         updateSessionWidget();
         if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
+        if (!sessionTimer.startTime) sessionTimer.start();
       } catch (err) {
         console.error(err);
         alert('Error loading session');
@@ -1421,7 +1456,11 @@ function checkSavedSession() {
     }
 
     // ----- Consent -----
-    function proceedToConsent() { showScreen('consent-screen'); updateConsentDisplay(); }
+    function proceedToConsent() {
+      if (!sessionTimer.startTime) sessionTimer.start();
+      showScreen('consent-screen');
+      updateConsentDisplay();
+    }
     function openConsent(type) {
       const consent = CONSENTS[type];
       if (consent) {
@@ -1464,6 +1503,7 @@ function checkSavedSession() {
     method: 'typed-affirmation',
     timestamp: new Date().toISOString()
   });
+  logSessionTime(type);
 }
 function verifyConsentCode(type) {
   const inputId = type === 'consent1' ? 'consent1-code' : 'consent2-code';
@@ -1566,6 +1606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#consent2-card .status-icon').textContent = '⚠️';
         saveState(); updateConsentDisplay();
         sendToSheets({ action: 'video_declined', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
+        logSessionTime('consent2_declined');
         updateSessionWidget();
         updateProgressBar();
       }
@@ -2731,7 +2772,6 @@ function updateUploadProgress(percent, message) {
       taskTimer.stop();
       const summary = taskTimer.getSummary();
       state.totalTimeSpent += summary.elapsed;
-      state.totalActiveTime += summary.active;
       if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
       state.skippedTasks = state.skippedTasks.filter(code => code !== taskCode);
       state.currentTaskIndex++;
@@ -2756,6 +2796,7 @@ function updateUploadProgress(percent, message) {
           payload.recordingDuration = Math.round(state.recording.recordingDuration/1000);
         }
         sendToSheets(payload);
+        logSessionTime(taskCode);
       state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
@@ -2782,6 +2823,7 @@ function updateUploadProgress(percent, message) {
         timestamp: new Date().toISOString(),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
       });
+      logSessionTime(taskCode + '_skipped');
       state.currentTaskType = '';
       if (state.currentTaskIndex >= state.sequence.length) showCompletionScreen(); else showProgressScreen();
     }
@@ -2795,6 +2837,10 @@ function updateUploadProgress(percent, message) {
     }
 
     async function markComplete() {
+      if (sessionTimer.startTime && !sessionTimer.endTime) sessionTimer.stop();
+      const sessSummary = sessionTimer.getSummary();
+      state.totalActiveTime = sessSummary.active;
+      logSessionTime('final', sessSummary);
       const btn = document.getElementById('mark-complete-btn');
       btn.disabled = true;
       await sendToSheets({
@@ -2812,6 +2858,7 @@ function updateUploadProgress(percent, message) {
     function pauseStudy() {
       state.pauseStart = Date.now();
       if (taskTimer.startTime) taskTimer.pause('manual');
+      if (sessionTimer.startTime) sessionTimer.pause('manual');
       document.getElementById('pause-modal').classList.add('active');
       document.getElementById('pause-fab').classList.remove('active');
       const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
@@ -2828,6 +2875,7 @@ function updateUploadProgress(percent, message) {
         sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), timestamp: new Date().toISOString() });
       }
       if (taskTimer.startTime) taskTimer.resume();
+      if (sessionTimer.startTime) sessionTimer.resume();
       document.getElementById('pause-modal').classList.remove('active');
       document.getElementById('pause-fab').classList.add('active');
       saveState();
