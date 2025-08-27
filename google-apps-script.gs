@@ -45,6 +45,7 @@ function doPost(e) {
       'consent_opened', 'consent_completed', 'consent_verified', 'consent_affirmed',
       'video_declined',
       'task_started', 'task_departed', 'task_returned', 'inactivity',
+      'tab_hidden', 'tab_visible', 'window_closed',
         'task_skipped', 'task_completed', 'skilled_task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
@@ -201,6 +202,39 @@ function doPost(e) {
           logSessionEvent(ss, {
             sessionCode: data.sessionCode,
             eventType: 'Inactivity',
+            details: data.task,
+            timestamp: data.timestamp
+          });
+        });
+        break;
+
+      case 'tab_hidden':
+        withDocLock_(function () {
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: 'Tab Hidden',
+            details: data.task,
+            timestamp: data.timestamp
+          });
+        });
+        break;
+
+      case 'tab_visible':
+        withDocLock_(function () {
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: 'Tab Visible',
+            details: data.task,
+            timestamp: data.timestamp
+          });
+        });
+        break;
+
+      case 'window_closed':
+        withDocLock_(function () {
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: 'Window Closed',
             details: data.task,
             timestamp: data.timestamp
           });
