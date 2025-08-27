@@ -388,8 +388,8 @@
       </div>
 
       <div class="button-group" style="margin-top: 20px;">
-        <button class="button optional" onclick="requestEEGReminder()">
-          📧 Email Me When Scheduling Opens
+        <button id="eeg-interest-button" class="button optional" onclick="eegInterestClicked(this)">
+          📧 Email me when scheduling opens
         </button>
         <button class="button success" onclick="scheduleEEG()" style="font-size: 16px; padding: 14px 28px;">
           🗓️ Schedule My EEG Session
@@ -2753,14 +2753,15 @@ function updateUploadProgress(percent, message) {
       if (f) f.src = f.src;
     }
 
-    function requestEEGReminder() {
+    function eegInterestClicked(btn) {
       sendToSheets({
-        action: 'eeg_interest_clicked',
+        action: 'eeg_interest_opt_in',
         sessionCode: state.sessionCode || 'none',
         participantID: state.participantID || 'none',
         email: state.email || '',
         timestamp: new Date().toISOString()
       });
+      if (btn) btn.disabled = true;
       alert('Thanks! We\'ll email you when EEG scheduling opens.');
     }
 
@@ -3034,7 +3035,7 @@ async function sendToSheets(payload) {
     window.submitASLCTIssue = submitASLCTIssue;
     window.markComplete = markComplete;
     window.scheduleEEG = scheduleEEG;
-window.requestEEGReminder = requestEEGReminder;
+window.eegInterestClicked = eegInterestClicked;
 window.markEEGScheduled = markEEGScheduled;
 window.showSkipDialog = showSkipDialog;
 window.skipTaskProceed = skipTaskProceed;
