@@ -1125,6 +1125,33 @@ function saveSessionState(ss, data) {
 // ===============================
 // Task summaries
 // ===============================
+function getSessionActivityTracking(sessionCode) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Task Progress');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var tracking = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === sessionCode) {
+      tracking.push({
+        timestamp: data[i][0],
+        task: data[i][4],
+        eventType: data[i][5],
+        startTime: data[i][6],
+        endTime: data[i][7],
+        elapsed: data[i][8],
+        active: data[i][9],
+        pauseCount: data[i][10],
+        inactive: data[i][11],
+        activity: data[i][12],
+        details: data[i][13],
+        completed: data[i][14]
+      });
+    }
+  }
+  return tracking;
+}
+
 function getSessionActivitySummary(sessionCode) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var progressSheet = ss.getSheetByName('Task Progress');
@@ -1805,6 +1832,8 @@ function getSessionData(ss, sessionCode) {
 
   for (var r = 1; r < data.length; r++) {
     if (data[r][0] === sessionCode) {
+      var activitySummary = getSessionActivitySummary(sessionCode);
+      var activityTracking = getSessionActivityTracking(sessionCode);
       return createCorsOutput({
         success: true,
         session: {
@@ -1820,7 +1849,9 @@ function getSessionData(ss, sessionCode) {
           deviceType: map['Device Type'] != null ? data[r][map['Device Type']] : '',
           consentStatus: map['Consent Status'] != null ? data[r][map['Consent Status']] : '',
           state: map['State JSON'] != null ? data[r][map['State JSON']] : ''
-        }
+        },
+        activity_tracking: activityTracking,
+        activity_summary: activitySummary
       });
     }
   }

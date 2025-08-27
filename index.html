@@ -1308,6 +1308,8 @@ function showScreen(screenId) {
         }
         state = JSON.parse(data.session.state);
         state.sequence = ensureDemographicsLast(state.sequence);
+        if (data.activity_tracking) state.activity_tracking = data.activity_tracking;
+        if (data.activity_summary) state.activity_summary = data.activity_summary;
         saveState();
         updateSessionWidget();
         if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
