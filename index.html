@@ -1029,7 +1029,7 @@ let taskTimer = {
     this.inactivityTime += now - this.lastTick;
   }
   this.lastTick = now;
-}
+  },
 
   recordActivity() {
     this.lastActivity = Date.now();
@@ -1099,9 +1099,9 @@ let taskTimer = {
     pauseCount: this.pauseCount,
     paused,
     inactive,
-    activity: elapsed > 0 ? (active / elapsed) * 100 : 0
+  activity: elapsed > 0 ? (active / elapsed) * 100 : 0
   };
-}
+};
  
 
 function showInactivityPrompt() {
