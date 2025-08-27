@@ -1065,7 +1065,19 @@ function showInactivityPrompt() {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) taskTimer.pause('visibility'); else taskTimer.resume();
+  const payload = {
+    sessionCode: state.sessionCode,
+    task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
+    deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+    timestamp: new Date().toISOString()
+  };
+  if (document.hidden) {
+    taskTimer.pause('visibility');
+    sendToSheets({ action: 'tab_hidden', ...payload });
+  } else {
+    taskTimer.resume();
+    sendToSheets({ action: 'tab_visible', ...payload });
+  }
 });
 
 window.addEventListener('blur', () => {
@@ -1089,6 +1101,21 @@ window.addEventListener('focus', () => {
 
 window.addEventListener('message', e => {
   if (e.data === 'heartbeat') taskTimer.recordActivity();
+});
+
+window.addEventListener('beforeunload', () => {
+  if (!CONFIG.SHEETS_URL) return;
+  const body = JSON.stringify({
+    action: 'window_closed',
+    sessionCode: state.sessionCode,
+    task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
+    deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent
+  });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(CONFIG.SHEETS_URL, body);
+  }
 });
 
 // Handle Dropbox OAuth redirect
