@@ -525,7 +525,7 @@
     <strong>⚠️ IMPORTANT:</strong>
     <p style="margin-top: 8px;">
       You must actually complete these Qualtrics consent forms. Simply clicking “I completed this form”
-      without submitting the form will <u>invalidate your participation and compensation</u>.
+      without submitting the form will <u>invalidate your participation</u>.
     </p>
   </div>
 
@@ -1218,7 +1218,7 @@ if (!window.isSecureContext) {
     <li><strong>Virtual Campus Navigation</strong> needs keyboard controls (WASD/arrow keys)</li>
     <li>Video recording requires camera & microphone permissions</li>
     <li>Chrome or Firefox recommended on desktop</li>
-    <li>To receive full compensation, we recommend switching to a computer if possible.</li>
+    <li>For the best experience, we recommend switching to a computer if possible.</li>
   </ul>
 `;
         }
@@ -1434,7 +1434,7 @@ function checkSavedSession() {
   const niceName = (type === 'consent1') ? 'Research Consent' : 'Video Consent';
   const ok = confirm(
     `Did you actually complete and submit the ${niceName} form on Qualtrics?\n\n` +
-    `Clicking “OK” without completing the form will disqualify you from compensation.`
+    `Clicking “OK” without completing the form will disqualify your participation.`
   );
   if (!ok) return;
 
@@ -1750,8 +1750,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       document.getElementById('task-title').textContent = task.name;
       const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
-  ? 'This task is OPTIONAL for you (video consent declined).'
-  : 'This task is REQUIRED for compensation.';
+  ? 'This task is optional for you (video consent declined).'
+  : 'This task is required for study completion.';
 const eta = TASKS[taskCode]?.estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
 const reqs = TASKS[taskCode]?.requirements || '—';
 
@@ -1864,7 +1864,7 @@ function showExternalTask(taskCode) {
 
   const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
     ? 'This task is OPTIONAL for you (video consent declined).'
-    : 'This task is REQUIRED for compensation.';
+    : 'This task is required for study completion.';
   const eta  = TASKS[taskCode]?.estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
   const reqs = TASKS[taskCode]?.requirements || '—';
 
@@ -2031,7 +2031,7 @@ if (!window.isSecureContext) {
 
       const requiredTextRec = (state.consentStatus.videoDeclined)
   ? 'This task is OPTIONAL for you (video consent declined).'
-  : 'This task is REQUIRED for compensation.';
+  : 'This task is required for study completion.';
 const etaRec = TASKS['ID']?.estMinutes ? `${TASKS['ID'].estMinutes} minutes` : 'a few minutes';
 const reqsRec = TASKS['ID']?.requirements || '—';
 
