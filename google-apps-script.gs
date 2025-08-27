@@ -1611,30 +1611,27 @@ function updateTotalTime(ss, sessionCode) {
     var totalSecByWindow = Math.max(0, Math.round((win.endMs - win.startMs) / 1000));
 
     // 2) Sum ACTIVE seconds from Task Progress
-    var p = ss.getSheetByName('Task Progress');
-    var activeSec = 0;
-    if (p && p.getLastRow() > 1) {
-      var lastRow = p.getLastRow();
-      var pv = p.getRange(1,1,lastRow,15).getValues();
-      for (var i = 1; i < pv.length; i++) {
-        if (pv[i][1] !== sessionCode) continue;
-        var act = Number(pv[i][9]) || 0; // Active Time (sec)
-        if (act > 0) activeSec += act;
+      var p = ss.getSheetByName('Task Progress');
+      var activeSec = 0;
+      var inactiveSec = 0;
+      if (p && p.getLastRow() > 1) {
+        var lastRow = p.getLastRow();
+        var pv = p.getRange(1,1,lastRow,15).getValues();
+        for (var i = 1; i < pv.length; i++) {
+          if (pv[i][1] !== sessionCode) continue;
+          var act = Number(pv[i][9]) || 0;  // Active Time (sec)
+          var inact = Number(pv[i][12]) || 0;  // Inactive Time (sec)
+          if (act > 0) activeSec += act;
+          if (inact > 0) inactiveSec += inact;
+        }
       }
-    }
 
-    // 3) Include paused time from Sessions sheet and derive idle
-    var pausedMinExisting = Number(getByHeader_(s, row, 'Paused Time (min)')) || 0;
-    var pausedSec = pausedMinExisting * 60;
-  if (pv[i][1] !== sessionCode) continue;
-  var act = Number(pv[i][9]) || 0;  // Active Time (sec)
-  var inact = Number(pv[i][12]) || 0;  // Inactive Time (sec)
-  if (act > 0) activeSec += act;
-  if (inact > 0) inactiveSec += inact;
-}
+      // 3) Include paused time from Sessions sheet and derive idle
+      var pausedMinExisting = Number(getByHeader_(s, row, 'Paused Time (min)')) || 0;
+      var pausedSec = pausedMinExisting * 60;
 
-// Then idle is what's left
-var idleSec = Math.max(0, totalSecByWindow - activeSec - pausedSec - inactiveSec);
+      // Then idle is what's left
+      var idleSec = Math.max(0, totalSecByWindow - activeSec - pausedSec - inactiveSec);
 
     // 4) Write minutes
     var totalMin = Math.round(totalSecByWindow / 60);
