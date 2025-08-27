@@ -48,7 +48,7 @@ function doPost(e) {
       'task_skipped', 'task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
-      'calendly_opened', 'eeg_interest_clicked',
+      'calendly_opened', 'eeg_interest_clicked', 'eeg_interest_opt_in',
       'study_completed',
       'save_state',
       'get_session'
@@ -267,6 +267,7 @@ function doPost(e) {
         break;
 
       case 'eeg_interest_clicked':
+      case 'eeg_interest_opt_in':
         logEEGInterest(ss, data);
         break;
 
