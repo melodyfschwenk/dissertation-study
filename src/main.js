@@ -2149,8 +2149,6 @@ async function testCloudinaryUpload() {
 }
 
 
-// Add to your window exports at the bottom
-window.testCloudinaryUpload = testCloudinaryUpload;
     
 async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
@@ -2998,41 +2996,43 @@ window.addEventListener('beforeunload', () => {
   
   console.log('🔍 Debug complete! Check the console messages above.');
 }
-    // Expose to window
-    window.showScreen = showScreen;
-    window.createNewSession = createNewSession;
-    window.resumeSession = resumeSession;
-    window.proceedToEEGInfo = proceedToEEGInfo;
-    window.proceedToConsent = proceedToConsent;
-    window.openConsent = openConsent;
-    window.markConsentDone = markConsentDone;
-    window.declineVideo = declineVideo;
-    window.proceedToTasks = proceedToTasks;
-    window.continueToCurrentTask = continueToCurrentTask;
-    window.skipCurrentTask = skipCurrentTask;
-    window.pauseStudy = pauseStudy;
-    window.resumeStudy = resumeStudy;
-      window.saveAndExit = saveAndExit;
-      window.copyCode = copyCode;
-      window.copyRecoveryLink = copyRecoveryLink;
-      window.copyASLCTCode = copyASLCTCode;
-    window.tryMailto = tryMailto;
-    window.copyEmail = copyEmail;
-    window.closeEEGModal = closeEEGModal;
-    window.completeTask = completeTask;
-    window.skipTask = skipTask;
-    window.openEmbedInNewTab = openEmbedInNewTab;
-    window.reloadEmbed = reloadEmbed;
-    // Video upload functions
-    window.retryVideoUpload = retryVideoUpload;
-    window.continueWithoutUpload = continueWithoutUpload;
-     window.debugVideoUpload = debugVideoUpload;
-    window.submitASLCTIssue = submitASLCTIssue;
-    window.markComplete = markComplete;
-    window.scheduleEEG = scheduleEEG;
-    window.expressEEGInterest = expressEEGInterest;
-    window.markEEGScheduled = markEEGScheduled;
-    window.showSkipDialog = showSkipDialog;
-    window.skipTaskProceed = skipTaskProceed;
-    window.openSupportEmail = openSupportEmail;
+// Expose functions to window
+Object.assign(window, {
+  showScreen,
+  createNewSession,
+  resumeSession,
+  proceedToEEGInfo,
+  proceedToConsent,
+  openConsent,
+  markConsentDone,
+  declineVideo,
+  proceedToTasks,
+  continueToCurrentTask,
+  skipCurrentTask,
+  pauseStudy,
+  resumeStudy,
+  saveAndExit,
+  copyCode,
+  copyRecoveryLink,
+  copyASLCTCode,
+  tryMailto,
+  copyEmail,
+  closeEEGModal,
+  completeTask,
+  skipTask,
+  openEmbedInNewTab,
+  reloadEmbed,
+  retryVideoUpload,
+  continueWithoutUpload,
+  debugVideoUpload,
+  submitASLCTIssue,
+  markComplete,
+  scheduleEEG,
+  expressEEGInterest,
+  markEEGScheduled,
+  showSkipDialog,
+  skipTaskProceed,
+  openSupportEmail,
+  testCloudinaryUpload
+});
 

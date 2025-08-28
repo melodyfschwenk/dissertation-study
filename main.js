@@ -2293,7 +2293,7 @@ function _makeTinyTestVideo() {
 }
 function testCloudinaryUpload() {
   return _testCloudinaryUpload.apply(this, arguments);
-} // Add to your window exports at the bottom
+}
 function _testCloudinaryUpload() {
   _testCloudinaryUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
     var blob, input, file, result, _t0;
@@ -2364,7 +2364,6 @@ function _testCloudinaryUpload() {
   }));
   return _testCloudinaryUpload.apply(this, arguments);
 }
-window.testCloudinaryUpload = testCloudinaryUpload;
 function uploadVideoToDrive(_x5, _x6, _x7) {
   return _uploadVideoToDrive.apply(this, arguments);
 }
@@ -3354,7 +3353,7 @@ window.addEventListener('beforeunload', function () {
 // DEBUG FUNCTION - Add this before "// Expose to window"
 function debugVideoUpload() {
   return _debugVideoUpload.apply(this, arguments);
-} // Expose to window
+} // Expose functions to window
 function _debugVideoUpload() {
   _debugVideoUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
     var res, text, payload, testData, testBlob, base64Data, base64VideoData, uploadData, uploadResponse, uploadText, uploadResult, _t16, _t17;
@@ -3496,39 +3495,41 @@ function _debugVideoUpload() {
   }));
   return _debugVideoUpload.apply(this, arguments);
 }
-window.showScreen = showScreen;
-window.createNewSession = createNewSession;
-window.resumeSession = resumeSession;
-window.proceedToEEGInfo = proceedToEEGInfo;
-window.proceedToConsent = proceedToConsent;
-window.openConsent = openConsent;
-window.markConsentDone = markConsentDone;
-window.declineVideo = declineVideo;
-window.proceedToTasks = proceedToTasks;
-window.continueToCurrentTask = continueToCurrentTask;
-window.skipCurrentTask = skipCurrentTask;
-window.pauseStudy = pauseStudy;
-window.resumeStudy = resumeStudy;
-window.saveAndExit = saveAndExit;
-window.copyCode = copyCode;
-window.copyRecoveryLink = copyRecoveryLink;
-window.copyASLCTCode = copyASLCTCode;
-window.tryMailto = tryMailto;
-window.copyEmail = copyEmail;
-window.closeEEGModal = closeEEGModal;
-window.completeTask = completeTask;
-window.skipTask = skipTask;
-window.openEmbedInNewTab = openEmbedInNewTab;
-window.reloadEmbed = reloadEmbed;
-// Video upload functions
-window.retryVideoUpload = retryVideoUpload;
-window.continueWithoutUpload = continueWithoutUpload;
-window.debugVideoUpload = debugVideoUpload;
-window.submitASLCTIssue = submitASLCTIssue;
-window.markComplete = markComplete;
-window.scheduleEEG = scheduleEEG;
-window.expressEEGInterest = expressEEGInterest;
-window.markEEGScheduled = markEEGScheduled;
-window.showSkipDialog = showSkipDialog;
-window.skipTaskProceed = skipTaskProceed;
-window.openSupportEmail = openSupportEmail;
+Object.assign(window, {
+  showScreen: showScreen,
+  createNewSession: createNewSession,
+  resumeSession: resumeSession,
+  proceedToEEGInfo: proceedToEEGInfo,
+  proceedToConsent: proceedToConsent,
+  openConsent: openConsent,
+  markConsentDone: markConsentDone,
+  declineVideo: declineVideo,
+  proceedToTasks: proceedToTasks,
+  continueToCurrentTask: continueToCurrentTask,
+  skipCurrentTask: skipCurrentTask,
+  pauseStudy: pauseStudy,
+  resumeStudy: resumeStudy,
+  saveAndExit: saveAndExit,
+  copyCode: copyCode,
+  copyRecoveryLink: copyRecoveryLink,
+  copyASLCTCode: copyASLCTCode,
+  tryMailto: tryMailto,
+  copyEmail: copyEmail,
+  closeEEGModal: closeEEGModal,
+  completeTask: completeTask,
+  skipTask: skipTask,
+  openEmbedInNewTab: openEmbedInNewTab,
+  reloadEmbed: reloadEmbed,
+  retryVideoUpload: retryVideoUpload,
+  continueWithoutUpload: continueWithoutUpload,
+  debugVideoUpload: debugVideoUpload,
+  submitASLCTIssue: submitASLCTIssue,
+  markComplete: markComplete,
+  scheduleEEG: scheduleEEG,
+  expressEEGInterest: expressEEGInterest,
+  markEEGScheduled: markEEGScheduled,
+  showSkipDialog: showSkipDialog,
+  skipTaskProceed: skipTaskProceed,
+  openSupportEmail: openSupportEmail,
+  testCloudinaryUpload: testCloudinaryUpload
+});
