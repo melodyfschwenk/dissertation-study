@@ -2998,41 +2998,52 @@ window.addEventListener('beforeunload', () => {
 }
 // Expose functions to window
 Object.assign(window, {
-  showScreen,
-  createNewSession,
-  resumeSession,
-  proceedToEEGInfo,
-  proceedToConsent,
-  openConsent,
-  markConsentDone,
+  // Clipboard and communication helpers
+  copyASLCTCode,
+  copyCode,
+  copyEmail,
+  copyRecoveryLink,
+  openSupportEmail,
+  tryMailto,
+
+  // Consent and EEG flow handlers
+  closeEEGModal,
   declineVideo,
-  proceedToTasks,
-  continueToCurrentTask,
-  skipCurrentTask,
+  markConsentDone,
+  openConsent,
+  proceedToConsent,
+  proceedToEEGInfo,
+
+  // Debug utilities
+  debugVideoUpload,
+  submitASLCTIssue,
+  testCloudinaryUpload,
+
+  // EEG scheduling utilities
+  expressEEGInterest,
+  markEEGScheduled,
+  scheduleEEG,
+
+  // Session handlers
+  createNewSession,
   pauseStudy,
+  proceedToTasks,
+  resumeSession,
   resumeStudy,
   saveAndExit,
-  copyCode,
-  copyRecoveryLink,
-  copyASLCTCode,
-  tryMailto,
-  copyEmail,
-  closeEEGModal,
+
+  // Task flow helpers
   completeTask,
-  skipTask,
+  continueToCurrentTask,
+  continueWithoutUpload,
+  markComplete,
   openEmbedInNewTab,
   reloadEmbed,
   retryVideoUpload,
-  continueWithoutUpload,
-  debugVideoUpload,
-  submitASLCTIssue,
-  markComplete,
-  scheduleEEG,
-  expressEEGInterest,
-  markEEGScheduled,
+  showScreen,
   showSkipDialog,
-  skipTaskProceed,
-  openSupportEmail,
-  testCloudinaryUpload
+  skipCurrentTask,
+  skipTask,
+  skipTaskProceed
 });
 
