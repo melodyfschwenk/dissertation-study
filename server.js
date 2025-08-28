@@ -12,6 +12,7 @@ function validateConfig() {
   const missing = REQUIRED_CONFIG.filter(key => !process.env[key]);
   if (missing.length) {
     console.warn(`Missing configuration values: ${missing.join(', ')}`);
+    process.exit(1);
   }
 }
 
