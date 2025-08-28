@@ -1,5 +1,6 @@
 # AGENTS instructions
 
+- Refer to `README.md` for installation, build/start commands, and environment variable setup.
 - Run `npm run build` after modifying source files in `src/`.
 - Run `npm run lint` before committing.
 - Commit both the source files and the generated `main.js` artifact.
