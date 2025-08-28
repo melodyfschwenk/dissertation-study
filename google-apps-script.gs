@@ -1,3 +1,9 @@
+/* eslint-env googleappsscript */
+/*
+ * To lint this file with ESLint:
+ *   npm run lint -- google-apps-script.gs
+ * Requires `eslint-plugin-googleappsscript`.
+ */
 /**
  * Spatial Cognition Study - Backend (Apps Script)
  * End-to-end version with:
