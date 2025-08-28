@@ -1298,6 +1298,7 @@ function openExternalTask(taskCode) {
       if (state.recording.stream) {
         preview.srcObject = state.recording.stream;
         preview.style.display = 'block';
+        preview.play().catch(() => {});
         return;
       }
       try {
@@ -1317,6 +1318,7 @@ function openExternalTask(taskCode) {
         state.recording.isVideoMode = true;
         preview.srcObject = stream;
         preview.style.display = 'block';
+        preview.play().catch(() => {});
       } catch (e) {
         console.error('Preview failed:', e);
       }
@@ -1594,6 +1596,7 @@ function bindRecordingSkips() {
           if (isVideoMode) {
             preview.srcObject = stream;
             preview.style.display = 'block';
+            preview.play().catch(() => {});
           } else {
             preview.style.display = 'none';
             status.textContent = '🎤 Audio ready to record';
