@@ -7,6 +7,7 @@
 - Guard against missing critical configuration values at server startup, logging warnings on the backend so participants don't see them.
 - Use `npm start` to launch the Node server and monitor logs for warnings or errors.
 - Upload metrics expect file sizes in kilobytes.
+- Centralize Apps Script error handling with `handleError`, wrapping spreadsheet operations in try/catch.
 
 ## TODO
 - [ ] Split `src/main.js` into smaller modules to simplify maintenance.
