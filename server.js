@@ -3,6 +3,7 @@
 // that the front-end fetch call in index.html can succeed when using
 // `mode: 'cors'`.
 
+require('dotenv').config();
 const http = require('http');
 
 const REQUIRED_CONFIG = ['SHEETS_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_UPLOAD_PRESET'];
