@@ -2915,8 +2915,20 @@ function getExtensionFromMime(mime) {
     async function uploadToCloudinary(videoBlob, sessionCode, imageNumber) {
   try {
     console.log('Starting Cloudinary upload...');
+    console.log('Config check:', {
+      cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
+      uploadPreset: CONFIG.CLOUDINARY_UPLOAD_PRESET
+    });
     
-    // Create form data (like filling out a form)
+    // Verify config
+    if (!CONFIG.CLOUDINARY_CLOUD_NAME || CONFIG.CLOUDINARY_CLOUD_NAME === 'dxyz12345') {
+      throw new Error('Cloudinary cloud name not configured');
+    }
+    if (!CONFIG.CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error('Cloudinary upload preset not configured');
+    }
+    
+    // Create form data
     const formData = new FormData();
     formData.append('file', videoBlob);
     formData.append('upload_preset', CONFIG.CLOUDINARY_UPLOAD_PRESET);
@@ -2929,7 +2941,14 @@ function getExtensionFromMime(mime) {
     // Set the folder
     formData.append('folder', 'spatial-cognition-videos');
     
-    // Actually upload to Cloudinary
+    // Log what we're sending
+    console.log('Sending to Cloudinary:', {
+      url: `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`,
+      preset: CONFIG.CLOUDINARY_UPLOAD_PRESET,
+      folder: 'spatial-cognition-videos'
+    });
+    
+    // Actually upload
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`,
       {
@@ -2938,20 +2957,35 @@ function getExtensionFromMime(mime) {
       }
     );
     
+    // Get response text for debugging
+    const responseText = await response.text();
+    console.log('Cloudinary response:', responseText);
+    
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
+      // Parse error details
+      let errorDetail = responseText;
+      try {
+        const errorJson = JSON.parse(responseText);
+        errorDetail = errorJson.error?.message || responseText;
+      } catch (e) {
+        // responseText is not JSON
+      }
+      
+      console.error('Cloudinary error details:', errorDetail);
+      throw new Error(`Cloudinary error: ${errorDetail}`);
     }
     
-    const result = await response.json();
+    // Parse successful response
+    const result = JSON.parse(responseText);
     console.log('Cloudinary upload successful:', result);
     
     return {
       success: true,
-      url: result.secure_url,  // The URL to view the video
+      url: result.secure_url,
       publicId: result.public_id,
       format: result.format,
       size: result.bytes,
-      duration: result.duration  // Video length in seconds
+      duration: result.duration
     };
     
   } catch (error) {
