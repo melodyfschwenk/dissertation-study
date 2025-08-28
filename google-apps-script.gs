@@ -2,7 +2,7 @@
 /*
  * To lint this file with ESLint:
  *   npm run lint -- google-apps-script.gs
- * Requires `eslint-plugin-googleappsscript`.
+ * Requires `eslint-plugin-googleappsscript` (install separately if not present).
  */
 /**
  * Spatial Cognition Study - Backend (Apps Script)
