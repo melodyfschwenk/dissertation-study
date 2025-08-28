@@ -2863,17 +2863,35 @@ async function sendToSheets(payload) {
   }
 }
 
-window.addEventListener('beforeunload', () => {
-  if (!CONFIG.SHEETS_URL) return;
-  const body = {
-    action: 'window_closed',
-    sessionCode: state.sessionCode || 'none',
-    task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
-    timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-    deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
-  };
-  navigator.sendBeacon(CONFIG.SHEETS_URL, JSON.stringify(body));
+window.addEventListener('beforeunload', e => {
+  const unsavedRecording =
+    state.recording.active ||
+    state.uploadQueue.length > 0 ||
+    state.processingUpload;
+  const incompleteTasks =
+    state.sequence.length > 0 &&
+    state.completedTasks.length < state.sequence.length;
+
+  if (CONFIG.SHEETS_URL) {
+    const body = {
+      action: 'window_closed',
+      sessionCode: state.sessionCode || 'none',
+      task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+      unsavedRecording,
+      incompleteTasks
+    };
+    navigator.sendBeacon(CONFIG.SHEETS_URL, JSON.stringify(body));
+  }
+
+  if (unsavedRecording || incompleteTasks) {
+    const msg = 'You have unsaved recordings or unfinished tasks. Are you sure you want to leave?';
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  }
 });
 
 

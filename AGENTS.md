@@ -5,6 +5,7 @@
 - Run `npm run lint` before committing.
 - Commit both the source files and the generated `main.js` artifact.
 - Use 2 spaces for indentation.
+- Retain the `beforeunload` safeguard that warns about unsaved recordings or incomplete tasks when changing page flow.
 - Check server logs for startup/runtime errors and ensure request and server errors are properly handled.
 - Guard against missing critical configuration values at server startup, logging warnings on the backend so participants don't see them.
 - Use `npm start` to launch the Node server and monitor logs for warnings or errors.
