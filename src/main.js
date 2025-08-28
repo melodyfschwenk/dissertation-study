@@ -955,7 +955,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ----- Progress -----
-    function showProgressScreen() { updateTaskList(); updateProgressBar(); updateSessionWidget(); updateSkippedNotice(); showScreen('progress-screen'); }
+    function showProgressScreen() {
+      updateTaskList();
+      updateProgressBar();
+      updateSessionWidget();
+      updateSkippedNotice();
+      updateProgressSkipButton();
+      showScreen('progress-screen');
+    }
     function updateSkippedNotice() {
       const box = document.getElementById('skipped-notice');
       if (!box) return;
@@ -966,6 +973,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         box.style.display = 'none';
       }
+    }
+    function updateProgressSkipButton() {
+      const btn = document.getElementById('skip-current-task-btn');
+      if (!btn) return;
+      const taskCode = state.sequence[state.currentTaskIndex];
+      const canSkip = taskCode && TASKS[taskCode] && TASKS[taskCode].canSkip;
+      btn.style.display = canSkip ? 'inline-flex' : 'none';
+      btn.textContent = taskCode === 'ASLCT' ? 'Unable to complete - I do not know ASL' : 'Unable to continue';
     }
     function updateTaskList() {
       const list = document.getElementById('task-list');
@@ -1022,6 +1037,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function continueToCurrentTask() {
       if (state.currentTaskIndex >= state.sequence.length) { showCompletionScreen(); return; }
       startTask(state.sequence[state.currentTaskIndex]);
+    }
+    function skipCurrentTask() {
+      if (state.currentTaskIndex >= state.sequence.length) return;
+      const taskCode = state.sequence[state.currentTaskIndex];
+      showSkipDialog(taskCode);
     }
     function startTask(taskCode) {
       const task = TASKS[taskCode];
@@ -3137,6 +3157,7 @@ window.addEventListener('beforeunload', () => {
     window.declineVideo = declineVideo;
     window.proceedToTasks = proceedToTasks;
     window.continueToCurrentTask = continueToCurrentTask;
+    window.skipCurrentTask = skipCurrentTask;
     window.pauseStudy = pauseStudy;
     window.resumeStudy = resumeStudy;
       window.saveAndExit = saveAndExit;

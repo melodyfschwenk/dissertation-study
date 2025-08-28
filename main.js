@@ -1088,6 +1088,7 @@ function showProgressScreen() {
   updateProgressBar();
   updateSessionWidget();
   updateSkippedNotice();
+  updateProgressSkipButton();
   showScreen('progress-screen');
 }
 function updateSkippedNotice() {
@@ -1100,6 +1101,14 @@ function updateSkippedNotice() {
   } else {
     box.style.display = 'none';
   }
+}
+function updateProgressSkipButton() {
+  var btn = document.getElementById('skip-current-task-btn');
+  if (!btn) return;
+  var taskCode = state.sequence[state.currentTaskIndex];
+  var canSkip = taskCode && TASKS[taskCode] && TASKS[taskCode].canSkip;
+  btn.style.display = canSkip ? 'inline-flex' : 'none';
+  btn.textContent = taskCode === 'ASLCT' ? 'Unable to complete - I do not know ASL' : 'Unable to continue';
 }
 function updateTaskList() {
   var list = document.getElementById('task-list');
@@ -1163,6 +1172,11 @@ function continueToCurrentTask() {
     return;
   }
   startTask(state.sequence[state.currentTaskIndex]);
+}
+function skipCurrentTask() {
+  if (state.currentTaskIndex >= state.sequence.length) return;
+  var taskCode = state.sequence[state.currentTaskIndex];
+  showSkipDialog(taskCode);
 }
 function startTask(taskCode) {
   var task = TASKS[taskCode];
@@ -3647,6 +3661,7 @@ window.markConsentDone = markConsentDone;
 window.declineVideo = declineVideo;
 window.proceedToTasks = proceedToTasks;
 window.continueToCurrentTask = continueToCurrentTask;
+window.skipCurrentTask = skipCurrentTask;
 window.pauseStudy = pauseStudy;
 window.resumeStudy = resumeStudy;
 window.saveAndExit = saveAndExit;
