@@ -1293,6 +1293,35 @@ function openExternalTask(taskCode) {
       }
     }
 
+    async function startPreview() {
+      const preview = document.getElementById('video-preview');
+      if (state.recording.stream) {
+        preview.srcObject = state.recording.stream;
+        preview.style.display = 'block';
+        return;
+      }
+      try {
+        const perm = await checkSecureAndPermissions();
+          if (perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied')) {
+            const how = isIOS()
+              ? 'Settings \u2192 Safari \u2192 Camera/Microphone \u2192 Allow for this site, then reload.'
+              : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+            showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
+            return;
+          }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 },
+          audio: true
+        });
+        state.recording.stream = stream;
+        state.recording.isVideoMode = true;
+        preview.srcObject = stream;
+        preview.style.display = 'block';
+      } catch (e) {
+        console.error('Preview failed:', e);
+      }
+    }
+
     function updateRecordingImage() {
       const imageNum = state.recording.currentImage + 1;
       document.getElementById('image-number').textContent = imageNum;
@@ -1349,7 +1378,7 @@ function openExternalTask(taskCode) {
       const recordingContent = document.getElementById('recording-content');
       const recordingControls = recordingContent ? recordingContent.querySelector('.recording-controls') : null;
       if (recordingControls && recordingControls.parentNode && !document.getElementById('recording-size-warning')) {
-        recordingControls.parentNode.insertBefore(recordingInstructions, recordingControls);
+      recordingControls.parentNode.insertBefore(recordingInstructions, recordingControls);
       }
 
       const requiredTextRec = (state.consentStatus.videoDeclined)
@@ -1374,6 +1403,7 @@ if (instructionBox) {
   `;
 }
 
+      if (window.isSecureContext) startPreview();
     }
 
     function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
@@ -1509,66 +1539,63 @@ function bindRecordingSkips() {
 
       if (!state.recording.active) {
         try {
-          // First check permissions
-          const perm = await checkSecureAndPermissions();
-          if (perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied')) {
-            const how = isIOS()
-              ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.'
-              : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
-            showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
-            return;
-          } else if (!perm.permissionsChecked) {
-            console.warn('Permissions API unsupported; unable to pre-check camera/microphone permissions.');
-          }
+          let stream = state.recording.stream;
+          let isVideoMode = state.recording.isVideoMode;
 
-          // Try video first, fall back to audio-only if needed
-          let stream;
-          let isVideoMode = true;
+          if (!stream) {
+            // First check permissions
+            const perm = await checkSecureAndPermissions();
+              if (perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied')) {
+                const how = isIOS()
+                  ? 'Settings \u2192 Safari \u2192 Camera/Microphone \u2192 Allow for this site, then reload.'
+                  : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+                showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
+                return;
+              } else if (!perm.permissionsChecked) {
+              console.warn('Permissions API unsupported; unable to pre-check camera/microphone permissions.');
+            }
 
-          try {
-            // Try to get both video and audio
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { width: 640, height: 480 },
-              audio: true
-            });
-            isVideoMode = true;
-          } catch (videoError) {
-            console.warn('Video capture failed, trying audio-only:', videoError);
-
-            // Fall back to audio-only
+            // Try video first, fall back to audio-only if needed
             try {
               stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: false
+                video: { width: 640, height: 480 },
+                audio: true
               });
-              isVideoMode = false;
+              isVideoMode = true;
+            } catch (videoError) {
+              console.warn('Video capture failed, trying audio-only:', videoError);
 
-              // Show a notice that we're in audio-only mode
-              const audioNotice = document.createElement('div');
-              audioNotice.className = 'info-box helpful';
-              audioNotice.innerHTML = `
+              try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                  audio: true,
+                  video: false
+                });
+                isVideoMode = false;
+
+                const audioNotice = document.createElement('div');
+                audioNotice.className = 'info-box helpful';
+                audioNotice.innerHTML = `
             <strong>📢 Audio-Only Mode</strong>
             <p>Recording voice only (camera not available). This is fine for the task!</p>
           `;
-              document.getElementById('recording-content').insertBefore(
-                audioNotice,
-                document.querySelector('.recording-controls')
-              );
-            } catch (audioError) {
-              console.error('Audio capture also failed:', audioError);
-              throw audioError;
+                document.getElementById('recording-content').insertBefore(
+                  audioNotice,
+                  document.querySelector('.recording-controls')
+                );
+              } catch (audioError) {
+                console.error('Audio capture also failed:', audioError);
+                throw audioError;
+              }
             }
+            state.recording.stream = stream;
+            state.recording.isVideoMode = isVideoMode;
           }
-
-          state.recording.stream = stream;
-          state.recording.isVideoMode = isVideoMode;
 
           if (isVideoMode) {
             preview.srcObject = stream;
             preview.style.display = 'block';
           } else {
             preview.style.display = 'none';
-            // Show audio visualization or indicator
             status.textContent = '🎤 Audio ready to record';
           }
 
