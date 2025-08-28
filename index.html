@@ -2464,11 +2464,30 @@ async function saveRecording() {
   const uploadProgress = document.getElementById('upload-progress');
   uploadProgress.style.display = 'block';
 
+  const recType = state.recording.isVideoMode ? 'video'
+    : (state.recording.currentBlob?.type?.startsWith('audio') ? 'audio' : 'video');
+
+  sendToSheets({
+    action: 'image_recorded',
+    sessionCode: state.sessionCode,
+    imageNumber: state.recording.currentImage + 1,
+    timestamp: new Date().toISOString(),
+    recordingType: recType
+  });
+
+  sendToSheets({
+    action: 'video_recorded',
+    sessionCode: state.sessionCode,
+    imageNumber: state.recording.currentImage + 1,
+    timestamp: new Date().toISOString(),
+    recordingType: recType
+  });
+
   try {
     // Upload with enhanced tracking
     const uploadResult = await uploadVideoToDrive(
-      state.recording.currentBlob, 
-      state.sessionCode, 
+      state.recording.currentBlob,
+      state.sessionCode,
       state.recording.currentImage + 1
     );
 
@@ -3242,6 +3261,19 @@ async function sendToSheets(payload) {
     console.error('Error sending to sheets:', error);
   }
 }
+
+window.addEventListener('beforeunload', () => {
+  if (!CONFIG.SHEETS_URL) return;
+  const body = {
+    action: 'window_closed',
+    sessionCode: state.sessionCode || 'none',
+    task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''),
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
+  };
+  navigator.sendBeacon(CONFIG.SHEETS_URL, JSON.stringify(body));
+});
 
 
 

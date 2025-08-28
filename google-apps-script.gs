@@ -44,12 +44,12 @@ function doPost(e) {
       'session_created', 'session_resumed', 'session_paused', 'session_timer',
       'consent_opened', 'consent_completed', 'consent_verified', 'consent_affirmed',
       'video_declined',
-      'task_started', 'task_departed', 'task_returned', 'inactivity',
+      'task_opened', 'task_started', 'task_departed', 'task_returned', 'inactivity',
       'tab_hidden', 'tab_visible', 'window_closed',
-        'task_skipped', 'task_completed', 'skilled_task_completed',
+      'help_requested', 'task_skipped', 'task_completed', 'skilled_task_completed',
       'image_recorded', 'image_recorded_and_uploaded', 'image_recorded_no_upload',
       'video_recorded',
-      'calendly_opened', 'eeg_interest',
+      'calendly_opened', 'eeg_interest', 'aslct_issue',
       'study_completed',
       'save_state',
       'get_session'
@@ -175,6 +175,10 @@ function doPost(e) {
         logVideoDeclined(ss, data);
         break;
 
+      case 'task_opened':
+        logTaskOpened(ss, data);
+        break;
+
       case 'task_started':
         logTaskStart(ss, data);
         break;
@@ -243,6 +247,10 @@ function doPost(e) {
             timestamp: data.timestamp
           });
         });
+        break;
+
+      case 'help_requested':
+        logHelpRequested(ss, data);
         break;
 
       case 'task_skipped':
@@ -315,6 +323,10 @@ function doPost(e) {
           logEEGInterest(ss, data);
           setEEGStatus_(ss, data.sessionCode || 'none', 'Interested', data.timestamp, 'Interest button', 'Participant requested EEG assistance');
         });
+        break;
+
+      case 'aslct_issue':
+        logASLCTIssue(ss, data);
         break;
 
       case 'study_completed':
@@ -1253,6 +1265,33 @@ function testActivitySummary() {
 // ===============================
 // Task logging
 // ===============================
+function logTaskOpened(ss, data) {
+  withDocLock_(function () {
+    var sheet = ss.getSheetByName('Task Progress');
+    var dev = detectDeviceType_(data).label;
+    sheet.appendRow([
+      data.timestamp,
+      data.sessionCode,
+      data.participantID || '',
+      dev,
+      data.task,
+      'Opened',
+      '',
+      '',
+      0, 0, 0, 0, 0, 0,
+      '',
+      false
+    ]);
+    logSessionEvent(ss, {
+      sessionCode: data.sessionCode,
+      eventType: 'Task Opened',
+      details: data.task,
+      timestamp: data.timestamp
+    });
+    updateSessionActivity(ss, data.sessionCode, data.timestamp);
+  });
+}
+
 function logTaskStart(ss, data) {
   withDocLock_(function () {
     var sheet = ss.getSheetByName('Task Progress');
@@ -1367,6 +1406,28 @@ function logTaskSkipped(ss, data) {
       timestamp: data.timestamp
     });
     updateSessionActivity(ss, data.sessionCode, data.timestamp);
+  });
+}
+
+function logHelpRequested(ss, data) {
+  withDocLock_(function () {
+    logSessionEvent(ss, {
+      sessionCode: data.sessionCode,
+      eventType: 'Help Requested',
+      details: data.task,
+      timestamp: data.timestamp
+    });
+  });
+}
+
+function logASLCTIssue(ss, data) {
+  withDocLock_(function () {
+    logSessionEvent(ss, {
+      sessionCode: data.sessionCode,
+      eventType: 'ASLCT Issue',
+      details: (data.participantID ? data.participantID + ': ' : '') + (data.message || ''),
+      timestamp: data.timestamp
+    });
   });
 }
 
