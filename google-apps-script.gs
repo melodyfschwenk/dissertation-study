@@ -419,6 +419,10 @@ function doGet(e) {
 function createCorsOutput(data) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
+  // Explicit CORS headers so browser requests from the front-end succeed
+  output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   return output;
 }
 
