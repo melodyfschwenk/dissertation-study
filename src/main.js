@@ -156,8 +156,6 @@ function closeEEGModal() {
   processingUpload: false
 };
 
-let pendingDropboxAuthState = null;
-
 // Reusable activity timer for tasks and session tracking
 function createTimer() {
   return {
@@ -419,62 +417,8 @@ window.addEventListener('focus', () => {
   }
 });
 
-// Handle Dropbox OAuth redirect
-function handleDropboxAuth() {
-  const urlParams = new URLSearchParams(window.location.hash.substring(1));
-  const accessToken = urlParams.get('access_token');
-  
-  if (accessToken) {
-    localStorage.setItem('dropbox_access_token', accessToken);
-    // Clean up URL
-    window.location.hash = '';
-    console.log('Dropbox authorized successfully');
-  }
-}
-
-async function initiateDropboxAuth(stateToStore) {
-  pendingDropboxAuthState = stateToStore;
-  const dbx = new Dropbox.Dropbox({
-    clientId: 'nvkm67mvluiu4pf',
-    fetch: fetch
-  });
-  const authUrl = dbx.getAuthenticationUrl('https://melodyfschwenk.github.io/spatial-cognition-study/');
-  const popup = window.open(authUrl, 'dropbox_auth', 'width=600,height=700');
-  if (!popup) {
-    alert('Please enable pop-ups in your browser to authorize Dropbox.');
-    return null;
-  }
-  return new Promise((resolve, reject) => {
-    const checkClosed = setInterval(() => {
-      try {
-        if (popup.closed) {
-          clearInterval(checkClosed);
-          reject(new Error('Authorization cancelled'));
-        }
-        const currentUrl = popup.location.href;
-        if (currentUrl.includes('access_token=')) {
-          const token = currentUrl.split('access_token=')[1].split('&')[0];
-          localStorage.setItem('dropbox_access_token', token);
-          popup.close();
-          clearInterval(checkClosed);
-          resolve(token);
-        }
-      } catch (e) {
-        // Cross-origin errors are expected until redirect completes
-      }
-    }, 1000);
-
-    setTimeout(() => {
-      clearInterval(checkClosed);
-      if (!popup.closed) popup.close();
-      reject(new Error('Authorization timeout'));
-    }, 300000);
-  });
-}
-
 // Call on page load
 function init() {
-  handleDropboxAuth();
   setupEventListeners();
 
   // Secure-context guard: disable inline recording if not https
@@ -1848,32 +1792,6 @@ async function saveRecording() {
   const recType = state.recording.isVideoMode ? 'video'
     : (state.recording.currentBlob && state.recording.currentBlob.type && state.recording.currentBlob.type.startsWith('audio') ? 'audio' : 'video');
 
-  if (!localStorage.getItem('dropbox_access_token')) {
-    const authState = {
-      sessionCode: state.sessionCode,
-      imageNumber: state.recording.currentImage + 1,
-      blob: state.recording.currentBlob
-    };
-    try {
-      const token = await initiateDropboxAuth(authState);
-      if (!token) {
-        uploadProgress.style.display = 'none';
-        status.textContent = '📛 Please allow pop-ups to authorize Dropbox.';
-        status.className = 'recording-status error';
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalText;
-        return;
-      }
-    } catch (e) {
-      uploadProgress.style.display = 'none';
-      status.textContent = '📛 Dropbox authorization failed.';
-      status.className = 'recording-status error';
-      saveBtn.disabled = false;
-      saveBtn.textContent = originalText;
-      return;
-    }
-  }
-
   sendToSheets({
     action: 'image_recorded',
     sessionCode: state.sessionCode,
@@ -1908,7 +1826,6 @@ async function saveRecording() {
         driveFileUrl: uploadResult.fileUrl,
         filename: uploadResult.filename,
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
         mimeType: state.recording.currentBlob.type
       });
@@ -1924,7 +1841,6 @@ async function saveRecording() {
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         // Enhanced fields
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
         fileSize: Math.round(state.recording.currentBlob.size / 1024),
         uploadStatus: 'success',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
@@ -1945,7 +1861,6 @@ async function saveRecording() {
           fileSize: Math.round(state.recording.currentBlob.size / 1024),
           uploadTime: new Date().toISOString(),
           uploadMethod: uploadResult.uploadMethod,
-          dropboxPath: uploadResult.dropboxPath || '',
           uploadStatus: 'success',
           recordingType: state.recording.isVideoMode ? 'video' : 'audio',
           mimeType: state.recording.currentBlob.type
@@ -1979,8 +1894,7 @@ async function saveRecording() {
       error: error.message,
       timestamp: new Date().toISOString(),
       deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
-      attemptedMethod: 'drive_then_dropbox',
-      fallbackUsed: error.message.includes('Dropbox'),
+      attemptedMethod: 'drive',
       recordingType: state.recording.isVideoMode ? 'video' : 'audio',
       mimeType: state.recording.currentBlob.type
     });
@@ -2032,7 +1946,7 @@ function continueWithoutUpload() {
   }
 }
 
-// Enhanced upload function - tries Google Drive first, Dropbox as fallback
+// Enhanced upload function - uses Google Drive for uploads
 function getExtensionFromMime(mime) {
   if (!mime) return 'bin';
   mime = mime.toLowerCase();
@@ -2259,95 +2173,6 @@ async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   }
 }
 
-// Updated Dropbox upload function (now fallback)
-async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber) {
-  try {
-    const dbx = new Dropbox.Dropbox({
-      clientId: 'nvkm67mvluiu4pf',
-      fetch: fetch
-    });
-    const accessToken = localStorage.getItem('dropbox_access_token');
-    if (!accessToken) {
-      throw new Error('Dropbox not authorized');
-    }
-
-    dbx.setAccessToken(accessToken);
-    updateUploadProgress(55, 'Preparing file...');
-
-    if (videoBlob.size > 150 * 1024 * 1024) {
-      throw new Error('Video too large for direct upload (max 150MB)');
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = getExtensionFromMime(videoBlob.type);
-    const filename = `${sessionCode}_image${imageNumber}_${timestamp}.${extension}`;
-
-    const participantFolder = `/spatial-cognition-videos/Participant_${sessionCode}`;
-    const fullPath = `${participantFolder}/${filename}`;
-
-    updateUploadProgress(60, 'Uploading to Dropbox...');
-
-    try {
-      await dbx.filesCreateFolderV2({
-        path: participantFolder,
-        autorename: false
-      });
-    } catch (folderError) {
-      if (!folderError.error || !folderError.error.error_summary.includes('path/conflict')) {
-        console.warn('Folder creation issue:', folderError);
-      }
-    }
-
-    const response = await dbx.filesUpload({
-      path: fullPath,
-      contents: videoBlob,
-      mode: 'add',
-      autorename: true
-    });
-
-    updateUploadProgress(80, 'Getting shareable link...');
-
-    let shareUrl = '';
-    try {
-      const shareResponse = await dbx.sharingCreateSharedLinkWithSettings({
-        path: fullPath,
-        settings: {
-          access: 'viewer',
-          allow_download: true,
-          audience: 'public'
-        }
-      });
-      shareUrl = shareResponse.result.url;
-    } catch (shareError) {
-      console.warn('Could not create share link:', shareError);
-      shareUrl = `https://dropbox.com/home/spatial-cognition-videos/Participant_${sessionCode}`;
-    }
-
-    updateUploadProgress(90, 'Upload complete!');
-
-    return {
-      success: true,
-      filename: filename,
-      fileId: response.result.id,
-      fileUrl: shareUrl,
-      dropboxPath: fullPath,
-      fileSize: Math.round(videoBlob.size / 1024)
-    };
-
-  } catch (error) {
-    console.error('Dropbox upload failed:', error);
-
-    if ((error.message && error.message.includes('auth')) || error.status === 401) {
-      localStorage.removeItem('dropbox_access_token');
-    }
-
-    return {
-      success: false,
-      error: error.message || String(error)
-    };
-  }
-}
-
 async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
   try {
     updateUploadProgress(15, 'Preparing upload…');
@@ -2531,7 +2356,6 @@ function updateUploadProgress(percent, message) {
         driveFileUrl: uploadResult.fileUrl,
         filename: uploadResult.filename,
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
         mimeType: blob.type
       });
@@ -2545,7 +2369,6 @@ function updateUploadProgress(percent, message) {
         timestamp: new Date().toISOString(),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
         fileSize: Math.round(blob.size / 1024),
         uploadStatus: 'success',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
@@ -2562,7 +2385,6 @@ function updateUploadProgress(percent, message) {
         fileSize: Math.round(blob.size / 1024),
         uploadTime: new Date().toISOString(),
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
         uploadStatus: 'success',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
         mimeType: blob.type
@@ -2591,8 +2413,7 @@ function updateUploadProgress(percent, message) {
         error: error.message,
         timestamp: new Date().toISOString(),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
-        attemptedMethod: 'drive_then_dropbox',
-        fallbackUsed: error.message.includes('Dropbox'),
+        attemptedMethod: 'drive',
         recordingType: state.recording.isVideoMode ? 'video' : 'audio',
         mimeType: blob.type
       });
