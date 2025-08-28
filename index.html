@@ -1026,6 +1026,9 @@ function closeEEGModal() {
   lastActivity: null,
   currentTaskType: '',
   externalDepart: null,
+  heartbeatInterval: null,
+  heartbeatMisses: 0,
+  externalNotified: false,
   pauseStart: null,
   totalPausedTime: 0,
   lastPauseType: null,
@@ -1041,7 +1044,9 @@ function closeEEGModal() {
   recording: {
     active: false, mediaRecorder: null, chunks: [], currentImage: 0, recordings: [],
     stream: null, currentBlob: null, isVideoMode: true
-  }
+  },
+  uploadQueue: [],
+  processingUpload: false
 };
 
 // Reusable activity timer for tasks and session tracking
@@ -1111,27 +1116,20 @@ function createTimer() {
 
     resume() {
       if (this.isPaused) {
-        if (this.pauseReason === 'inactivity' && this.pauseStart) {
-          this.inactivityTime += Date.now() - this.pauseStart;
-        }
         if (this.pauseReason === 'manual' && this.pauseStart) {
           this.pausedTime += Date.now() - this.pauseStart;
         }
         this.isPaused = false;
         this.pauseReason = null;
         this.lastActivity = Date.now();
+        this.lastTick = Date.now();
       }
     },
 
     stop() {
       clearInterval(this.intervalId);
-      if (this.isPaused && this.pauseStart) {
-        if (this.pauseReason === 'inactivity') {
-          this.inactivityTime += Date.now() - this.pauseStart;
-        }
-        if (this.pauseReason === 'manual') {
-          this.pausedTime += Date.now() - this.pauseStart;
-        }
+      if (this.isPaused && this.pauseStart && this.pauseReason === 'manual') {
+        this.pausedTime += Date.now() - this.pauseStart;
       }
       this.endTime = Date.now();
     },
@@ -1185,6 +1183,41 @@ function showInactivityPrompt() {
 }
 taskTimer.onInactivity = showInactivityPrompt;
 
+function startHeartbeat(taskName) {
+  if (state.heartbeatInterval) return;
+  state.heartbeatMisses = 0;
+  state.heartbeatInterval = setInterval(() => {
+    if (state.externalDepart) {
+      const away = Date.now() - state.externalDepart;
+      if (away > 600000 && !state.externalNotified) {
+        sendToSheets({
+          action: 'external_task_stuck',
+          sessionCode: state.sessionCode,
+          task: taskName,
+          away: Math.round(away/1000),
+          timestamp: new Date().toISOString()
+        });
+        state.externalNotified = true;
+      }
+    }
+    sendToSheets({
+      action: 'heartbeat',
+      sessionCode: state.sessionCode,
+      task: taskName,
+      timestamp: new Date().toISOString()
+    });
+  }, 30000);
+}
+
+function stopHeartbeat() {
+  if (state.heartbeatInterval) {
+    clearInterval(state.heartbeatInterval);
+    state.heartbeatInterval = null;
+    state.heartbeatMisses = 0;
+    state.externalNotified = false;
+  }
+}
+
 function logSessionTime(stage, summary = sessionTimer.getSummary()) {
   if (!state.sessionCode) return;
   sendToSheets({
@@ -1234,6 +1267,7 @@ window.addEventListener('blur', () => {
   if (state.currentTaskType === 'external') {
     state.externalDepart = Date.now();
     sendToSheets({ action: 'task_departed', sessionCode: state.sessionCode, task: getStandardTaskName(state.sequence[state.currentTaskIndex] || ''), deviceType: state.isMobile ? 'mobile/tablet' : 'desktop', timestamp: new Date().toISOString() });
+    startHeartbeat(getStandardTaskName(state.sequence[state.currentTaskIndex] || ''));
   }
 });
 
@@ -1253,6 +1287,7 @@ window.addEventListener('focus', () => {
       timestamp: new Date().toISOString()
     });
     state.externalDepart = null;
+    stopHeartbeat();
   }
 });
 
@@ -2628,38 +2663,24 @@ async function saveRecording() {
 
   } catch (error) {
     console.error('Upload error:', error);
-    
-    // Enhanced error logging
-      sendToSheets({
-        action: 'log_video_upload_error',
-        sessionCode: state.sessionCode,
-        imageNumber: state.recording.currentImage + 1,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
-        attemptedMethod: 'drive_then_dropbox',
-        fallbackUsed: error.message.includes('Dropbox'),
-        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
-        mimeType: state.recording.currentBlob.type
-      });
-    
-    uploadProgress.style.display = 'none';
-    const errorDiv = document.getElementById('recording-error');
-    errorDiv.style.display = 'block';
-    errorDiv.innerHTML = `
-      <strong>Upload failed</strong>
-      <p style="margin-top: 6px;">
-        Error: ${error.message}. You can try again or continue without uploading. 
-        The video is saved locally in your browser.
-      </p>
-      <div class="button-group" style="margin-top: 10px;">
-        <button class="button" onclick="retryVideoUpload()">Try Again</button>
-        <button class="button secondary" onclick="continueWithoutUpload()">Continue Without Upload</button>
-      </div>
-    `;
 
-    status.textContent = '❌ Upload failed';
-    status.className = 'recording-status ready';
+    // Enhanced error logging
+    sendToSheets({
+      action: 'log_video_upload_error',
+      sessionCode: state.sessionCode,
+      imageNumber: state.recording.currentImage + 1,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+      attemptedMethod: 'drive_then_dropbox',
+      fallbackUsed: error.message.includes('Dropbox'),
+      recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+      mimeType: state.recording.currentBlob.type
+    });
+
+    status.textContent = '⚠️ Upload failed. Retrying...';
+    status.className = 'recording-status recording';
+    enqueueFailedUpload(state.recording.currentBlob, state.sessionCode, state.recording.currentImage + 1);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = originalText;
@@ -2986,6 +3007,124 @@ function updateUploadProgress(percent, message) {
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
+    }
+
+    function enqueueFailedUpload(blob, sessionCode, imageNumber) {
+      state.uploadQueue.push({ blob, sessionCode, imageNumber, attempts: 0 });
+      processUploadQueue();
+    }
+
+    async function processUploadQueue() {
+      if (state.processingUpload || state.uploadQueue.length === 0) return;
+      state.processingUpload = true;
+      const item = state.uploadQueue[0];
+      try {
+        const uploadResult = await uploadVideoToDrive(item.blob, item.sessionCode, item.imageNumber);
+        if (uploadResult.success) {
+          handleUploadSuccess(uploadResult, item.imageNumber, item.blob);
+          state.uploadQueue.shift();
+        } else {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
+      } catch (err) {
+        item.attempts++;
+        if (item.attempts < 3) {
+          setTimeout(() => { state.processingUpload = false; processUploadQueue(); }, 5000 * item.attempts);
+          return;
+        }
+        state.uploadQueue.shift();
+        showUploadError(err, item.imageNumber, item.blob);
+      }
+      state.processingUpload = false;
+      if (state.uploadQueue.length > 0) processUploadQueue();
+    }
+
+    function handleUploadSuccess(uploadResult, imageNumber, blob) {
+      state.recording.recordings.push({
+        image: imageNumber,
+        blob,
+        timestamp: new Date().toISOString(),
+        driveFileId: uploadResult.fileId,
+        driveFileUrl: uploadResult.fileUrl,
+        filename: uploadResult.filename,
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || '',
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: blob.type
+      });
+
+      const logData = {
+        action: 'image_recorded_and_uploaded',
+        sessionCode: state.sessionCode,
+        imageNumber,
+        driveFileId: uploadResult.fileId,
+        filename: uploadResult.filename,
+        timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || '',
+        fileSize: Math.round(blob.size / 1024),
+        uploadStatus: 'success',
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: blob.type
+      };
+      sendToSheets(logData);
+      sendToSheets({
+        action: 'log_video_upload',
+        sessionCode: state.sessionCode,
+        imageNumber,
+        filename: uploadResult.filename,
+        fileId: uploadResult.fileId,
+        fileUrl: uploadResult.fileUrl,
+        fileSize: Math.round(blob.size / 1024),
+        uploadTime: new Date().toISOString(),
+        uploadMethod: uploadResult.uploadMethod,
+        dropboxPath: uploadResult.dropboxPath || '',
+        uploadStatus: 'success',
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: blob.type
+      });
+
+      const status = document.getElementById('recording-status');
+      status.textContent = `✅ Upload complete via ${uploadResult.uploadMethod}!`;
+      status.className = 'recording-status recorded';
+      document.getElementById('upload-progress').style.display = 'none';
+
+      setTimeout(() => {
+        if (imageNumber === 1 && state.recording.currentImage === 0) {
+          state.recording.currentImage = 1;
+          updateRecordingImage();
+        } else {
+          completeTask('ID');
+        }
+      }, 1000);
+    }
+
+    function showUploadError(error, imageNumber, blob) {
+      sendToSheets({
+        action: 'log_video_upload_error',
+        sessionCode: state.sessionCode,
+        imageNumber,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+        attemptedMethod: 'drive_then_dropbox',
+        fallbackUsed: error.message.includes('Dropbox'),
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: blob.type
+      });
+
+      const uploadProgress = document.getElementById('upload-progress');
+      uploadProgress.style.display = 'none';
+      const errorDiv = document.getElementById('recording-error');
+      errorDiv.style.display = 'block';
+      errorDiv.innerHTML = `
+      <strong>Upload failed</strong>
+      <p style="margin-top: 6px;">Error: ${error.message}. You can try again or continue without uploading. The video is saved locally in your browser.</p>
+      <div class="button-group" style="margin-top: 10px;"><button class="button" onclick="retryVideoUpload()">Try Again</button><button class="button secondary" onclick="continueWithoutUpload()">Continue Without Upload</button></div>`;
+      const status = document.getElementById('recording-status');
+      status.textContent = '❌ Upload failed';
+      status.className = 'recording-status ready';
     }
 
     // Retry upload function

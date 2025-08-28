@@ -25,6 +25,11 @@ function doPost(e) {
     }
 
     var data = JSON.parse(e.postData.contents || '{}');
+    var clean = sanitizeInput_(data);
+    if (clean.error) {
+      return createCorsOutput({ success: false, error: clean.error });
+    }
+    data = clean.data;
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // Optional simple auth via Script Property SHARED_KEY
@@ -52,7 +57,9 @@ function doPost(e) {
       'calendly_opened', 'eeg_interest', 'aslct_issue',
       'study_completed',
       'save_state',
-      'get_session'
+      'get_session',
+      'heartbeat',
+      'external_task_stuck'
     ]);
     if (!allowed.has(data.action)) {
       return createCorsOutput({ success: false, error: 'Unknown action' });
@@ -201,6 +208,28 @@ function doPost(e) {
             eventType: 'Task Returned',
             details: data.task + ' (Away: ' + (data.away || 0) + 's)',
             timestamp: data.timestamp
+          });
+        });
+        break;
+
+      case 'heartbeat':
+        withDocLock_(function () {
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: 'Heartbeat',
+            details: data.task,
+            timestamp: data.timestamp || new Date().toISOString()
+          });
+        });
+        break;
+
+      case 'external_task_stuck':
+        withDocLock_(function () {
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: 'External Task Stuck',
+            details: data.task,
+            timestamp: data.timestamp || new Date().toISOString()
           });
         });
         break;
@@ -356,6 +385,25 @@ function createCorsOutput(data) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
+}
+
+function sanitizeInput_(obj) {
+  if (typeof obj !== 'object' || obj === null) {
+    return { error: 'Invalid data' };
+  }
+  var out = {};
+  for (var k in obj) {
+    var v = obj[k];
+    var t = typeof v;
+    if (t === 'string') {
+      out[k] = v.slice(0, 1000);
+    } else if (t === 'number' || t === 'boolean') {
+      out[k] = v;
+    } else {
+      out[k] = JSON.stringify(v);
+    }
+  }
+  return { data: out };
 }
 
 // ===============================
