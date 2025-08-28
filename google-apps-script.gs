@@ -2328,6 +2328,9 @@ function logVideoUpload(data) {
     formatHeaders(sheet, 15);
   }
 
+  // Convert file size to KB for logging
+  var fileSizeKB = data.fileSize ? data.fileSize / 1024 : 0;
+
   // Prepare row data
   var rowData = [
     new Date(),
@@ -2336,7 +2339,7 @@ function logVideoUpload(data) {
     data.filename || '',
     data.fileId || '',
     data.fileUrl || '',
-    data.fileSize || 0,
+    fileSizeKB,
     data.uploadTime || new Date().toISOString(),
     data.uploadMethod || 'unknown',
     data.externalService || determineServiceFromMethod(data.uploadMethod),
@@ -2348,8 +2351,9 @@ function logVideoUpload(data) {
   ];
 
   sheet.appendRow(rowData);
-  
-  // Log success metrics
+
+  // Log success metrics using KB
+  data.fileSize = fileSizeKB;
   logUploadMetrics(data);
 }
 
