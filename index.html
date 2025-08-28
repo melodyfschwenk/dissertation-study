@@ -1237,11 +1237,30 @@ function logSessionTime(stage, summary = sessionTimer.getSummary()) {
 }
 
 ['mousemove','mousedown','keydown','touchstart'].forEach(ev => {
-  document.addEventListener(ev, () => {
+  document.addEventListener(ev, (e) => {
     taskTimer.recordActivity();
     sessionTimer.recordActivity();
+    sendInputEvent(ev, e);
   }, { passive: true });
 });
+
+function sendInputEvent(type, e) {
+  if (!state.sessionCode) return;
+  const payload = {
+    action: type,
+    sessionCode: state.sessionCode,
+    timestamp: new Date().toISOString()
+  };
+  if (type === 'mousemove' || type === 'mousedown' || type === 'touchstart') {
+    const point = e.touches && e.touches[0] ? e.touches[0] : e;
+    payload.x = point.clientX;
+    payload.y = point.clientY;
+  }
+  if (type === 'keydown') {
+    payload.key = e.key;
+  }
+  sendToSheets(payload);
+}
 
 document.addEventListener('visibilitychange', () => {
   const payload = {

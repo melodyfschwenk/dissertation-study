@@ -59,7 +59,8 @@ function doPost(e) {
       'save_state',
       'get_session',
       'heartbeat',
-      'external_task_stuck'
+      'external_task_stuck',
+      'mousemove', 'mousedown', 'keydown', 'touchstart'
     ]);
     if (!allowed.has(data.action)) {
       return createCorsOutput({ success: false, error: 'Unknown action' });
@@ -273,6 +274,30 @@ function doPost(e) {
             sessionCode: data.sessionCode,
             eventType: 'Window Closed',
             details: data.task,
+            timestamp: data.timestamp
+          });
+        });
+        break;
+
+      case 'mousemove':
+      case 'mousedown':
+      case 'touchstart':
+      case 'keydown':
+        withDocLock_(function () {
+          var details = {};
+          if (typeof data.x === 'number') details.x = data.x;
+          if (typeof data.y === 'number') details.y = data.y;
+          if (data.key) details.key = data.key;
+          var typeMap = {
+            mousemove: 'Mouse Move',
+            mousedown: 'Mouse Down',
+            touchstart: 'Touch Start',
+            keydown: 'Key Down'
+          };
+          logSessionEvent(ss, {
+            sessionCode: data.sessionCode,
+            eventType: typeMap[data.action] || data.action,
+            details: Object.keys(details).length ? JSON.stringify(details) : '',
             timestamp: data.timestamp
           });
         });
