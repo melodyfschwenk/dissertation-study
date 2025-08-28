@@ -1374,28 +1374,30 @@ async function initiateDropboxAuth(stateToStore) {
 }
 
 // Call on page load
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
   handleDropboxAuth();
-      setupEventListeners();
-      // Secure-context guard: disable inline recording if not https
-if (!window.isSecureContext) {
-  // Hide the record button if the recording screen gets opened
-  const style = document.createElement('style');
-  style.textContent = `#record-btn { display: none !important; }`;
-  document.head.appendChild(style);
-}
-      const params = new URLSearchParams(location.search);
-      checkRecoveryLink();
-      if (!params.has('recover')) {
-        checkSavedSession();
-      }
+  setupEventListeners();
 
-      // Gentle mobile notice content swap
-      if (isMobileDevice()) {
-        const warning = document.getElementById('device-warning');
-        if (warning) {
-          warning.className = 'info-box friendly-tip';
-          warning.innerHTML = `
+  // Secure-context guard: disable inline recording if not https
+  if (!window.isSecureContext) {
+    // Hide the record button if the recording screen gets opened
+    const style = document.createElement('style');
+    style.textContent = `#record-btn { display: none !important; }`;
+    document.head.appendChild(style);
+  }
+
+  const params = new URLSearchParams(location.search);
+  checkRecoveryLink();
+  if (!params.has('recover')) {
+    checkSavedSession();
+  }
+
+  // Gentle mobile notice content swap
+  if (isMobileDevice()) {
+    const warning = document.getElementById('device-warning');
+    if (warning) {
+      warning.className = 'info-box friendly-tip';
+      warning.innerHTML = `
   <strong>📱 Mobile or Tablet?</strong>
   <p style="margin-top: 10px;">
     Some tasks work best on a computer. You can pause now and resume later with your code.
@@ -1407,9 +1409,15 @@ if (!window.isSecureContext) {
     <li>For the best experience, we recommend switching to a computer if possible.</li>
   </ul>
 `;
-        }
-      }
-    });
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
     function setupEventListeners() {
       document.getElementById('first-initial').addEventListener('input', validateInitials);
