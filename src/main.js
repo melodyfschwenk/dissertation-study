@@ -1383,8 +1383,13 @@ function openExternalTask(taskCode) {
 
       // Insert before recording controls
       const recordingContent = document.getElementById('recording-content');
-      const recordingControls = document.querySelector('.recording-controls');
-      if (recordingContent && recordingControls && !document.getElementById('recording-size-warning')) {
+      const recordingControls = recordingContent ? recordingContent.querySelector('.recording-controls') : null;
+      if (
+        recordingContent &&
+        recordingControls &&
+        recordingContent.contains(recordingControls) &&
+        !document.getElementById('recording-size-warning')
+      ) {
         recordingContent.insertBefore(recordingInstructions, recordingControls);
       }
 

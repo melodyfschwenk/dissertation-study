@@ -19,10 +19,11 @@ function doPost(e) {
   try {
     console.log('\uD83D\uDCE8 Received POST');
 
-    // Handle preflight / empty body
-    if (!e || !e.postData || !e.postData.contents) {
-      return createCorsOutput({ success: false, error: 'No data received' });
-    }
+      // Handle preflight / empty body
+      if (!e || !e.postData || !e.postData.contents) {
+        // Respond OK for CORS preflight
+        return createCorsOutput({ success: true, preflight: true });
+      }
 
     var data = JSON.parse(e.postData.contents || '{}');
     var clean = sanitizeInput_(data);
@@ -416,12 +417,14 @@ function doGet(e) {
   return createCorsOutput({ success: true, status: 'ok', method: 'GET' });
 }
 
-function createCorsOutput(data) {
-  var output = ContentService.createTextOutput(JSON.stringify(data));
-  output.setMimeType(ContentService.MimeType.JSON);
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  return output;
-}
+  function createCorsOutput(data) {
+    var output = ContentService.createTextOutput(JSON.stringify(data));
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader('Access-Control-Allow-Origin', 'https://melodyfschwenk.github.io');
+    output.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return output;
+  }
 
 function sanitizeInput_(obj) {
   if (typeof obj !== 'object' || obj === null) {

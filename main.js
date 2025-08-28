@@ -1436,8 +1436,8 @@ function updateRecordingImage() {
 
   // Insert before recording controls
   var recordingContent = document.getElementById('recording-content');
-  var recordingControls = document.querySelector('.recording-controls');
-  if (recordingContent && recordingControls && !document.getElementById('recording-size-warning')) {
+  var recordingControls = recordingContent ? recordingContent.querySelector('.recording-controls') : null;
+  if (recordingContent && recordingControls && recordingContent.contains(recordingControls) && !document.getElementById('recording-size-warning')) {
     recordingContent.insertBefore(recordingInstructions, recordingControls);
   }
   var requiredTextRec = state.consentStatus.videoDeclined ? 'This task is OPTIONAL for you (video consent declined).' : 'This task is required for study completion.';
