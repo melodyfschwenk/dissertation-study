@@ -1049,6 +1049,8 @@ function closeEEGModal() {
   processingUpload: false
 };
 
+let pendingDropboxAuthState = null;
+
 // Reusable activity timer for tasks and session tracking
 function createTimer() {
   return {
@@ -1321,6 +1323,46 @@ function handleDropboxAuth() {
     window.location.hash = '';
     console.log('Dropbox authorized successfully');
   }
+}
+
+async function initiateDropboxAuth(stateToStore) {
+  pendingDropboxAuthState = stateToStore;
+  const dbx = new Dropbox.Dropbox({
+    clientId: 'nvkm67mvluiu4pf',
+    fetch: fetch
+  });
+  const authUrl = dbx.getAuthenticationUrl('https://melodyfschwenk.github.io/spatial-cognition-study/');
+  const popup = window.open(authUrl, 'dropbox_auth', 'width=600,height=700');
+  if (!popup) {
+    alert('Please enable pop-ups in your browser to authorize Dropbox.');
+    return null;
+  }
+  return new Promise((resolve, reject) => {
+    const checkClosed = setInterval(() => {
+      try {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          reject(new Error('Authorization cancelled'));
+        }
+        const currentUrl = popup.location.href;
+        if (currentUrl.includes('access_token=')) {
+          const token = currentUrl.split('access_token=')[1].split('&')[0];
+          localStorage.setItem('dropbox_access_token', token);
+          popup.close();
+          clearInterval(checkClosed);
+          resolve(token);
+        }
+      } catch (e) {
+        // Cross-origin errors are expected until redirect completes
+      }
+    }, 1000);
+
+    setTimeout(() => {
+      clearInterval(checkClosed);
+      if (!popup.closed) popup.close();
+      reject(new Error('Authorization timeout'));
+    }, 300000);
+  });
 }
 
 // Call on page load
@@ -2646,6 +2688,32 @@ async function saveRecording() {
   const recType = state.recording.isVideoMode ? 'video'
     : (state.recording.currentBlob?.type?.startsWith('audio') ? 'audio' : 'video');
 
+  if (!localStorage.getItem('dropbox_access_token')) {
+    const authState = {
+      sessionCode: state.sessionCode,
+      imageNumber: state.recording.currentImage + 1,
+      blob: state.recording.currentBlob
+    };
+    try {
+      const token = await initiateDropboxAuth(authState);
+      if (!token) {
+        uploadProgress.style.display = 'none';
+        status.textContent = '📛 Please allow pop-ups to authorize Dropbox.';
+        status.className = 'recording-status error';
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+        return;
+      }
+    } catch (e) {
+      uploadProgress.style.display = 'none';
+      status.textContent = '📛 Dropbox authorization failed.';
+      status.className = 'recording-status error';
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+      return;
+    }
+  }
+
   sendToSheets({
     action: 'image_recorded',
     sessionCode: state.sessionCode,
@@ -2875,41 +2943,9 @@ async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber)
       clientId: 'nvkm67mvluiu4pf',
       fetch: fetch
     });
-
-    let accessToken = localStorage.getItem('dropbox_access_token');
-
+    const accessToken = localStorage.getItem('dropbox_access_token');
     if (!accessToken) {
-      updateUploadProgress(45, 'Authorizing Dropbox access...');
-      const authUrl = dbx.getAuthenticationUrl('https://melodyfschwenk.github.io/spatial-cognition-study/');
-      const popup = window.open(authUrl, 'dropbox_auth', 'width=600,height=700');
-
-      accessToken = await new Promise((resolve, reject) => {
-        const checkClosed = setInterval(() => {
-          try {
-            if (popup.closed) {
-              clearInterval(checkClosed);
-              reject(new Error('Authorization cancelled'));
-            }
-
-            const currentUrl = popup.location.href;
-            if (currentUrl.includes('access_token=')) {
-              const token = currentUrl.split('access_token=')[1].split('&')[0];
-              localStorage.setItem('dropbox_access_token', token);
-              popup.close();
-              clearInterval(checkClosed);
-              resolve(token);
-            }
-          } catch (e) {
-            // Cross-origin error is expected during auth flow
-          }
-        }, 1000);
-
-        setTimeout(() => {
-          clearInterval(checkClosed);
-          popup.close();
-          reject(new Error('Authorization timeout'));
-        }, 300000);
-      });
+      throw new Error('Dropbox not authorized');
     }
 
     dbx.setAccessToken(accessToken);
