@@ -1258,11 +1258,26 @@ function openExternalTask(taskCode) {
 }
 
     // ----- Recording task -----
+    function hasVideoConsent() {
+      if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
+      try {
+        const recent = localStorage.getItem('recent_session');
+        if (!recent) return false;
+        const saved = localStorage.getItem(`study_${recent}`);
+        if (!saved) return false;
+        const data = JSON.parse(saved);
+        return !!(data.consentStatus && (data.consentStatus.consent2 || data.consentStatus.videoDeclined));
+      } catch (e) {
+        console.warn('Could not check saved consent', e);
+        return false;
+      }
+    }
+
     function showRecordingTask() {
       state.recording.currentImage = 0;
       state.recording.recordings = [];
       state.recording.currentBlob = null;
-      if (!state.consentStatus.consent2 || state.consentStatus.videoDeclined) {
+      if (!hasVideoConsent()) {
         document.getElementById('recording-consent-check').style.display = 'block';
         document.getElementById('recording-content').style.display = 'none';
       } else {
