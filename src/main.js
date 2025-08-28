@@ -1383,9 +1383,9 @@ function openExternalTask(taskCode) {
 
       // Insert before recording controls
       const recordingContent = document.getElementById('recording-content');
-      const recordingControls = document.querySelector('.recording-controls');
-      if (recordingContent && recordingControls && !document.getElementById('recording-size-warning')) {
-        recordingContent.insertBefore(recordingInstructions, recordingControls);
+      const recordingControls = recordingContent ? recordingContent.querySelector('.recording-controls') : null;
+      if (recordingControls && recordingControls.parentNode && !document.getElementById('recording-size-warning')) {
+        recordingControls.parentNode.insertBefore(recordingInstructions, recordingControls);
       }
 
       const requiredTextRec = (state.consentStatus.videoDeclined)
