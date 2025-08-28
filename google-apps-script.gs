@@ -16,11 +16,16 @@
 // Entry points + CORS helper
 // ===============================
 function doPost(e) {
+  // Handle OPTIONS preflight requests
+  if (!e || !e.postData) {
+    return createCorsOptionsOutput();
+  }
+
   try {
     console.log('\uD83D\uDCE8 Received POST');
 
-    // Handle preflight / empty body
-    if (!e || !e.postData || !e.postData.contents) {
+    // Handle empty body
+    if (!e.postData.contents) {
       return createCorsOutput({ success: false, error: 'No data received' });
     }
 
@@ -413,13 +418,28 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  // Handle OPTIONS preflight requests
+  if (!e) {
+    return createCorsOptionsOutput();
+  }
   return createCorsOutput({ success: true, status: 'ok', method: 'GET' });
+}
+
+function createCorsOptionsOutput() {
+  var output = ContentService.createTextOutput('');
+  return addCorsHeaders(output);
 }
 
 function createCorsOutput(data) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
-  output.setHeader('Access-Control-Allow-Origin', '*');
+  return addCorsHeaders(output);
+}
+
+function addCorsHeaders(output) {
+  output.setHeader('Access-Control-Allow-Origin', 'https://melodyfschwenk.github.io');
+  output.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   return output;
 }
 
