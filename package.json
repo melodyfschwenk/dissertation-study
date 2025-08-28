@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "babel src --out-file main.js --presets @babel/preset-env"
+    "build": "babel src --out-file main.js --presets @babel/preset-env",
+    "start": "node server.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.0",
