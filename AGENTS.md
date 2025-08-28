@@ -4,7 +4,7 @@
 - Run `npm run build` after modifying source files in `src/`.
 - Run `npm run lint` before committing.
 - Commit both the source files and the generated `main.js` artifact.
-- Use 2 spaces for indentation.
+- Use 2 spaces for indentation; see `.editorconfig` (UTF-8 encoding) for editor settings.
 - Check server logs for startup/runtime errors and ensure request and server errors are properly handled.
 - Guard against missing critical configuration values at server startup, logging warnings on the backend so participants don't see them.
 - Use `npm start` to launch the Node server and monitor logs for warnings or errors.
