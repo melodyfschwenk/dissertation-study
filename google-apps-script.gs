@@ -1068,10 +1068,17 @@ function resumeSession(ss, data) {
         setByHeader_(sheet, row, 'Paused Time (min)', existing + addMin);
       }
     }
+    var resumeDetails = 'Progress: ' + (data.progress || 'unknown');
+    if (data.pausedSeconds) {
+      resumeDetails += '; pausedSeconds: ' + data.pausedSeconds;
+    }
+    if (data.pauseType) {
+      resumeDetails += '; previousPauseType: ' + data.pauseType;
+    }
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
       eventType: 'Session Resumed',
-      details: 'Progress: ' + (data.progress || 'unknown'),
+      details: resumeDetails,
       timestamp: data.timestamp,
       userAgent: data.userAgent || ''
     });
@@ -1083,10 +1090,15 @@ function pauseSession(ss, data) {
   withDocLock_(function () {
     updateSessionActivity(ss, data.sessionCode, data.timestamp);
     updateTotalTime(ss, data.sessionCode);
+    var eventType = data.pauseType === 'exit' ? 'Session Saved & Exited' : 'Session Paused';
+    var details = 'Progress: ' + (data.progress || 'unknown');
+    if (data.pauseType) {
+      details += '; pauseType: ' + data.pauseType;
+    }
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
-      eventType: 'Session Paused',
-      details: 'Progress: ' + (data.progress || 'unknown'),
+      eventType: eventType,
+      details: details,
       timestamp: data.timestamp,
       userAgent: data.userAgent || ''
     });

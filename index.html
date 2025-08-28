@@ -1020,6 +1020,7 @@ function closeEEGModal() {
   externalDepart: null,
   pauseStart: null,
   totalPausedTime: 0,
+  lastPauseType: null,
 
   consentStatus: { consent1: false, consent2: false, videoDeclined: false },
 
@@ -3100,12 +3101,13 @@ function updateUploadProgress(percent, message) {
     // ----- Utilities -----
     function pauseStudy() {
       state.pauseStart = Date.now();
+      state.lastPauseType = 'manual';
       if (taskTimer.startTime) taskTimer.pause('manual');
       if (sessionTimer.startTime) sessionTimer.pause('manual');
       document.getElementById('pause-modal').classList.add('active');
       document.getElementById('pause-fab').classList.remove('active');
       const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, timestamp: new Date().toISOString() });
+      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'manual', timestamp: new Date().toISOString() });
       saveState();
     }
 
@@ -3115,7 +3117,7 @@ function updateUploadProgress(percent, message) {
         state.totalPausedTime = (state.totalPausedTime || 0) + pausedMs;
         state.pauseStart = null;
         const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-        sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), timestamp: new Date().toISOString() });
+        sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), pauseType: state.lastPauseType, timestamp: new Date().toISOString() });
       }
       if (taskTimer.startTime) taskTimer.resume();
       if (sessionTimer.startTime) sessionTimer.resume();
@@ -3125,11 +3127,15 @@ function updateUploadProgress(percent, message) {
     }
 
     function saveAndExit() {
+      state.pauseStart = Date.now();
+      state.lastPauseType = 'exit';
+      if (taskTimer.startTime) taskTimer.pause('exit');
+      if (sessionTimer.startTime) sessionTimer.pause('exit');
       saveState();
       document.getElementById('modal-code').textContent = state.sessionCode;
       document.getElementById('exit-modal').classList.add('active');
       const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, timestamp: new Date().toISOString() });
+      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'exit', timestamp: new Date().toISOString() });
     }
     function copyCode(btnEl) {
       const code = document.getElementById('display-code').textContent;
