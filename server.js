@@ -17,14 +17,18 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Content-Type': 'application/json'
     });
     return res.end();
   }
 
   if (req.method !== 'POST') {
-    res.writeHead(405, { 'Access-Control-Allow-Origin': '*' });
-    return res.end();
+    res.writeHead(405, {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
+    });
+    return res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
   }
 
   let body = '';
@@ -57,10 +61,23 @@ const server = http.createServer((req, res) => {
     });
     res.end(JSON.stringify({ success: true }));
   });
+
+  req.on('error', err => {
+    console.error('Request error:', err);
+    res.writeHead(500, {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
+    });
+    res.end(JSON.stringify({ success: false, error: 'Request stream error' }));
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+});
+
+server.on('error', err => {
+  console.error('Server error:', err);
 });
 
