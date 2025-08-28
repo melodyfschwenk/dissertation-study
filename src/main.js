@@ -10,6 +10,7 @@
   CLOUDINARY_UPLOAD_PRESET: 'study_videos', 
       CLOUDINARY_FOLDER: 'spatial-cognition-videos',
 };
+
 const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
 
 document.querySelectorAll('.support-email').forEach(el => {
