@@ -2923,7 +2923,7 @@ function getExtensionFromMime(mime) {
     });
     
     // Verify config
-    if (!CONFIG.CLOUDINARY_CLOUD_NAME || CONFIG.CLOUDINARY_CLOUD_NAME === 'dxyz12345') {
+    if (!CONFIG.CLOUDINARY_CLOUD_NAME || CONFIG.CLOUDINARY_CLOUD_NAME === 'dll2sorkn') {
       throw new Error('Cloudinary cloud name not configured');
     }
     if (!CONFIG.CLOUDINARY_UPLOAD_PRESET) {
@@ -2998,34 +2998,82 @@ function getExtensionFromMime(mime) {
     };
   }
 }
-    async function testCloudinaryUpload() {
+// Makes a valid 0.8s WebM by recording a tiny canvas
+async function makeTinyTestVideo({ ms = 800, fps = 10 } = {}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64; canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  // Pick a supported WebM mime
+  const mime =
+    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' :
+    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' :
+    'video/webm';
+
+  const stream = canvas.captureStream?.(fps);
+  if (!stream) throw new Error('Canvas captureStream is not supported in this browser');
+
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 250000 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+
+  // Animate a little square so there are multiple frames
+  let t = 0;
+  const drawId = setInterval(() => {
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 64, 64);
+    ctx.fillStyle = '#fff'; ctx.fillRect((t * 3) % 64, (t * 2) % 64, 16, 16);
+    t++;
+  }, Math.round(1000 / fps));
+
+  rec.start(100);
+  await new Promise(r => setTimeout(r, ms));
+  rec.stop();
+  await new Promise(r => rec.onstop = r);
+
+  clearInterval(drawId);
+  stream.getTracks().forEach(tr => tr.stop());
+
+  return new Blob(chunks, { type: 'video/webm' });
+}
+
+async function testCloudinaryUpload() {
   console.log('🧪 Testing Cloudinary setup...');
-  
-  // Check if config is set
-  if (!CONFIG.CLOUDINARY_CLOUD_NAME || CONFIG.CLOUDINARY_CLOUD_NAME === 'dxyz12345') {
-    alert('ERROR: Please set your Cloudinary cloud name in CONFIG');
+  console.log('Config check:', {
+    cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
+    uploadPreset: CONFIG.CLOUDINARY_UPLOAD_PRESET,
+    folder: 'spatial-cognition-videos'
+  });
+
+  if (!CONFIG.CLOUDINARY_CLOUD_NAME || !CONFIG.CLOUDINARY_UPLOAD_PRESET) {
+    alert('Set CONFIG.CLOUDINARY_CLOUD_NAME and CONFIG.CLOUDINARY_UPLOAD_PRESET first.');
     return;
   }
-  
-  // Create a tiny test video
-  const testData = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3]); 
-  const testBlob = new Blob([testData], { type: 'video/webm' });
-  
-  // Try uploading
-  const result = await uploadToCloudinary(
-    testBlob, 
-    'TEST_' + Date.now(), 
-    999
-  );
-  
+
+  let blob;
+  try {
+    // Try to generate a tiny WebM
+    blob = await makeTinyTestVideo();
+  } catch {
+    // Fallback: let you pick any small mp4 or webm
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/mp4,video/webm,video/quicktime';
+    input.click();
+    const file = await new Promise(resolve => input.onchange = () => resolve(input.files?.[0]));
+    if (!file) { alert('No file selected.'); return; }
+    blob = file;
+  }
+
+  const result = await uploadToCloudinary(blob, 'TEST_' + Date.now(), 1);
   if (result.success) {
     console.log('✅ SUCCESS! Video URL:', result.url);
-    alert('Cloudinary is working! Test video uploaded successfully.\n\nURL: ' + result.url);
+    alert('Cloudinary is working! URL: ' + result.url);
   } else {
     console.error('❌ FAILED:', result.error);
     alert('Cloudinary setup has an issue: ' + result.error);
   }
 }
+
 
 // Add to your window exports at the bottom
 window.testCloudinaryUpload = testCloudinaryUpload;
