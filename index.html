@@ -707,6 +707,11 @@
             <p>If you know ASL, please use ASL. Otherwise, spoken English is fine.</p>
           </div>
 
+          <div class="info-box friendly-tip">
+            <strong>Keep recordings short</strong>
+            <p>Videos over ~60 seconds (about 30MB) may fail to upload.</p>
+          </div>
+
           <div style="text-align: center; margin: 20px 0;">
             <span style="background: var(--info); color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold;">
               Image <span id="image-number">1</span> of 2
@@ -2387,6 +2392,15 @@ if (instructionBox) {
               status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
 
+              // Warn if recording exceeds upload size limit (~30MB ≈ 60s)
+              if (blob.size > 30 * 1024 * 1024) {
+                showRecordingError(
+                  `<strong>Recording too long</strong>` +
+                  `<p style="margin-top: 6px;">Please keep videos under 60 seconds so they upload correctly. Try recording again or upload the file below.</p>`
+                );
+                document.getElementById('save-recording-btn').style.display = 'none';
+                return;
+              }
             } catch (e) {
               console.error('Finalize error:', e);
               alert('There was an issue finalizing the recording. Please try the upload option below.');
@@ -2853,9 +2867,10 @@ async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
   try {
     updateUploadProgress(15, 'Preparing Google Drive upload…');
 
-    // UPDATED: Higher size limit for MP4 (they're usually smaller than WebM)
-    if (videoBlob.size > 45 * 1024 * 1024) { // Increased from 35MB to 45MB
-      throw new Error('Video too large for Google Drive (max 45MB)');
+    // Google Apps Script request limit is ~45MB after base64 encoding
+    // which means the original video must be kept around 30MB or less
+    if (videoBlob.size > 30 * 1024 * 1024) {
+      throw new Error('Video too large for Google Drive (max 30MB before upload)');
     }
 
     const base64DataUrl = await blobToBase64(videoBlob);
