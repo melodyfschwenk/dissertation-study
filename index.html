@@ -2207,14 +2207,16 @@ function openExternalTask(taskCode) {
         updateRecordingImage();
       }
       // NEW: if page not secure, skip recorder UI and show upload UI
-if (!window.isSecureContext) {
-  document.getElementById('recording-consent-check').style.display = 'none';
-  document.getElementById('recording-content').style.display = 'block';
-  document.getElementById('video-upload-fallback').style.display = 'block';
-  const status = document.getElementById('recording-status');
-  status.textContent = 'Recording disabled (requires https). Please use the upload option below.';
-  status.className = 'recording-status warning';
-}
+      if (!window.isSecureContext) {
+        document.getElementById('recording-consent-check').style.display = 'none';
+        document.getElementById('recording-content').style.display = 'block';
+        document.getElementById('video-upload-fallback').style.display = 'block';
+        // Ensure the current image is shown even without recording
+        updateRecordingImage();
+        const status = document.getElementById('recording-status');
+        status.textContent = 'Recording disabled (requires https). Please use the upload option below.';
+        status.className = 'recording-status warning';
+      }
 
       showScreen('recording-screen');
     }
