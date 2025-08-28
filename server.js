@@ -5,6 +5,17 @@
 
 const http = require('http');
 
+const REQUIRED_CONFIG = ['SHEETS_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_UPLOAD_PRESET'];
+
+function validateConfig() {
+  const missing = REQUIRED_CONFIG.filter(key => !process.env[key]);
+  if (missing.length) {
+    console.warn(`Missing configuration values: ${missing.join(', ')}`);
+  }
+}
+
+validateConfig();
+
 function validatePayload(data) {
   return data &&
     typeof data.sessionCode === 'string' && data.sessionCode.trim() !== '' &&
