@@ -749,14 +749,7 @@
 
           <div id="recording-error" class="info-box friendly-tip" style="display:none; margin-top: 15px;"></div>
 
-          <div class="card" id="video-upload-fallback" style="margin-top: 15px; display:none;">
-            <h3>Upload a short video instead</h3>
-            <p>Record 30–60 seconds describing the image on your device, then upload the file here.</p>
-            <input type="file" id="video-file-input" accept="video/*" />
-            <div class="button-group">
-              <button class="button success" id="upload-save-btn" style="display:none;">Use this upload</button>
-            </div>
-          </div>
+          <div class="card" id="video-upload-fallback" style="margin-top: 15px; display:none;"></div>
 
           <button class="button skip" id="skip-recording-btn" style="display: block; margin: 20px auto;">Unable to complete</button>
         </div>
@@ -1025,7 +1018,7 @@ function closeEEGModal() {
 
   recording: {
     active: false, mediaRecorder: null, chunks: [], currentImage: 0, recordings: [],
-    stream: null, currentBlob: null
+    stream: null, currentBlob: null, isVideoMode: true
   }
 };
 
@@ -1296,6 +1289,7 @@ if (!window.isSecureContext) {
       document.getElementById('fluency').addEventListener('change', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
       bindRecordingSkips();
+      enhanceUploadFallback();
       bindUploadFallback();
     }
 
@@ -2160,35 +2154,66 @@ if (instructionBox) {
     }
 
     // Enhanced file upload handling for the fallback option
-    function bindUploadFallback() {
-  const input = document.getElementById('video-file-input');
-  const btn = document.getElementById('upload-save-btn');
-  if (!input || !btn) return;
-  
-  input.addEventListener('change', () => {
-    const f = input.files && input.files[0];
-    if (!f) return;
-    if (!f.type.startsWith('video/')) { 
-      alert('Please select a video file'); 
-      input.value = ''; 
-      return; 
-    }
-    
-    // Warn for very large files but allow them
-    if (f.size > 100 * 1024 * 1024) { // 100MB warning
-      if (!confirm(`Large file (${Math.round(f.size/1024/1024)}MB). This may take longer to upload. Continue?`)) {
-        input.value = '';
-        return;
+    function enhanceUploadFallback() {
+      const fallbackDiv = document.getElementById('video-upload-fallback');
+      if (fallbackDiv) {
+        fallbackDiv.innerHTML = `
+      <h3>📁 Upload a Recording Instead</h3>
+      <div class="info-box helpful" style="margin: 15px 0;">
+        <strong>Recording Instructions:</strong>
+        <ol style="margin: 8px 0 0 20px; text-align: left;">
+          <li>Use your phone or computer to record yourself describing the image (30-60 seconds)</li>
+          <li>You can record video (preferred if using ASL) or audio-only</li>
+          <li>Accepted formats: Video (MP4, WebM, MOV) or Audio (MP3, M4A, WAV, OGG)</li>
+          <li>Maximum file size: 100MB</li>
+        </ol>
+      </div>
+      <input type="file" 
+             id="video-file-input" 
+             accept="video/*,audio/*,.mp3,.m4a,.wav,.ogg,.mp4,.webm,.mov" 
+             style="margin: 15px 0; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; width: 100%;" />
+      <div class="button-group">
+        <button class="button success" id="upload-save-btn" style="display:none;">Use this upload</button>
+      </div>
+      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 10px;">
+        💡 Tip: Most phones can record video/audio using the Camera or Voice Memos app.
+      </p>
+    `;
       }
     }
-    
-    state.recording.currentBlob = f;
-    btn.style.display = 'inline-block';
-    btn.textContent = `Upload & Continue (${Math.round(f.size/1024)}KB)`;
-  });
-  
-  btn.addEventListener('click', saveRecording);
-}
+
+    function bindUploadFallback() {
+      const input = document.getElementById('video-file-input');
+      const btn = document.getElementById('upload-save-btn');
+      if (!input || !btn) return;
+
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        if (!f) return;
+
+        if (!f.type.startsWith('video/') && !f.type.startsWith('audio/')) {
+          alert('Please select a video or audio file');
+          input.value = '';
+          return;
+        }
+
+        // Warn for very large files but allow them
+        if (f.size > 100 * 1024 * 1024) { // 100MB warning
+          if (!confirm(`Large file (${Math.round(f.size/1024/1024)}MB). This may take longer to upload. Continue?`)) {
+            input.value = '';
+            return;
+          }
+        }
+
+        state.recording.currentBlob = f;
+        btn.style.display = 'inline-block';
+
+        const fileType = f.type.startsWith('video/') ? 'Video' : 'Audio';
+        btn.textContent = `Upload ${fileType} & Continue (${Math.round(f.size/1024)}KB)`;
+      });
+
+      btn.addEventListener('click', saveRecording);
+    }
 
     function bindRecordingSkips() {
       document.getElementById('skip-recording-btn')?.addEventListener('click', () => showSkipDialog('ID'));
@@ -2202,6 +2227,7 @@ if (instructionBox) {
 
       if (!state.recording.active) {
         try {
+          // First check permissions
           const perm = await checkSecureAndPermissions();
           if (perm.cam === 'denied' || perm.mic === 'denied') {
             const how = isIOS()
@@ -2211,47 +2237,134 @@ if (instructionBox) {
             return;
           }
 
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
-          state.recording.stream = stream; preview.srcObject = stream; preview.style.display = 'block';
+          // Try video first, fall back to audio-only if needed
+          let stream;
+          let isVideoMode = true;
+
+          try {
+            // Try to get both video and audio
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 640, height: 480 },
+              audio: true
+            });
+            isVideoMode = true;
+          } catch (videoError) {
+            console.warn('Video capture failed, trying audio-only:', videoError);
+
+            // Fall back to audio-only
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: false
+              });
+              isVideoMode = false;
+
+              // Show a notice that we're in audio-only mode
+              const audioNotice = document.createElement('div');
+              audioNotice.className = 'info-box helpful';
+              audioNotice.innerHTML = `
+            <strong>📢 Audio-Only Mode</strong>
+            <p>Recording voice only (camera not available). This is fine for the task!</p>
+          `;
+              document.getElementById('recording-content').insertBefore(
+                audioNotice,
+                document.querySelector('.recording-controls')
+              );
+            } catch (audioError) {
+              console.error('Audio capture also failed:', audioError);
+              throw audioError;
+            }
+          }
+
+          state.recording.stream = stream;
+          state.recording.isVideoMode = isVideoMode;
+
+          if (isVideoMode) {
+            preview.srcObject = stream;
+            preview.style.display = 'block';
+          } else {
+            preview.style.display = 'none';
+            // Show audio visualization or indicator
+            status.textContent = '🎤 Audio ready to record';
+          }
 
           if (!window.MediaRecorder) {
-            showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please use Chrome, Edge, or Firefox, or upload a short video below.</p>`);
+            showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please use Chrome, Edge, or Firefox, or upload a recording below.</p>`);
             return;
           }
 
-          // UPDATED: Try MP4 first, then WebM fallback
+          // Determine best format based on mode and browser support
           let options = {};
-          if (MediaRecorder.isTypeSupported?.('video/mp4;codecs=h264,aac')) {
-            options.mimeType = 'video/mp4;codecs=h264,aac';
-          } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) {
-            options.mimeType = 'video/webm;codecs=vp9,opus';
-          } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) {
-            options.mimeType = 'video/webm;codecs=vp8,opus';
+
+          if (isVideoMode) {
+            // Video formats (existing logic)
+            if (MediaRecorder.isTypeSupported?.('video/mp4;codecs=h264,aac')) {
+              options.mimeType = 'video/mp4;codecs=h264,aac';
+            } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) {
+              options.mimeType = 'video/webm;codecs=vp9,opus';
+            } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) {
+              options.mimeType = 'video/webm;codecs=vp8,opus';
+            }
+          } else {
+            // Audio-only formats
+            if (MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')) {
+              options.mimeType = 'audio/webm;codecs=opus';
+            } else if (MediaRecorder.isTypeSupported?.('audio/ogg;codecs=opus')) {
+              options.mimeType = 'audio/ogg;codecs=opus';
+            } else if (MediaRecorder.isTypeSupported?.('audio/mp4')) {
+              options.mimeType = 'audio/mp4';
+            }
           }
 
           state.recording.mediaRecorder = new MediaRecorder(stream, options);
           state.recording.chunks = [];
-          state.recording.mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) state.recording.chunks.push(e.data); };
+
+          state.recording.mediaRecorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) state.recording.chunks.push(e.data);
+          };
+
           state.recording.mediaRecorder.onstop = () => {
             try {
               revokeRecordedURL();
-              const blob = new Blob(state.recording.chunks, { type: options.mimeType || 'video/mp4' });
-              const url = URL.createObjectURL(blob);
-              const recordedEl = document.getElementById('recorded-video');
-              recordedEl.src = url;
-              recordedEl.style.display = 'block';
-              preview.style.display = 'none';
+              const blob = new Blob(state.recording.chunks, {
+                type: options.mimeType || (isVideoMode ? 'video/webm' : 'audio/webm')
+              });
+
+              // For audio-only, create a simple audio player instead of video
+              if (!isVideoMode) {
+                const audioPlayer = document.createElement('audio');
+                audioPlayer.id = 'recorded-audio';
+                audioPlayer.controls = true;
+                audioPlayer.style.width = '100%';
+                audioPlayer.src = URL.createObjectURL(blob);
+
+                // Replace video element with audio element
+                const container = document.getElementById('recorded-video').parentElement;
+                const existingAudio = document.getElementById('recorded-audio');
+                if (existingAudio) existingAudio.remove();
+                container.insertBefore(audioPlayer, document.getElementById('recorded-video'));
+                document.getElementById('recorded-video').style.display = 'none';
+              } else {
+                const recordedEl = document.getElementById('recorded-video');
+                recordedEl.src = URL.createObjectURL(blob);
+                recordedEl.style.display = 'block';
+                preview.style.display = 'none';
+              }
 
               document.getElementById('record-btn').style.display = 'none';
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
-              const format = blob.type.includes('mp4') ? 'MP4' : 'WebM';
+
+              const format = isVideoMode ?
+                (blob.type.includes('mp4') ? 'MP4 video' : 'WebM video') :
+                'Audio';
               status.textContent = `Recording complete (${format})`;
               status.className = 'recording-status recorded';
               state.recording.currentBlob = blob;
+
             } catch (e) {
               console.error('Finalize error:', e);
-              alert('There was an issue finalizing the recording.');
+              alert('There was an issue finalizing the recording. Please try the upload option below.');
             }
           };
 
@@ -2259,37 +2372,28 @@ if (instructionBox) {
           state.recording.active = true;
           btn.textContent = 'Stop Recording';
           btn.className = 'button danger';
-          status.textContent = '🔴 Recording...';
+          status.textContent = isVideoMode ? '🔴 Recording video...' : '🎤 Recording audio...';
           status.className = 'recording-status recording';
           startRecordingTimer();
 
         } catch (err) {
           console.error('Recording error:', err);
-          const name = err?.name || err?.code || 'Unknown';
-          if (name === 'NOT_SECURE') {
-            const suggest = location.protocol === 'http:' ? `Please reload over https: ${location.href.replace('http:', 'https:')}` : 'This page cannot run from a local file. Please host it or use a local https server.';
-            showRecordingError(`<strong>Secure context required</strong><p style="margin-top: 6px;">${suggest}</p>`);
-          } else if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-            const how = isIOS()
-              ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.'
-              : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
-            showRecordingError(`<strong>Permission not granted</strong><p style="margin-top: 6px;">Please allow camera and microphone access for this site. ${how}</p>`);
-          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-            showRecordingError(`<strong>No camera or microphone found</strong><p style="margin-top: 6px;">Please connect a camera and microphone or use the upload option below.</p>`);
-          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-            showRecordingError(`<strong>Camera or microphone in use</strong><p style="margin-top: 6px;">Please close other apps using the camera, then try again. You can also upload a video below.</p>`);
-          } else {
-            showRecordingError(`<strong>Could not access camera</strong><p style="margin-top: 6px;">${err?.message || 'Unknown error'}</p>`);
-          }
+          handleRecordingError(err);
         }
       } else {
+        // Stop recording (existing code)
         try {
           if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== 'inactive') {
             state.recording.mediaRecorder.stop();
           }
-        } catch(e) { console.warn('Stop error:', e); }
-        finally {
-          if (state.recording.stream) { try { state.recording.stream.getTracks().forEach(track => track.stop()); } catch(e){} }
+        } catch(e) {
+          console.warn('Stop error:', e);
+        } finally {
+          if (state.recording.stream) {
+            try {
+              state.recording.stream.getTracks().forEach(track => track.stop());
+            } catch(e) {}
+          }
           state.recording.active = false;
           btn.textContent = 'Start Recording';
           btn.className = 'button danger';
@@ -2298,14 +2402,54 @@ if (instructionBox) {
       }
     }
 
+    function handleRecordingError(err) {
+      const name = err?.name || err?.code || 'Unknown';
+
+      // More helpful error messages
+      const errorMessages = {
+        'NOT_SECURE': {
+          title: 'Secure connection required',
+          message: 'This page must be served over HTTPS for recording to work.',
+          showUpload: true
+        },
+        'NotAllowedError': {
+          title: 'Permission needed',
+          message: 'Please allow camera and/or microphone access. You may need to refresh the page after granting permission.',
+          showUpload: true
+        },
+        'NotFoundError': {
+          title: 'No recording device found',
+          message: 'No camera or microphone detected. You can upload a recording instead.',
+          showUpload: true
+        },
+        'NotReadableError': {
+          title: 'Device in use',
+          message: 'Camera or microphone is being used by another application. Please close other apps and try again.',
+          showUpload: true
+        }
+      };
+
+      const errorInfo = errorMessages[name] || {
+        title: 'Recording not available',
+        message: `${err?.message || 'Recording failed'}. You can upload a file instead.`,
+        showUpload: true
+      };
+
+      showRecordingError(
+        `<strong>${errorInfo.title}</strong>
+     <p style="margin-top: 6px;">${errorInfo.message}</p>`,
+        errorInfo.showUpload
+      );
+    }
+
     function reRecord() { cleanupRecording(true).finally(() => updateRecordingImage()); }
 
     // Updated saveRecording function with Google Drive upload
 // Updated saveRecording function with enhanced logging
 async function saveRecording() {
-  if (!state.recording.currentBlob) { 
-    alert('Please record or upload a video first.'); 
-    return; 
+  if (!state.recording.currentBlob) {
+    alert('Please record or upload a recording first.');
+    return;
   }
 
   const saveBtn = document.getElementById('save-recording-btn');
@@ -2314,7 +2458,7 @@ async function saveRecording() {
   saveBtn.textContent = 'Processing...';
 
   const status = document.getElementById('recording-status');
-  status.textContent = '⚙️ Processing video...';
+  status.textContent = '⚙️ Processing recording...';
   status.className = 'recording-status recording';
 
   const uploadProgress = document.getElementById('upload-progress');
@@ -2330,15 +2474,17 @@ async function saveRecording() {
 
     if (uploadResult.success) {
       // Store the upload info with method tracking
-      state.recording.recordings.push({ 
-        image: state.recording.currentImage + 1, 
-        blob: state.recording.currentBlob, 
+      state.recording.recordings.push({
+        image: state.recording.currentImage + 1,
+        blob: state.recording.currentBlob,
         timestamp: new Date().toISOString(),
         driveFileId: uploadResult.fileId,
         driveFileUrl: uploadResult.fileUrl,
         filename: uploadResult.filename,
         uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || ''
+        dropboxPath: uploadResult.dropboxPath || '',
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: state.recording.currentBlob.type
       });
 
       // Enhanced logging to Google Sheets
@@ -2354,26 +2500,30 @@ async function saveRecording() {
         uploadMethod: uploadResult.uploadMethod,
         dropboxPath: uploadResult.dropboxPath || '',
         fileSize: Math.round(state.recording.currentBlob.size / 1024),
-        uploadStatus: 'success'
+        uploadStatus: 'success',
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: state.recording.currentBlob.type
       };
 
       // Send to both the task logging and video upload logging
       sendToSheets(logData);
       
       // Also log specifically to video uploads table
-      sendToSheets({
-        action: 'log_video_upload',
-        sessionCode: state.sessionCode,
-        imageNumber: state.recording.currentImage + 1,
-        filename: uploadResult.filename,
-        fileId: uploadResult.fileId,
-        fileUrl: uploadResult.fileUrl,
-        fileSize: Math.round(state.recording.currentBlob.size / 1024),
-        uploadTime: new Date().toISOString(),
-        uploadMethod: uploadResult.uploadMethod,
-        dropboxPath: uploadResult.dropboxPath || '',
-        uploadStatus: 'success'
-      });
+        sendToSheets({
+          action: 'log_video_upload',
+          sessionCode: state.sessionCode,
+          imageNumber: state.recording.currentImage + 1,
+          filename: uploadResult.filename,
+          fileId: uploadResult.fileId,
+          fileUrl: uploadResult.fileUrl,
+          fileSize: Math.round(state.recording.currentBlob.size / 1024),
+          uploadTime: new Date().toISOString(),
+          uploadMethod: uploadResult.uploadMethod,
+          dropboxPath: uploadResult.dropboxPath || '',
+          uploadStatus: 'success',
+          recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+          mimeType: state.recording.currentBlob.type
+        });
 
       status.textContent = `✅ Upload complete via ${uploadResult.uploadMethod}!`;
       status.className = 'recording-status recorded';
@@ -2396,16 +2546,18 @@ async function saveRecording() {
     console.error('Upload error:', error);
     
     // Enhanced error logging
-    sendToSheets({
-      action: 'log_video_upload_error',
-      sessionCode: state.sessionCode,
-      imageNumber: state.recording.currentImage + 1,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
-      attemptedMethod: 'drive_then_dropbox',
-      fallbackUsed: error.message.includes('Dropbox')
-    });
+      sendToSheets({
+        action: 'log_video_upload_error',
+        sessionCode: state.sessionCode,
+        imageNumber: state.recording.currentImage + 1,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
+        attemptedMethod: 'drive_then_dropbox',
+        fallbackUsed: error.message.includes('Dropbox'),
+        recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+        mimeType: state.recording.currentBlob.type
+      });
     
     uploadProgress.style.display = 'none';
     const errorDiv = document.getElementById('recording-error');
@@ -2433,12 +2585,14 @@ async function saveRecording() {
 // Updated continueWithoutUpload with enhanced logging
 function continueWithoutUpload() {
   if (confirm('Continue without uploading the video? The recording will only be saved locally in your browser.')) {
-    state.recording.recordings.push({ 
-      image: state.recording.currentImage + 1, 
-      blob: state.recording.currentBlob, 
+    state.recording.recordings.push({
+      image: state.recording.currentImage + 1,
+      blob: state.recording.currentBlob,
       timestamp: new Date().toISOString(),
       uploadSkipped: true,
-      uploadMethod: 'local_only'
+      uploadMethod: 'local_only',
+      recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+      mimeType: state.recording.currentBlob.type
     });
 
     // Enhanced logging for skipped upload
@@ -2450,7 +2604,9 @@ function continueWithoutUpload() {
       timestamp: new Date().toISOString(),
       deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
       uploadMethod: 'local_only',
-      uploadStatus: 'skipped'
+      uploadStatus: 'skipped',
+      recordingType: state.recording.isVideoMode ? 'video' : 'audio',
+      mimeType: state.recording.currentBlob.type
     });
 
     if (state.recording.currentImage === 0) { 
@@ -2465,6 +2621,15 @@ function continueWithoutUpload() {
 }
 
 // Enhanced upload function - tries Google Drive first, Dropbox as fallback
+function getExtensionFromMime(mime) {
+  if (!mime) return 'bin';
+  mime = mime.toLowerCase();
+  if (mime.includes('mp4') || mime.includes('m4a')) return 'mp4';
+  if (mime.includes('ogg')) return 'ogg';
+  if (mime.includes('wav')) return 'wav';
+  if (mime.includes('webm')) return 'webm';
+  return 'bin';
+}
 async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
     updateUploadProgress(5, 'Starting upload…');
@@ -2571,7 +2736,7 @@ async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber)
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    const extension = getExtensionFromMime(videoBlob.type);
     const filename = `${sessionCode}_image${imageNumber}_${timestamp}.${extension}`;
 
     const participantFolder = `/spatial-cognition-videos/Participant_${sessionCode}`;
@@ -2659,6 +2824,7 @@ async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
       imageNumber,
       videoData: base64VideoData,
       fileSize: videoBlob.size,
+      mimeType: videoBlob.type,
       timestamp: new Date().toISOString()
     };
 
@@ -3154,6 +3320,7 @@ async function sendToSheets(payload) {
       sessionCode: 'DEBUG_' + Date.now(),
       imageNumber: 99,
       videoData: base64VideoData,
+      mimeType: testBlob.type,
       timestamp: new Date().toISOString()
     };
     
