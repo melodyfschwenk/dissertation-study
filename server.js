@@ -5,6 +5,12 @@
 
 const http = require('http');
 
+function validatePayload(data) {
+  return data &&
+    typeof data.sessionCode === 'string' && data.sessionCode.trim() !== '' &&
+    typeof data.filename === 'string';
+}
+
 const server = http.createServer((req, res) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -24,6 +30,25 @@ const server = http.createServer((req, res) => {
   let body = '';
   req.on('data', chunk => { body += chunk; });
   req.on('end', () => {
+    let data;
+    try {
+      data = JSON.parse(body || '{}');
+    } catch (err) {
+      res.writeHead(400, {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      });
+      return res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }));
+    }
+
+    if (!validatePayload(data)) {
+      res.writeHead(400, {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      });
+      return res.end(JSON.stringify({ success: false, error: 'Invalid input' }));
+    }
+
     // Process the body as needed. For this example we simply acknowledge
     // receipt of the data.
     res.writeHead(200, {
