@@ -906,7 +906,9 @@
   IMAGE_2: 'images/description2.jpg',
   ASLCT_ACCESS_CODE: 'DVCWHNABJ',
   EEG_CALENDLY_URL: 'https://calendly.com/action-brain-lab-gallaudet/spatial-cognition-eeg-only',
-  SUPPORT_EMAIL: 'action.brain.lab@gallaudet.edu'
+  SUPPORT_EMAIL: 'action.brain.lab@gallaudet.edu',
+      CLOUDINARY_CLOUD_NAME: 'dll2sorkn', 
+  CLOUDINARY_UPLOAD_PRESET: 'study_videos', 
 };
 const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
 
@@ -2908,56 +2910,137 @@ function getExtensionFromMime(mime) {
   if (mime.includes('webm')) return 'webm';
   return 'bin';
 }
+
+    async function uploadToCloudinary(videoBlob, sessionCode, imageNumber) {
+  try {
+    console.log('Starting Cloudinary upload...');
+    
+    // Create form data (like filling out a form)
+    const formData = new FormData();
+    formData.append('file', videoBlob);
+    formData.append('upload_preset', CONFIG.CLOUDINARY_UPLOAD_PRESET);
+    
+    // Create a unique filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${sessionCode}/image${imageNumber}_${timestamp}`;
+    formData.append('public_id', filename);
+    
+    // Set the folder
+    formData.append('folder', 'spatial-cognition-videos');
+    
+    // Actually upload to Cloudinary
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('Cloudinary upload successful:', result);
+    
+    return {
+      success: true,
+      url: result.secure_url,  // The URL to view the video
+      publicId: result.public_id,
+      format: result.format,
+      size: result.bytes,
+      duration: result.duration  // Video length in seconds
+    };
+    
+  } catch (error) {
+    console.error('Cloudinary upload failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+    async function testCloudinaryUpload() {
+  console.log('🧪 Testing Cloudinary setup...');
+  
+  // Check if config is set
+  if (!CONFIG.CLOUDINARY_CLOUD_NAME || CONFIG.CLOUDINARY_CLOUD_NAME === 'dxyz12345') {
+    alert('ERROR: Please set your Cloudinary cloud name in CONFIG');
+    return;
+  }
+  
+  // Create a tiny test video
+  const testData = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3]); 
+  const testBlob = new Blob([testData], { type: 'video/webm' });
+  
+  // Try uploading
+  const result = await uploadToCloudinary(
+    testBlob, 
+    'TEST_' + Date.now(), 
+    999
+  );
+  
+  if (result.success) {
+    console.log('✅ SUCCESS! Video URL:', result.url);
+    alert('Cloudinary is working! Test video uploaded successfully.\n\nURL: ' + result.url);
+  } else {
+    console.error('❌ FAILED:', result.error);
+    alert('Cloudinary setup has an issue: ' + result.error);
+  }
+}
+
+// Add to your window exports at the bottom
+window.testCloudinaryUpload = testCloudinaryUpload;
+    
 async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    updateUploadProgress(5, 'Starting upload…');
-
-    // Try Google Drive FIRST
-    try {
-      updateUploadProgress(10, 'Connecting to Google Drive...');
-      const driveResult = await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
-
-      if (driveResult.success) {
-        updateUploadProgress(100, 'Upload complete to Google Drive!');
-        return {
-          success: true,
-          filename: driveResult.filename,
-          fileId: driveResult.fileId,
-          fileUrl: driveResult.fileUrl,
-          uploadMethod: 'google_drive'
-        };
-      } else {
-        console.warn('Google Drive upload failed, trying Dropbox fallback:', driveResult.error);
-        updateUploadProgress(30, 'Google Drive failed, trying Dropbox...');
-      }
-    } catch (driveError) {
-      console.warn('Google Drive upload error, trying Dropbox fallback:', driveError);
-      updateUploadProgress(30, 'Google Drive failed, trying Dropbox...');
-    }
-
-    // Fallback to Dropbox
-    updateUploadProgress(40, 'Uploading to Dropbox...');
-    const dropboxResult = await uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber);
-
-    if (dropboxResult.success) {
-      updateUploadProgress(100, 'Upload complete to Dropbox!');
+    updateUploadProgress(5, 'Starting upload...');
+    
+    // TRY CLOUDINARY FIRST (NEW!)
+    console.log('Trying Cloudinary first...');
+    updateUploadProgress(10, 'Uploading to cloud storage...');
+    
+    const cloudinaryResult = await uploadToCloudinary(videoBlob, sessionCode, imageNumber);
+    
+    if (cloudinaryResult.success) {
+      updateUploadProgress(100, 'Upload complete!');
+      
+      // Log to Google Sheets (just the URL, not the video data)
+      await sendToSheets({
+        action: 'log_video_upload',
+        sessionCode: sessionCode,
+        imageNumber: imageNumber,
+        filename: `image${imageNumber}_${Date.now()}.webm`,
+        fileId: cloudinaryResult.publicId,
+        fileUrl: cloudinaryResult.url,
+        fileSize: Math.round(cloudinaryResult.size / 1024), // KB
+        uploadTime: new Date().toISOString(),
+        uploadMethod: 'cloudinary',
+        uploadStatus: 'success'
+      });
+      
       return {
         success: true,
-        filename: dropboxResult.filename,
-        fileId: dropboxResult.fileId,
-        fileUrl: dropboxResult.fileUrl,
-        uploadMethod: 'dropbox',
-        dropboxPath: dropboxResult.dropboxPath
+        filename: cloudinaryResult.publicId,
+        fileId: cloudinaryResult.publicId,
+        fileUrl: cloudinaryResult.url,
+        uploadMethod: 'cloudinary'
       };
     } else {
-      throw new Error(`Both uploads failed. Google Drive: failed, Dropbox: ${dropboxResult.error}`);
+      console.log('Cloudinary failed, trying Google Drive fallback...');
+      updateUploadProgress(30, 'Trying backup upload method...');
+      
+      // YOUR EXISTING GOOGLE DRIVE CODE STAYS AS FALLBACK
+      // (Keep your existing code here as backup)
+      return await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
     }
-
+    
   } catch (error) {
     console.error('All upload methods failed:', error);
     return {
       success: false,
-      error: error.message || String(error)
+      error: error.message
     };
   }
 }
