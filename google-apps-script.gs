@@ -419,6 +419,7 @@ function doGet(e) {
 function createCorsOutput(data) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
+  output.setHeader('Access-Control-Allow-Origin', '*');
   return output;
 }
 
@@ -2282,10 +2283,10 @@ function logVideoEvent(data) {
   var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
 
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 12).setValues([[
-      'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','Dropbox Path','Upload Status','Error Message'
+    sheet.getRange(1, 1, 1, 16).setValues([[
+      'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','External Service','Cloudinary Public ID','Dropbox Path','Video Format','MIME Type','Upload Status','Error Message'
     ]]);
-    formatHeaders(sheet, 12);
+    formatHeaders(sheet, 16);
   }
 
   sheet.appendRow([
@@ -2296,9 +2297,13 @@ function logVideoEvent(data) {
     data.fileId || '',
     data.fileUrl || '',
     data.fileSize || 0,
-    data.uploadTime || new Date().toISOString(),
+    data.uploadTime || data.timestamp || new Date().toISOString(),
     data.uploadMethod || 'unknown',
+    data.externalService || determineServiceFromMethod(data.uploadMethod),
+    data.cloudinaryPublicId || '',
     data.dropboxPath || '',
+    data.videoFormat || '',
+    data.mimeType || '',
     data.uploadStatus || 'success',
     data.error || ''
   ]);
@@ -2406,6 +2411,7 @@ function logUploadMetrics(data) {
 }
 function logVideoUploadError(ss, data) {
   data.uploadStatus = 'error';
+  data.uploadMethod = data.attemptedMethod || data.uploadMethod || 'unknown';
   logVideoEvent(data);
 }
 
