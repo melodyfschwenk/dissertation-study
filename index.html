@@ -444,6 +444,7 @@
           <p>Your Resume Code:</p>
           <div class="code" id="display-code">ABC12345</div>
         <button class="button optional outline" onclick="copyCode(this)">📋 Copy Code</button>
+        <button class="button optional outline" onclick="copyRecoveryLink(this)">🔗 Copy Recovery Link</button>
           <p style="font-size: 14px; margin-top: 15px;">Save this code to resume anytime</p>
         </div>
 
@@ -821,6 +822,8 @@
       <p>Your progress has been saved.</p>
       <div class="code-display">
         <div class="code" id="modal-code">ABC12345</div>
+        <button class="button optional outline" onclick="copyCode(this)">📋 Copy Code</button>
+        <button class="button optional outline" onclick="copyRecoveryLink(this)">🔗 Copy Recovery Link</button>
       </div>
       <p style="font-size: 14px; color: var(--text-secondary); margin-top: 20px;">Return anytime to complete remaining tasks.</p>
       <button class="button" onclick="location.reload()">Exit Study</button>
@@ -1277,8 +1280,11 @@ if (!window.isSecureContext) {
   style.textContent = `#record-btn { display: none !important; }`;
   document.head.appendChild(style);
 }
-
-      checkSavedSession();
+      const params = new URLSearchParams(location.search);
+      checkRecoveryLink();
+      if (!params.has('recover')) {
+        checkSavedSession();
+      }
 
       // Gentle mobile notice content swap
       if (isMobileDevice()) {
@@ -1429,9 +1435,10 @@ function showScreen(screenId) {
       showScreen('session-created');
     }
 
-    async function resumeSession() {
-      const code = document.getElementById('resume-code').value.toUpperCase();
-      if (code.length !== 8) { alert('Please enter your 8-character resume code'); return; }
+      async function resumeSession(codeFromLink) {
+        const input = codeFromLink || document.getElementById('resume-code').value;
+        const code = input.toUpperCase();
+        if (code.length !== 8) { alert('Please enter your 8-character resume code'); return; }
       try {
         const res = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',
@@ -1460,6 +1467,7 @@ function showScreen(screenId) {
     // === REPLACE the body of checkSavedSession with this ===
 function checkSavedSession() {
   try {
+    if (state.sessionCode) return;
     const recentCode = localStorage.getItem('recent_session');
     if (!recentCode) return;
 
@@ -1482,6 +1490,24 @@ function checkSavedSession() {
     }
   } catch (e) {
     console.warn('Could not check saved session', e);
+  }
+}
+
+function checkRecoveryLink() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('recover');
+    if (!token) return;
+    const code = atob(token);
+    if (code && code.length === 8) {
+      resumeSession(code);
+    }
+    try {
+      const cleanURL = location.origin + location.pathname;
+      window.history.replaceState({}, '', cleanURL);
+    } catch (e) {}
+  } catch (e) {
+    console.warn('Invalid recovery link', e);
   }
 }
 
@@ -3121,8 +3147,9 @@ function updateUploadProgress(percent, message) {
       if (sessionTimer.startTime) sessionTimer.pause('manual');
       document.getElementById('pause-modal').classList.add('active');
       document.getElementById('pause-fab').classList.remove('active');
-      const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'manual', timestamp: new Date().toISOString() });
+        const { total, completed } = getTaskCounts();
+        const progress = total ? `${completed}/${total}` : '';
+        sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'manual', timestamp: new Date().toISOString() });
       saveState();
     }
 
@@ -3131,8 +3158,9 @@ function updateUploadProgress(percent, message) {
         const pausedMs = Date.now() - state.pauseStart;
         state.totalPausedTime = (state.totalPausedTime || 0) + pausedMs;
         state.pauseStart = null;
-        const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-        sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), pauseType: state.lastPauseType, timestamp: new Date().toISOString() });
+          const { total, completed } = getTaskCounts();
+          const progress = total ? `${completed}/${total}` : '';
+          sendToSheets({ action: 'session_resumed', sessionCode: state.sessionCode, progress, pausedSeconds: Math.round(pausedMs/1000), pauseType: state.lastPauseType, timestamp: new Date().toISOString() });
       }
       if (taskTimer.startTime) taskTimer.resume();
       if (sessionTimer.startTime) sessionTimer.resume();
@@ -3149,16 +3177,29 @@ function updateUploadProgress(percent, message) {
       saveState();
       document.getElementById('modal-code').textContent = state.sessionCode;
       document.getElementById('exit-modal').classList.add('active');
-      const progress = state.sequence.length ? `${state.completedTasks.length}/${state.sequence.length}` : '';
-      sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'exit', timestamp: new Date().toISOString() });
+        const { total, completed } = getTaskCounts();
+        const progress = total ? `${completed}/${total}` : '';
+        sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'exit', timestamp: new Date().toISOString() });
     }
-    function copyCode(btnEl) {
-      const code = document.getElementById('display-code').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
-      });
-    }
-    function copyASLCTCode(btnEl) {
+      function copyCode(btnEl) {
+        const code = document.getElementById('display-code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+          if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
+        });
+      }
+      function generateRecoveryLink() {
+        if (!state.sessionCode) return '';
+        const token = btoa(state.sessionCode);
+        return `${location.origin}${location.pathname}?recover=${encodeURIComponent(token)}`;
+      }
+      function copyRecoveryLink(btnEl) {
+        const link = generateRecoveryLink();
+        if (!link) return;
+        navigator.clipboard.writeText(link).then(() => {
+          if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
+        });
+      }
+      function copyASLCTCode(btnEl) {
   navigator.clipboard.writeText(CONFIG.ASLCT_ACCESS_CODE)
     .then(() => { if (btnEl) { const o=btnEl.textContent; btnEl.textContent='✅ Copied!'; setTimeout(()=>btnEl.textContent=o,2000);} })
     .catch(() => { alert('Access code: ' + CONFIG.ASLCT_ACCESS_CODE); });
@@ -3453,9 +3494,10 @@ window.addEventListener('beforeunload', () => {
     window.continueToCurrentTask = continueToCurrentTask;
     window.pauseStudy = pauseStudy;
     window.resumeStudy = resumeStudy;
-    window.saveAndExit = saveAndExit;
-    window.copyCode = copyCode;
-    window.copyASLCTCode = copyASLCTCode;
+      window.saveAndExit = saveAndExit;
+      window.copyCode = copyCode;
+      window.copyRecoveryLink = copyRecoveryLink;
+      window.copyASLCTCode = copyASLCTCode;
     window.tryMailto = tryMailto;
     window.copyEmail = copyEmail;
     window.closeEEGModal = closeEEGModal;
