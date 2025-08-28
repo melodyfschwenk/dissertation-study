@@ -1068,7 +1068,15 @@ function resumeSession(ss, data) {
         setByHeader_(sheet, row, 'Paused Time (min)', existing + addMin);
       }
     }
-    var resumeDetails = 'Progress: ' + (data.progress || 'unknown');
+    updateCompletedTasksCount(ss, data.sessionCode);
+    var s = ss.getSheetByName('Sessions');
+    var r = findRowBySessionCode_(s, data.sessionCode);
+    var hmap = headerMap_(s);
+    var progress = 'unknown';
+    if (r && hmap['Tasks Completed']) {
+      progress = String(s.getRange(r, hmap['Tasks Completed']).getValue() || '');
+    }
+    var resumeDetails = 'Progress: ' + progress;
     if (data.pausedSeconds) {
       resumeDetails += '; pausedSeconds: ' + data.pausedSeconds;
     }
@@ -1090,8 +1098,16 @@ function pauseSession(ss, data) {
   withDocLock_(function () {
     updateSessionActivity(ss, data.sessionCode, data.timestamp);
     updateTotalTime(ss, data.sessionCode);
+    updateCompletedTasksCount(ss, data.sessionCode);
+    var s = ss.getSheetByName('Sessions');
+    var r = findRowBySessionCode_(s, data.sessionCode);
+    var hmap = headerMap_(s);
+    var progress = 'unknown';
+    if (r && hmap['Tasks Completed']) {
+      progress = String(s.getRange(r, hmap['Tasks Completed']).getValue() || '');
+    }
     var eventType = data.pauseType === 'exit' ? 'Session Saved & Exited' : 'Session Paused';
-    var details = 'Progress: ' + (data.progress || 'unknown');
+    var details = 'Progress: ' + progress;
     if (data.pauseType) {
       details += '; pauseType: ' + data.pauseType;
     }
@@ -1138,6 +1154,7 @@ function logVideoDeclined(ss, data) {
     var cols = ensureConsentColumns_(ss);
     var row = findRowBySessionCode_(sheet, data.sessionCode);
     if (row) sheet.getRange(row, cols.status).setValue('Declined');
+    updateCompletedTasksCount(ss, data.sessionCode);
 
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
