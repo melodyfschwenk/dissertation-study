@@ -2984,7 +2984,8 @@ async function sendToSheets(payload) {
   try {
     await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // simple request, no preflight
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' }, // simple request, bypasses CORS preflight
       body: JSON.stringify(body)
     });
   } catch (error) {
