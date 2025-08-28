@@ -1358,6 +1358,7 @@ function _startPreview() {
           }
           preview.srcObject = state.recording.stream;
           preview.style.display = 'block';
+          preview.play()["catch"](function () {});
           return _context4.a(2);
         case 1:
           _context4.p = 1;
@@ -1387,6 +1388,7 @@ function _startPreview() {
           state.recording.isVideoMode = true;
           preview.srcObject = stream;
           preview.style.display = 'block';
+          preview.play()["catch"](function () {});
           _context4.n = 6;
           break;
         case 5:
@@ -1695,6 +1697,7 @@ function _toggleRecording() {
           if (isVideoMode) {
             preview.srcObject = stream;
             preview.style.display = 'block';
+            preview.play()["catch"](function () {});
           } else {
             preview.style.display = 'none';
             status.textContent = '🎤 Audio ready to record';
