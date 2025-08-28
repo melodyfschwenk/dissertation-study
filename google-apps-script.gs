@@ -90,6 +90,7 @@ function doPost(e) {
         return handleVideoUpload(data);
 
       case 'log_video_upload':
+        // Handle both Cloudinary metadata and legacy uploads
         withDocLock_(function () {
           logVideoUpload({
             sessionCode: data.sessionCode,
@@ -101,8 +102,17 @@ function doPost(e) {
             uploadTime: data.uploadTime,
             uploadMethod: data.uploadMethod || 'unknown',
             dropboxPath: data.dropboxPath || '',
-            uploadStatus: data.uploadStatus || 'success'
+            uploadStatus: data.uploadStatus || 'success',
+            videoFormat: data.videoFormat || data.format || '',
+            mimeType: data.mimeType || '',
+            cloudinaryPublicId: data.publicId || '',
+            externalService: data.uploadMethod === 'cloudinary' ? 'Cloudinary' :
+                             data.uploadMethod === 'dropbox' ? 'Dropbox' :
+                             data.uploadMethod === 'google_drive' ? 'Google Drive' : 'Unknown'
           });
+
+          // Update session video count
+          updateSessionVideoCount(data.sessionCode);
         });
         break;
 
@@ -847,24 +857,60 @@ function getExtensionFromMime_(mime) {
   if (mime.indexOf('webm') !== -1) return 'webm';
   return 'bin';
 }
+/**
+ * Simplified video upload handler for Cloudinary-based uploads
+ * Now primarily handles metadata since videos go directly to Cloudinary
+ */
 function handleVideoUpload(data) {
   try {
-    console.log('Upload request received:', {
+    // New: Check if this is a metadata-only upload (from Cloudinary)
+    if (data.uploadMethod === 'cloudinary' || data.uploadMethod === 'external') {
+      console.log('External upload metadata received:', {
+        sessionCode: data.sessionCode,
+        imageNumber: data.imageNumber,
+        method: data.uploadMethod,
+        url: data.fileUrl
+      });
+      
+      // Just log the metadata - no file creation needed
+      return handleExternalUploadMetadata(data);
+    }
+    
+    // Legacy: Handle direct base64 uploads (fallback only)
+    if (!data.videoData) {
+      console.log('No video data provided, treating as metadata-only');
+      return handleExternalUploadMetadata(data);
+    }
+    
+    console.log('Legacy upload request received:', {
       sessionCode: data.sessionCode,
       imageNumber: data.imageNumber,
       format: data.videoFormat || 'unknown',
       mimeType: data.mimeType || 'unknown',
-      size: data.fileSize || 'unknown'
+      size: data.fileSize || 'unknown',
+      hasBase64: !!data.videoData
     });
 
-    if (!data || !data.sessionCode || !data.imageNumber || !data.videoData) {
-      throw new Error('Missing required fields: sessionCode, imageNumber, videoData');
+    // Validate required fields
+    if (!data.sessionCode || !data.imageNumber) {
+      throw new Error('Missing required fields: sessionCode, imageNumber');
     }
 
+    // Size check for base64 data (if provided)
+    if (data.videoData) {
+      const estimatedSize = (data.videoData.length * 3) / 4; // Base64 to bytes estimation
+      const maxSize = PropertiesService.getScriptProperties().getProperty('MAX_UPLOAD_SIZE_BYTES') || 5242880;
+      
+      if (estimatedSize > parseInt(maxSize)) {
+        console.error('File too large:', estimatedSize, 'bytes. Max:', maxSize);
+        throw new Error('File too large for direct upload. Please use Cloudinary.');
+      }
+    }
+
+    // Rest of your existing Google Drive upload code...
     var studyFolder = getOrCreateStudyFolder();
     var participantFolder = getOrCreateParticipantFolder(studyFolder, data.sessionCode);
 
-    // Decode base64
     var bytes;
     try {
       bytes = Utilities.base64Decode(data.videoData);
@@ -874,132 +920,80 @@ function handleVideoUpload(data) {
       throw new Error('Invalid video data encoding');
     }
 
-    // CRITICAL FIX: Respect the format from frontend
-    var extension = 'webm'; // fallback default
-
-    // Priority 1: Use explicitly provided format
+    // Your existing format detection code...
+    var extension = 'webm';
     if (data.videoFormat && data.videoFormat.length > 0) {
       extension = String(data.videoFormat).toLowerCase();
-      console.log('Using provided format:', extension);
-    }
-    // Priority 2: Detect from MIME type
-    else if (data.mimeType && data.mimeType.length > 0) {
+    } else if (data.mimeType && data.mimeType.length > 0) {
       var mime = String(data.mimeType).toLowerCase();
-      if (mime.indexOf('mp4') !== -1 || mime.indexOf('mpeg4') !== -1) {
-        extension = 'mp4';
-      } else if (mime.indexOf('quicktime') !== -1) {
-        extension = 'mov';
-      } else if (mime.indexOf('x-matroska') !== -1) {
-        extension = 'mkv';
-      } else if (mime.indexOf('avi') !== -1) {
-        extension = 'avi';
-      } else if (mime.indexOf('webm') !== -1) {
-        extension = 'webm';
-      }
-      console.log('Detected from MIME type:', extension);
-    }
-    // Priority 3: Try to detect from filename if provided
-    else if (data.fileName && data.fileName.length > 0) {
-      var nameParts = String(data.fileName).split('.');
-      if (nameParts.length > 1) {
-        var fileExt = nameParts[nameParts.length - 1].toLowerCase();
-        if (['mp4', 'mov', 'webm', 'avi', 'mkv'].indexOf(fileExt) !== -1) {
-          extension = fileExt;
-          console.log('Detected from filename:', extension);
-        }
-      }
+      if (mime.indexOf('mp4') !== -1) extension = 'mp4';
+      else if (mime.indexOf('quicktime') !== -1) extension = 'mov';
+      else if (mime.indexOf('webm') !== -1) extension = 'webm';
     }
 
-    // Validate extension against whitelist
-    var allowedExtensions = ['webm', 'mp4', 'mov', 'mkv', 'avi'];
-    if (allowedExtensions.indexOf(extension) === -1) {
-      console.warn('Invalid extension detected:', extension, '- using webm fallback');
-      extension = 'webm';
-    }
-
-    // Build filename with CORRECT extension
     var ts = new Date().toISOString().replace(/[:.]/g, '-');
     var filename = data.sessionCode + '_image' + data.imageNumber + '_' + ts + '.' + extension;
-    console.log('Final filename:', filename);
+    
+    var mimeTypeMap = {
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'webm': 'video/webm',
+      'mkv': 'video/x-matroska',
+      'avi': 'video/x-msvideo'
+    };
+    var blobMimeType = mimeTypeMap[extension] || 'video/webm';
 
-    var result = withDocLock_(function () {
-      // Map extension to MIME type for blob
-      var mimeTypeMap = {
-        'mp4': 'video/mp4',
-        'mov': 'video/quicktime',
-        'webm': 'video/webm',
-        'mkv': 'video/x-matroska',
-        'avi': 'video/x-msvideo'
-      };
-      var blobMimeType = mimeTypeMap[extension] || 'video/webm';
+    var blob = Utilities.newBlob(bytes, blobMimeType, filename);
+    var file = participantFolder.createFile(blob);
 
-      // Create blob with correct MIME type
-      var blob = Utilities.newBlob(bytes, blobMimeType, filename);
-      var file = participantFolder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.VIEW);
+    } catch (e) {
+      console.warn('Could not set file sharing:', e);
+    }
 
-      // Try to set sharing (may fail in some workspace setups)
-      try {
-        file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.VIEW);
-      } catch (e) {
-        console.warn('Could not set file sharing:', e);
-      }
-
-      // Log with format information
-      logVideoUpload({
-        sessionCode: data.sessionCode,
-        imageNumber: data.imageNumber,
-        filename: filename,
-        fileId: file.getId(),
-        fileUrl: file.getUrl(),
-        fileSize: Math.round(bytes.length / 1024),
-        uploadTime: new Date().toISOString(),
-        uploadMethod: 'google_drive',
-        videoFormat: extension,
-        mimeType: blobMimeType,
-        dropboxPath: '',
-        uploadStatus: 'success'
-      });
-
-      console.log('Upload successful:', {
-        filename: filename,
-        format: extension,
-        fileId: file.getId(),
-        sizeKB: Math.round(bytes.length / 1024)
-      });
-
-      return {
-        fileId: file.getId(),
-        fileUrl: file.getUrl(),
-        filename: filename,
-        format: extension
-      };
+    // Enhanced logging
+    logVideoUpload({
+      sessionCode: data.sessionCode,
+      imageNumber: data.imageNumber,
+      filename: filename,
+      fileId: file.getId(),
+      fileUrl: file.getUrl(),
+      fileSize: Math.round(bytes.length / 1024),
+      uploadTime: new Date().toISOString(),
+      uploadMethod: 'google_drive_fallback', // Mark as fallback
+      videoFormat: extension,
+      mimeType: blobMimeType,
+      dropboxPath: '',
+      uploadStatus: 'success'
     });
 
     return createCorsOutput({
       success: true,
-      fileId: result.fileId,
-      fileUrl: result.fileUrl,
-      filename: result.filename,
-      format: result.format
+      fileId: file.getId(),
+      fileUrl: file.getUrl(),
+      filename: filename,
+      format: extension,
+      uploadMethod: 'google_drive_fallback'
     });
 
   } catch (err) {
     console.error('Video upload error:', err);
-
-    // Log error with format info
+    
+    // Log error with enhanced tracking
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
-      withDocLock_(function () {
-        logVideoUploadError(ss, {
-          sessionCode: (data && data.sessionCode) || 'unknown',
-          imageNumber: (data && data.imageNumber) || 0,
-          error: String(err),
-          format: (data && data.videoFormat) || 'unknown',
-          size: (data && data.fileSize) || 0,
-          timestamp: new Date().toISOString(),
-          attemptedMethod: 'google_drive',
-          fallbackUsed: false
-        });
+      logVideoUploadError(ss, {
+        sessionCode: (data && data.sessionCode) || 'unknown',
+        imageNumber: (data && data.imageNumber) || 0,
+        error: String(err),
+        format: (data && data.videoFormat) || 'unknown',
+        size: (data && data.fileSize) || 0,
+        timestamp: new Date().toISOString(),
+        attemptedMethod: data.uploadMethod || 'google_drive',
+        fallbackUsed: false,
+        errorType: err.name || 'UnknownError',
+        errorStack: err.stack || ''
       });
     } catch (logErr) {
       console.error('Failed to log video upload error:', logErr);
@@ -1008,8 +1002,102 @@ function handleVideoUpload(data) {
     return createCorsOutput({
       success: false,
       error: String(err),
-      details: err.message || 'Upload failed'
+      details: err.message || 'Upload failed',
+      uploadMethod: 'google_drive_fallback'
     });
+  }
+}
+
+/**
+ * Handles metadata for videos uploaded to external services (Cloudinary, etc)
+ * No actual file data is processed - just records the upload information
+ */
+function handleExternalUploadMetadata(data) {
+  try {
+    console.log('Processing external upload metadata:', {
+      method: data.uploadMethod,
+      sessionCode: data.sessionCode,
+      imageNumber: data.imageNumber,
+      url: data.fileUrl
+    });
+
+    // Validate required fields
+    if (!data.sessionCode || !data.imageNumber) {
+      throw new Error('Missing required metadata fields');
+    }
+
+    // Create metadata record
+    var metadata = {
+      sessionCode: data.sessionCode,
+      imageNumber: data.imageNumber,
+      filename: data.filename || `${data.sessionCode}_image${data.imageNumber}_external`,
+      fileId: data.fileId || data.publicId || '',
+      fileUrl: data.fileUrl || '',
+      fileSize: data.fileSize || 0,
+      uploadTime: data.uploadTime || new Date().toISOString(),
+      uploadMethod: data.uploadMethod || 'external',
+      videoFormat: data.videoFormat || data.format || 'unknown',
+      mimeType: data.mimeType || '',
+      dropboxPath: data.dropboxPath || '',
+      cloudinaryPublicId: data.publicId || '',
+      uploadStatus: 'success',
+      externalService: data.uploadMethod === 'cloudinary' ? 'Cloudinary' : 
+                       data.uploadMethod === 'dropbox' ? 'Dropbox' : 'Unknown'
+    };
+
+    // Log to Video Tracking sheet
+    logVideoUpload(metadata);
+
+    // Also update Sessions sheet with upload count
+    updateSessionVideoCount(data.sessionCode);
+
+    return createCorsOutput({
+      success: true,
+      message: 'Metadata recorded successfully',
+      uploadMethod: data.uploadMethod,
+      fileUrl: data.fileUrl
+    });
+
+  } catch (error) {
+    console.error('External metadata handling error:', error);
+    
+    return createCorsOutput({
+      success: false,
+      error: String(error),
+      uploadMethod: data.uploadMethod || 'external'
+    });
+  }
+}
+
+/**
+ * Updates the video upload count in Sessions sheet
+ */
+function updateSessionVideoCount(sessionCode) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sessionsSheet = ss.getSheetByName('Sessions');
+    if (!sessionsSheet) return;
+    
+    // Find or create column for video uploads
+    var headers = sessionsSheet.getRange(1, 1, 1, sessionsSheet.getLastColumn()).getValues()[0];
+    var videoCountCol = headers.indexOf('Videos Uploaded');
+    
+    if (videoCountCol === -1) {
+      // Add new column
+      videoCountCol = sessionsSheet.getLastColumn() + 1;
+      sessionsSheet.getRange(1, videoCountCol).setValue('Videos Uploaded');
+    } else {
+      videoCountCol++; // Convert to 1-based index
+    }
+    
+    // Find session row
+    var row = findRowBySessionCode_(sessionsSheet, sessionCode);
+    if (row) {
+      var currentCount = sessionsSheet.getRange(row, videoCountCol).getValue() || 0;
+      sessionsSheet.getRange(row, videoCountCol).setValue(currentCount + 1);
+    }
+  } catch (e) {
+    console.warn('Could not update video count:', e);
   }
 }
 
@@ -1096,6 +1184,24 @@ function setupDashboard(sheet) {
   sheet.getRange('B8').setFormula('=COUNTIF(Sessions!' + DEVICE_COL + '2:' + DEVICE_COL + ',"*Mobile*")');
   sheet.getRange('A9').setValue('Tablet');
   sheet.getRange('B9').setFormula('=COUNTIF(Sessions!' + DEVICE_COL + '2:' + DEVICE_COL + ',"*Tablet*")');
+  
+  // Add upload method metrics
+  sheet.getRange('A20').setValue('Upload Methods Used');
+  sheet.getRange('A21').setValue('Cloudinary Uploads');
+  sheet.getRange('B21').setFormula('=COUNTIF(\'Video Tracking\'!I2:I,"cloudinary")');
+  sheet.getRange('A22').setValue('Google Drive Uploads');
+  sheet.getRange('B22').setFormula('=COUNTIF(\'Video Tracking\'!I2:I,"google_drive*")');
+  sheet.getRange('A23').setValue('Dropbox Uploads');
+  sheet.getRange('B23').setFormula('=COUNTIF(\'Video Tracking\'!I2:I,"dropbox")');
+
+  sheet.getRange('A25').setValue('External Service Success Rate');
+  sheet.getRange('A26').setValue('Cloudinary Success');
+  sheet.getRange('B26').setFormula('=IFERROR(COUNTIFS(\'Video Tracking\'!I2:I,"cloudinary",\'Video Tracking\'!O2:O,"success")/COUNTIF(\'Video Tracking\'!I2:I,"cloudinary"),0)');
+  sheet.getRange('B26').setNumberFormat('0%');
+
+  sheet.getRange('A28').setValue('Average Upload Size (KB)');
+  sheet.getRange('B28').setFormula('=IFERROR(AVERAGE(\'Video Tracking\'!G2:G),0)');
+  sheet.getRange('B28').setNumberFormat('#,##0');
 
   sheet.autoResizeColumns(1, 2);
 }
@@ -2197,9 +2303,106 @@ function logVideoEvent(data) {
     data.error || ''
   ]);
 }
+/**
+ * Enhanced video upload logging with external service tracking
+ */
 function logVideoUpload(data) {
-  data.uploadStatus = data.uploadStatus || 'success';
-  logVideoEvent(data);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
+
+  // Ensure all columns exist (including new ones)
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, 16).setValues([[
+      'Timestamp',
+      'Session Code',
+      'Image Number',
+      'Filename',
+      'File ID',
+      'File URL',
+      'File Size (KB)',
+      'Upload Time',
+      'Upload Method',
+      'External Service',
+      'Cloudinary Public ID',
+      'Dropbox Path',
+      'Video Format',
+      'MIME Type',
+      'Upload Status',
+      'Error Message'
+    ]]);
+    formatHeaders(sheet, 16);
+  }
+
+  // Prepare row data
+  var rowData = [
+    new Date(),
+    data.sessionCode || '',
+    data.imageNumber || '',
+    data.filename || '',
+    data.fileId || '',
+    data.fileUrl || '',
+    data.fileSize || 0,
+    data.uploadTime || new Date().toISOString(),
+    data.uploadMethod || 'unknown',
+    data.externalService || determineServiceFromMethod(data.uploadMethod),
+    data.cloudinaryPublicId || '',
+    data.dropboxPath || '',
+    data.videoFormat || '',
+    data.mimeType || '',
+    data.uploadStatus || 'success',
+    data.error || ''
+  ];
+
+  sheet.appendRow(rowData);
+  
+  // Log success metrics
+  logUploadMetrics(data);
+}
+
+/**
+ * Helper to determine service from upload method
+ */
+function determineServiceFromMethod(method) {
+  var methodMap = {
+    'cloudinary': 'Cloudinary',
+    'dropbox': 'Dropbox',
+    'google_drive': 'Google Drive',
+    'google_drive_fallback': 'Google Drive (Fallback)',
+    'local_only': 'Local Storage Only',
+    'external': 'External Service'
+  };
+  return methodMap[method] || 'Unknown';
+}
+
+/**
+ * Track upload success metrics
+ */
+function logUploadMetrics(data) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    
+    // Get current metrics
+    var metrics = JSON.parse(props.getProperty('UPLOAD_METRICS') || '{}');
+    
+    // Initialize if needed
+    if (!metrics[data.uploadMethod]) {
+      metrics[data.uploadMethod] = { success: 0, failed: 0, totalSize: 0 };
+    }
+    
+    // Update metrics
+    if (data.uploadStatus === 'success') {
+      metrics[data.uploadMethod].success++;
+      metrics[data.uploadMethod].totalSize += (data.fileSize || 0);
+    } else {
+      metrics[data.uploadMethod].failed++;
+    }
+    
+    // Save updated metrics
+    props.setProperty('UPLOAD_METRICS', JSON.stringify(metrics));
+    
+  } catch (e) {
+    console.warn('Could not update metrics:', e);
+  }
 }
 function logVideoUploadError(ss, data) {
   data.uploadStatus = 'error';
@@ -2412,6 +2615,9 @@ function onOpen() {
     .addItem('Housekeeping → Inventory & clean (safe)', 'housekeepingSafeClean')
     .addItem('Housekeeping → Hide task raw sheets', 'hideTaskRawSheets')
     .addItem('Housekeeping → Unhide ALL sheets', 'unhideAllSheets')
+    .addSeparator()
+    .addItem('Migrate Video Tracking (Run Once)', 'migrateVideoTrackingSheet')
+    .addItem('View Upload Metrics', 'showUploadMetrics')
     .addToUi();
 }
 
@@ -2877,4 +3083,113 @@ function quickTimeAdjustment() {
   }
   
   SpreadsheetApp.getUi().alert('Applied quick 30% correction to active times');
+}
+
+/**
+ * One-time migration to add new tracking columns
+ * Run this ONCE via the menu after updating the code
+ */
+function migrateVideoTrackingSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Video Tracking');
+  if (!sheet) return;
+  
+  // Check if migration needed (look for new columns)
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('External Service') > -1) {
+    SpreadsheetApp.getUi().alert('Migration already completed.');
+    return;
+  }
+  
+  // Add new columns
+  var lastCol = sheet.getLastColumn();
+  var newHeaders = ['External Service', 'Cloudinary Public ID', 'Video Format', 'MIME Type'];
+  
+  sheet.getRange(1, lastCol + 1, 1, newHeaders.length).setValues([newHeaders]);
+  
+  // Format new headers
+  sheet.getRange(1, lastCol + 1, 1, newHeaders.length)
+    .setFontWeight('bold')
+    .setBackground('#f1f3f4');
+  
+  // Update existing rows based on upload method
+  var dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+  var data = dataRange.getValues();
+  
+  for (var i = 0; i < data.length; i++) {
+    var uploadMethod = data[i][8]; // Upload Method column
+    
+    // Determine external service
+    var service = determineServiceFromMethod(uploadMethod);
+    
+    // Set the service in the new column
+    sheet.getRange(i + 2, lastCol + 1).setValue(service);
+  }
+  
+  SpreadsheetApp.getUi().alert('Migration completed! Added ' + newHeaders.length + ' new tracking columns.');
+}
+
+/**
+ * Display upload metrics in a popup
+ */
+function showUploadMetrics() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var metrics = JSON.parse(props.getProperty('UPLOAD_METRICS') || '{}');
+    
+    var output = 'UPLOAD METRICS\n' + '='.repeat(30) + '\n\n';
+    
+    for (var method in metrics) {
+      var m = metrics[method];
+      var successRate = m.success + m.failed > 0 ? 
+        (m.success / (m.success + m.failed) * 100).toFixed(1) : 0;
+      
+      output += method.toUpperCase() + ':\n';
+      output += '  Success: ' + m.success + '\n';
+      output += '  Failed: ' + m.failed + '\n';
+      output += '  Success Rate: ' + successRate + '%\n';
+      output += '  Total Size: ' + (m.totalSize / 1024).toFixed(1) + ' MB\n\n';
+    }
+    
+    SpreadsheetApp.getUi().alert('Upload Metrics', output, SpreadsheetApp.getUi().ButtonSet.OK);
+    
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('No metrics available yet.');
+  }
+}
+
+/**
+ * Test the new Cloudinary metadata logging
+ */
+function testCloudinaryMetadataLogging() {
+  var testData = {
+    action: 'log_video_upload',
+    sessionCode: 'TEST_CLOUDINARY_' + Date.now(),
+    imageNumber: 1,
+    filename: 'test_video.webm',
+    fileId: 'cloudinary_public_id_123',
+    fileUrl: 'https://res.cloudinary.com/test/video/upload/test.webm',
+    fileSize: 2048,
+    uploadTime: new Date().toISOString(),
+    uploadMethod: 'cloudinary',
+    publicId: 'spatial-cognition-videos/test_video',
+    videoFormat: 'webm',
+    mimeType: 'video/webm',
+    uploadStatus: 'success'
+  };
+  
+  // Simulate the doPost handler
+  var result = doPost({
+    postData: {
+      contents: JSON.stringify(testData)
+    }
+  });
+  
+  var response = JSON.parse(result.getContent());
+  
+  if (response.success) {
+    SpreadsheetApp.getUi().alert('Test successful! Check Video Tracking sheet for the new entry.');
+  } else {
+    SpreadsheetApp.getUi().alert('Test failed: ' + response.error);
+  }
 }
