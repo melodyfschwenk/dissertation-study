@@ -10,7 +10,28 @@
  * - Hard text formatting for "Tasks Completed" and Email to prevent coercion
  * - Timestamp normalization + device detection
  * - Property-driven EEG reminder date, not hard coded
+ *
+ * Error handling:
+ * - Use handleError(err, showAlert) to log errors and optionally alert users
+ * - Wrap spreadsheet operations in try/catch and pass errors to handleError
  */
+
+// ===============================
+// Error handling
+// ===============================
+/**
+ * Logs an error and optionally shows a UI alert
+ * @param {Error|string} err
+ * @param {boolean} [uiAlert] whether to show an alert to the user
+ */
+function handleError(err, uiAlert) {
+  console.error(err);
+  if (uiAlert && typeof SpreadsheetApp !== 'undefined') {
+    try {
+      SpreadsheetApp.getUi().alert('Error: ' + (err && err.message ? err.message : err));
+    } catch (_) {}
+  }
+}
 
 // ===============================
 // Entry points + CORS helper
@@ -2208,15 +2229,19 @@ function viewSessionActivity() {
 // Logging & lookups
 // ===============================
 function logSessionEvent(ss, ev) {
-  var sheet = ss.getSheetByName('Session Events');
-  sheet.appendRow([
-    ev.timestamp || new Date(),
-    ev.sessionCode || '',
-    ev.eventType || '',
-    ev.details || '',
-    ev.ip || '',
-    ev.userAgent || ''
-  ]);
+  try {
+    var sheet = ss.getSheetByName('Session Events');
+    sheet.appendRow([
+      ev.timestamp || new Date(),
+      ev.sessionCode || '',
+      ev.eventType || '',
+      ev.details || '',
+      ev.ip || '',
+      ev.userAgent || ''
+    ]);
+  } catch (e) {
+    handleError(e);
+  }
 }
 
 function logEvent(ss, data) {
@@ -2271,90 +2296,98 @@ function getSessionData(ss, sessionCode) {
 // Enhanced video logging
 // ===============================
 function logVideoEvent(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
 
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 15).setValues([[
-      'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','External Service','Cloudinary Public ID','Video Format','MIME Type','Upload Status','Error Message'
-    ]]);
-    formatHeaders(sheet, 15);
+    if (sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, 15).setValues([[
+        'Timestamp','Session Code','Image Number','Filename','File ID','File URL','File Size (KB)','Upload Time','Upload Method','External Service','Cloudinary Public ID','Video Format','MIME Type','Upload Status','Error Message'
+      ]]);
+      formatHeaders(sheet, 15);
+    }
+
+    sheet.appendRow([
+      new Date(),
+      data.sessionCode || '',
+      data.imageNumber || '',
+      data.filename || '',
+      data.fileId || '',
+      data.fileUrl || '',
+      data.fileSize || 0,
+      data.uploadTime || data.timestamp || new Date().toISOString(),
+      data.uploadMethod || 'unknown',
+      data.externalService || determineServiceFromMethod(data.uploadMethod),
+      data.cloudinaryPublicId || '',
+      data.videoFormat || '',
+      data.mimeType || '',
+      data.uploadStatus || 'success',
+      data.error || ''
+    ]);
+  } catch (e) {
+    handleError(e, true);
   }
-
-  sheet.appendRow([
-    new Date(),
-    data.sessionCode || '',
-    data.imageNumber || '',
-    data.filename || '',
-    data.fileId || '',
-    data.fileUrl || '',
-    data.fileSize || 0,
-    data.uploadTime || data.timestamp || new Date().toISOString(),
-    data.uploadMethod || 'unknown',
-    data.externalService || determineServiceFromMethod(data.uploadMethod),
-    data.cloudinaryPublicId || '',
-    data.videoFormat || '',
-    data.mimeType || '',
-    data.uploadStatus || 'success',
-    data.error || ''
-  ]);
 }
 /**
  * Enhanced video upload logging with external service tracking
  */
 function logVideoUpload(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Video Tracking') || ss.insertSheet('Video Tracking');
 
-  // Ensure all columns exist (including new ones)
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 15).setValues([[
-      'Timestamp',
-      'Session Code',
-      'Image Number',
-      'Filename',
-      'File ID',
-      'File URL',
-      'File Size (KB)',
-      'Upload Time',
-      'Upload Method',
-      'External Service',
-      'Cloudinary Public ID',
-      'Video Format',
-      'MIME Type',
-      'Upload Status',
-      'Error Message'
-    ]]);
-    formatHeaders(sheet, 15);
+    // Ensure all columns exist (including new ones)
+    if (sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, 15).setValues([[
+        'Timestamp',
+        'Session Code',
+        'Image Number',
+        'Filename',
+        'File ID',
+        'File URL',
+        'File Size (KB)',
+        'Upload Time',
+        'Upload Method',
+        'External Service',
+        'Cloudinary Public ID',
+        'Video Format',
+        'MIME Type',
+        'Upload Status',
+        'Error Message'
+      ]]);
+      formatHeaders(sheet, 15);
+    }
+
+    // Convert file size to KB for logging
+    var fileSizeKB = data.fileSize ? data.fileSize / 1024 : 0;
+
+    // Prepare row data
+    var rowData = [
+      new Date(),
+      data.sessionCode || '',
+      data.imageNumber || '',
+      data.filename || '',
+      data.fileId || '',
+      data.fileUrl || '',
+      fileSizeKB,
+      data.uploadTime || new Date().toISOString(),
+      data.uploadMethod || 'unknown',
+      data.externalService || determineServiceFromMethod(data.uploadMethod),
+      data.cloudinaryPublicId || '',
+      data.videoFormat || '',
+      data.mimeType || '',
+      data.uploadStatus || 'success',
+      data.error || ''
+    ];
+
+    sheet.appendRow(rowData);
+
+    // Log success metrics using KB
+    data.fileSize = fileSizeKB;
+    logUploadMetrics(data);
+  } catch (e) {
+    handleError(e);
   }
-
-  // Convert file size to KB for logging
-  var fileSizeKB = data.fileSize ? data.fileSize / 1024 : 0;
-
-  // Prepare row data
-  var rowData = [
-    new Date(),
-    data.sessionCode || '',
-    data.imageNumber || '',
-    data.filename || '',
-    data.fileId || '',
-    data.fileUrl || '',
-    fileSizeKB,
-    data.uploadTime || new Date().toISOString(),
-    data.uploadMethod || 'unknown',
-    data.externalService || determineServiceFromMethod(data.uploadMethod),
-    data.cloudinaryPublicId || '',
-    data.videoFormat || '',
-    data.mimeType || '',
-    data.uploadStatus || 'success',
-    data.error || ''
-  ];
-
-  sheet.appendRow(rowData);
-
-  // Log success metrics using KB
-  data.fileSize = fileSizeKB;
-  logUploadMetrics(data);
 }
 
 /**
