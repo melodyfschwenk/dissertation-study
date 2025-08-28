@@ -13,5 +13,9 @@
 - Upload metrics expect file sizes in kilobytes.
 - Centralize Apps Script error handling with `handleError`, wrapping spreadsheet operations in try/catch.
 
-## TODO
-- [ ] Split `src/main.js` into smaller modules to simplify maintenance.
+## Module structure
+The `src/` directory now separates concerns into:
+- `config.js` – configuration constants and regexes
+- `tasks.js` – task definitions and helpers
+- `videoUpload.js` – video upload utilities
+- `debug.js` – debugging helpers

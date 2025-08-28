@@ -1,18 +1,19 @@
-    // ----- Configuration -----
-    const CONFIG = {
-  SHEETS_URL: 'https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec',
-  IMAGE_1: 'images/description1.jpg',
-  IMAGE_2: 'images/description2.jpg',
-  ASLCT_ACCESS_CODE: 'DVCWHNABJ',
-  EEG_CALENDLY_URL: 'https://calendly.com/action-brain-lab-gallaudet/spatial-cognition-eeg-only',
-  SUPPORT_EMAIL: 'action.brain.lab@gallaudet.edu',
-      CLOUDINARY_CLOUD_NAME: 'dll2sorkn', 
-  CLOUDINARY_UPLOAD_PRESET: 'study_videos', 
-      CLOUDINARY_FOLDER: 'spatial-cognition-videos',
-};
+import { CONFIG, CODE_REGEX } from './config.js';
+import {
+  TASKS,
+  getStandardTaskName,
+  CONSENTS,
+  DESKTOP_TASKS,
+  MOBILE_TASKS,
+  mulberry32,
+  shuffleWithSeed,
+  ensureDemographicsLast,
+  isMobileDevice
+} from './tasks.js';
+import { uploadVideoToDrive } from './videoUpload.js';
+import { debugVideoUpload, testCloudinaryUpload } from './debug.js';
 
-const CODE_REGEX = /^\d{6}$/; // six digits from Qualtrics code
-
+// ----- Configuration -----
 document.querySelectorAll('.support-email').forEach(el => {
   el.textContent = CONFIG.SUPPORT_EMAIL;
   if (el.tagName === 'A') el.href = `mailto:${CONFIG.SUPPORT_EMAIL}`;
@@ -23,73 +24,6 @@ document.querySelectorAll('.button.skip').forEach(btn => {
 });
 
 
-    // ----- Tasks -----
-    const TASKS = {
-  'RC':   { name:'Reading Comprehension Task', description:'Read passages and answer questions',                                type:'embed',   embedUrl:'https://melodyfschwenk.github.io/readingcomp/',              canSkip:true, estMinutes:15, requirements:'None',                                     skilled:true },
-  'MRT':  { name:'Mental Rotation Task',     description:'Decide if two images are the same or not',                             type:'embed',   embedUrl:'https://melodyfschwenk.github.io/mrt/',                  canSkip:true, estMinutes:6,  requirements:'Keyboard recommended',           skilled:true },
-  'ASLCT':{ name:'ASL Comprehension Test',   description:'For ASL users only',                                                 url:'https://vl2portal.gallaudet.edu/assessment/', type:'external', canSkip:true, estMinutes:15, requirements:'ASL users; stable connection', skilled:true },
-  'VCN':  { name:'Virtual Campus Navigation', description:'Virtual SILC Test of Navigation (SILCton)',                         url:'http://www.virtualsilcton.com/study/753798747', type:'external', canSkip:true, estMinutes:20, requirements:'Desktop/laptop; keyboard (WASD) & mouse', skilled:true },
-  'SN':   { name:'Spatial Navigation',        description:'Choose the first step from the player to the stop sign (embedded below)', type:'embed',   embedUrl:'https://melodyfschwenk.github.io/spatial-navigation-web/', canSkip:true, estMinutes:8,  requirements:'Arrow keys',                     skilled:true },
-  'ID':   { name:'Image Description',        description:'Record two short videos describing images (or upload if recording is unavailable).', type:'recording', canSkip:true, estMinutes:2, requirements:'Camera & microphone or video upload' },
-  'DEMO': { name:'Demographics Survey',      description:'Background information & payment',                                    url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
-
-};
-    // Add this after TASKS definition
-    function getStandardTaskName(taskCode) {
-      const mapping = {
-        'RC': 'Reading Comprehension Task',
-        'MRT': 'Mental Rotation Task',
-        'ASLCT': 'ASL Comprehension Test',
-        'VCN': 'Virtual Campus Navigation',
-        'SN': 'Spatial Navigation',
-        'ID': 'Image Description',
-        'DEMO': 'Demographics Survey'
-      };
-      return mapping[taskCode] || (TASKS[taskCode] ? TASKS[taskCode].name : undefined) || taskCode;
-    }
-
-    // ----- Consents -----
-    const CONSENTS = {
-      'CONSENT1': { name: 'Research Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g' },
-      'CONSENT2': { name: 'Video Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u' }
-    };
-
-    // ----- Task sequencing -----
-    const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
-    const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN', 'ID'];
-
-    function mulberry32(a) {
-      return function() {
-        a |= 0; a = a + 0x6D2B79F5 | 0;
-        let t = Math.imul(a ^ a >>> 15, 1 | a);
-        t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-      };
-    }
-
-    function shuffleWithSeed(array, seed) {
-      const rng = mulberry32(seed);
-      const a = array.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    function ensureDemographicsLast(sequence) {
-      const filtered = (sequence || []).filter(code => code !== 'DEMO');
-      filtered.push('DEMO');
-      return filtered;
-    }
-
-    // Detect if mobile/tablet
-    function isMobileDevice() {
-      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
-      const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
-      const isSmallScreen = window.innerWidth <= 1024;
-      return hasTouch && (mobileUA || isSmallScreen);
-    }
 function tryMailto() {
   const addr = CONFIG.SUPPORT_EMAIL;
   const subject = encodeURIComponent('[EEG Add-On] Scheduling — Session ' + (state.sessionCode || ''));
@@ -852,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    async function hasVideoConsent() {
+    async function checkVideoConsent() {
       if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
       try {
         const saved = localStorage.getItem(`study_${state.sessionCode}`);
@@ -906,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     }
     function updateConsentDisplay() {
-  hasVideoConsent().then(() => {
+  checkVideoConsent().then(() => {
     const c1 = state.consentStatus.consent1;
     const c2 = state.consentStatus.consent2 || state.consentStatus.videoDeclined;
 
@@ -1312,7 +1246,7 @@ function openExternalTask(taskCode) {
 }
 
     // ----- Recording task -----
-    function hasVideoConsent() {
+    function hasStoredVideoConsent() {
       if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
       try {
         const recent = localStorage.getItem('recent_session');
@@ -1331,7 +1265,7 @@ function openExternalTask(taskCode) {
       state.recording.currentImage = 0;
       state.recording.recordings = [];
       state.recording.currentBlob = null;
-      if (!hasVideoConsent()) {
+      if (!hasStoredVideoConsent()) {
         document.getElementById('recording-consent-check').style.display = 'block';
         document.getElementById('recording-content').style.display = 'none';
       } else {
@@ -1913,7 +1847,8 @@ async function saveRecording() {
     const uploadResult = await uploadVideoToDrive(
       state.recording.currentBlob,
       state.sessionCode,
-      state.recording.currentImage + 1
+      state.recording.currentImage + 1,
+      sendToSheets
     );
 
     if (uploadResult.success) {
@@ -2047,374 +1982,6 @@ function continueWithoutUpload() {
 }
 
 // Enhanced upload function - uses Google Drive for uploads
-function getExtensionFromMime(mime) {
-  if (!mime) return 'bin';
-  mime = mime.toLowerCase();
-  if (mime.includes('mp4') || mime.includes('m4a')) return 'mp4';
-  if (mime.includes('ogg')) return 'ogg';
-  if (mime.includes('wav')) return 'wav';
-  if (mime.includes('webm')) return 'webm';
-  return 'bin';
-}
-
-    async function uploadToCloudinary(videoBlob, sessionCode, imageNumber) {
-  try {
-    console.log('Starting Cloudinary upload...');
-    console.log('Config check:', {
-      cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
-      uploadPreset: CONFIG.CLOUDINARY_UPLOAD_PRESET
-    });
-    
-    // Verify config
-    if (!CONFIG.CLOUDINARY_CLOUD_NAME) {
-      throw new Error('Cloudinary cloud name not configured');
-    }
-    if (!CONFIG.CLOUDINARY_UPLOAD_PRESET) {
-      throw new Error('Cloudinary upload preset not configured');
-    }
-    
-    // Create form data
-    const formData = new FormData();
-    formData.append('file', videoBlob);
-    formData.append('upload_preset', CONFIG.CLOUDINARY_UPLOAD_PRESET);
-    
-    // Create a unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${sessionCode}/image${imageNumber}_${timestamp}`;
-    formData.append('public_id', filename);
-    
-    // Set the folder
-    formData.append('folder', 'spatial-cognition-videos');
-    
-    // Log what we're sending
-    console.log('Sending to Cloudinary:', {
-      url: `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`,
-      preset: CONFIG.CLOUDINARY_UPLOAD_PRESET,
-      folder: 'spatial-cognition-videos'
-    });
-    
-    // Actually upload
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`,
-      {
-        method: 'POST',
-        body: formData
-      }
-    );
-    
-    // Get response text for debugging
-    const responseText = await response.text();
-    console.log('Cloudinary response:', responseText);
-    
-    if (!response.ok) {
-      // Parse error details
-      let errorDetail = responseText;
-      try {
-        const errorJson = JSON.parse(responseText);
-        errorDetail = (errorJson.error && errorJson.error.message) || responseText;
-      } catch (e) {
-        // responseText is not JSON
-      }
-      
-      console.error('Cloudinary error details:', errorDetail);
-      throw new Error(`Cloudinary error: ${errorDetail}`);
-    }
-    
-    // Parse successful response
-    const result = JSON.parse(responseText);
-    console.log('Cloudinary upload successful:', result);
-    
-    return {
-      success: true,
-      url: result.secure_url,
-      publicId: result.public_id,
-      format: result.format,
-      size: result.bytes,
-      duration: result.duration
-    };
-    
-  } catch (error) {
-    console.error('Cloudinary upload failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-// Makes a valid 0.8s WebM by recording a tiny canvas
-async function makeTinyTestVideo({ ms = 800, fps = 10 } = {}) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64; canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-
-  // Pick a supported WebM mime
-  const mime =
-    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' :
-    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' :
-    'video/webm';
-
-  const stream = canvas.captureStream?.(fps);
-  if (!stream) throw new Error('Canvas captureStream is not supported in this browser');
-
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 250000 });
-  const chunks = [];
-  rec.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
-
-  // Animate a little square so there are multiple frames
-  let t = 0;
-  const drawId = setInterval(() => {
-    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 64, 64);
-    ctx.fillStyle = '#fff'; ctx.fillRect((t * 3) % 64, (t * 2) % 64, 16, 16);
-    t++;
-  }, Math.round(1000 / fps));
-
-  rec.start(100);
-  await new Promise(r => setTimeout(r, ms));
-  rec.stop();
-  await new Promise(r => rec.onstop = r);
-
-  clearInterval(drawId);
-  stream.getTracks().forEach(tr => tr.stop());
-
-  return new Blob(chunks, { type: 'video/webm' });
-}
-
-async function testCloudinaryUpload() {
-  console.log('🧪 Testing Cloudinary setup...');
-  console.log('Config check:', {
-    cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
-    uploadPreset: CONFIG.CLOUDINARY_UPLOAD_PRESET,
-    folder: 'spatial-cognition-videos'
-  });
-
-  if (!CONFIG.CLOUDINARY_CLOUD_NAME || !CONFIG.CLOUDINARY_UPLOAD_PRESET) {
-    alert('Set CONFIG.CLOUDINARY_CLOUD_NAME and CONFIG.CLOUDINARY_UPLOAD_PRESET first.');
-    return;
-  }
-
-  let blob;
-  try {
-    // Try to generate a tiny WebM
-    blob = await makeTinyTestVideo();
-  } catch {
-    // Fallback: let you pick any small mp4 or webm
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'video/mp4,video/webm,video/quicktime';
-    input.click();
-    const file = await new Promise(resolve => input.onchange = () => resolve(input.files?.[0]));
-    if (!file) { alert('No file selected.'); return; }
-    blob = file;
-  }
-
-  const result = await uploadToCloudinary(blob, 'TEST_' + Date.now(), 1);
-  if (result.success) {
-    console.log('✅ SUCCESS! Video URL:', result.url);
-    alert('Cloudinary is working! URL: ' + result.url);
-  } else {
-    console.error('❌ FAILED:', result.error);
-    alert('Cloudinary setup has an issue: ' + result.error);
-  }
-}
-
-
-    
-async function uploadVideoToDrive(videoBlob, sessionCode, imageNumber) {
-  try {
-    updateUploadProgress(5, 'Starting upload...');
-    
-    // TRY CLOUDINARY FIRST (NEW!)
-    console.log('Trying Cloudinary first...');
-    updateUploadProgress(10, 'Uploading to cloud storage...');
-    
-    const cloudinaryResult = await uploadToCloudinary(videoBlob, sessionCode, imageNumber);
-    
-    if (cloudinaryResult.success) {
-      updateUploadProgress(100, 'Upload complete!');
-      
-      // Log to Google Sheets (just the URL, not the video data)
-      await sendToSheets({
-        action: 'log_video_upload',
-        sessionCode: sessionCode,
-        imageNumber: imageNumber,
-        filename: `image${imageNumber}_${Date.now()}.webm`,
-        fileId: cloudinaryResult.publicId,
-        fileUrl: cloudinaryResult.url,
-        fileSize: Math.round(cloudinaryResult.size / 1024), // KB
-        uploadTime: new Date().toISOString(),
-        uploadMethod: 'cloudinary',
-        uploadStatus: 'success'
-      });
-      
-      return {
-        success: true,
-        filename: cloudinaryResult.publicId,
-        fileId: cloudinaryResult.publicId,
-        fileUrl: cloudinaryResult.url,
-        uploadMethod: 'cloudinary'
-      };
-    } else {
-      console.log('Cloudinary failed, trying Google Drive fallback...');
-      updateUploadProgress(30, 'Trying backup upload method...');
-      
-      // YOUR EXISTING GOOGLE DRIVE CODE STAYS AS FALLBACK
-      // (Keep your existing code here as backup)
-      return await uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
-    }
-    
-  } catch (error) {
-    console.error('All upload methods failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
-  try {
-    updateUploadProgress(15, 'Preparing upload…');
-
-    // Detect format from blob metadata, with multiple fallbacks
-    let videoFormat = 'webm'; // ultimate fallback
-
-    // Priority 1: Check blob metadata we added
-    if (videoBlob.recordingFormat) {
-      videoFormat = videoBlob.recordingFormat;
-    }
-    // Priority 2: Check MIME type
-    else if (videoBlob.type) {
-      if (videoBlob.type.includes('mp4') || videoBlob.type.includes('mpeg4')) {
-        videoFormat = 'mp4';
-      } else if (videoBlob.type.includes('quicktime')) {
-        videoFormat = 'mov';
-      } else if (videoBlob.type.includes('webm')) {
-        videoFormat = 'webm';
-      }
-    }
-    // Priority 3: Check file name if this is an uploaded file
-    else if (videoBlob.name) {
-      const ext = videoBlob.name.split('.').pop().toLowerCase();
-      if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext)) {
-        videoFormat = ext;
-      }
-    }
-
-    console.log(`Upload format detected: ${videoFormat}, size: ${(videoBlob.size/1024/1024).toFixed(2)}MB`);
-
-    // Format-specific size limits
-    const sizeLimits = {
-      'mp4': 55 * 1024 * 1024,  // 55MB for MP4 (more compressed)
-      'mov': 50 * 1024 * 1024,  // 50MB for MOV
-      'webm': 40 * 1024 * 1024, // 40MB for WebM (less compressed)
-      'avi': 35 * 1024 * 1024,  // 35MB for AVI
-      'mkv': 40 * 1024 * 1024   // 40MB for MKV
-    };
-
-    const maxSize = sizeLimits[videoFormat] || 35 * 1024 * 1024;
-
-    if (videoBlob.size > maxSize) {
-      const currentMB = (videoBlob.size / (1024 * 1024)).toFixed(1);
-      const maxMB = (maxSize / (1024 * 1024)).toFixed(0);
-      throw new Error(`Video too large: ${currentMB}MB. Maximum for ${videoFormat.toUpperCase()}: ${maxMB}MB. Please record a shorter video (30-45 seconds).`);
-    }
-
-    updateUploadProgress(20, `Converting ${videoFormat} for upload...`);
-    const base64DataUrl = await blobToBase64(videoBlob);
-    const base64VideoData = base64DataUrl.split(',')[1] || base64DataUrl.split(',').pop();
-
-    updateUploadProgress(25, 'Encoding complete...');
-
-    const uploadData = {
-      action: 'upload_video',
-      sessionCode: sessionCode,
-      imageNumber: imageNumber,
-      videoData: base64VideoData,
-      videoFormat: videoFormat,        // CRITICAL: Send format to backend
-      mimeType: videoBlob.type || '',  // Send MIME type too
-      fileName: videoBlob.name || '',  // Send filename if available
-      fileSize: videoBlob.size,
-      timestamp: new Date().toISOString()
-    };
-
-    updateUploadProgress(30, `Uploading ${videoFormat.toUpperCase()} to Google Drive...`);
-
-    const response = await fetch(CONFIG.SHEETS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(uploadData)
-    });
-
-    updateUploadProgress(75, 'Processing response...');
-
-    let result;
-    const contentType = response.headers.get('content-type');
-
-    if (contentType && contentType.includes('application/json')) {
-      result = await response.json();
-    } else {
-      const text = await response.text();
-      try {
-        result = JSON.parse(text);
-      } catch (e) {
-        console.error('Response text:', text);
-        throw new Error('Invalid response format from server');
-      }
-    }
-
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || result.details || `Upload failed (${response.status})`);
-    }
-
-    updateUploadProgress(100, 'Upload complete!');
-
-    return {
-      success: true,
-      filename: result.filename,
-      fileId: result.fileId,
-      fileUrl: result.fileUrl,
-      format: result.format || videoFormat
-    };
-
-  } catch (error) {
-    console.error('Google Drive upload error:', error);
-    return {
-      success: false,
-      error: error.message || String(error)
-    };
-  }
-}
-
-    
-
-
-    // Add this NEW function after uploadVideoToDrive
-function updateUploadProgress(percent, message) {
-  const progressDiv = document.getElementById('upload-progress');
-  const progressFill = document.getElementById('upload-progress-fill');
-  const status = document.getElementById('upload-status');
-  
-  if (progressDiv) progressDiv.style.display = 'block';
-  if (progressFill) progressFill.style.width = `${percent}%`;
-  if (status) status.textContent = `${percent}%`;
-  
-  // Update the progress message
-  const progressText = progressDiv ? progressDiv.querySelector('div[style*="font-weight: bold"]') : null;
-  if (progressText && message) {
-    progressText.textContent = message;
-  }
-}
-
-    // Helper function to convert blob to base64
-    function blobToBase64(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-
     function enqueueFailedUpload(blob, sessionCode, imageNumber) {
       state.uploadQueue.push({ blob, sessionCode, imageNumber, attempts: 0 });
       processUploadQueue();
@@ -2425,7 +1992,7 @@ function updateUploadProgress(percent, message) {
       state.processingUpload = true;
       const item = state.uploadQueue[0];
       try {
-        const uploadResult = await uploadVideoToDrive(item.blob, item.sessionCode, item.imageNumber);
+        const uploadResult = await uploadVideoToDrive(item.blob, item.sessionCode, item.imageNumber, sendToSheets);
         if (uploadResult.success) {
           handleUploadSuccess(uploadResult, item.imageNumber, item.blob);
           state.uploadQueue.shift();
@@ -2951,120 +2518,6 @@ window.addEventListener('beforeunload', () => {
 
 
     // DEBUG FUNCTION - Add this before "// Expose to window"
- async function debugVideoUpload() {
-  console.log('🔍 Starting video upload debug...');
-  
-  // Test 1: Check configuration
-  console.log('1. Configuration check:');
-  console.log('SHEETS_URL:', CONFIG.SHEETS_URL);
-  console.log('Is valid URL:', CONFIG.SHEETS_URL.includes('script.google.com'));
-  
-  // Test 2: Test basic connection
-  console.log('2. Testing basic connection...');
-  try {
-    const res = await fetch(CONFIG.SHEETS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'test_connection',
-        timestamp: new Date().toISOString()
-      })
-    });
-
-    console.log('✅ Connection response:', {
-      status: res.status,
-      ok: res.ok,
-      statusText: res.statusText,
-      contentType: res.headers.get('content-type')
-    });
-
-    // Handle response carefully
-    const text = await res.text();
-    let payload;
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = text;
-    }
-    console.log('✅ Connection result:', payload);
-    
-  } catch (error) {
-    console.error('❌ Connection failed:', error);
-    return;
-  }
-
-  // Test 3: Create a tiny test video blob
-  console.log('3. Creating test video blob...');
-  try {
-    // Create a minimal test "video" (just some bytes)
-    const testData = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3]); // WebM magic number
-    const testBlob = new Blob([testData], { type: 'video/webm' });
-    
-    console.log('Test blob created:', {
-      size: testBlob.size,
-      type: testBlob.type
-    });
-    
-    // Test 4: Test base64 conversion
-    console.log('4. Testing base64 conversion...');
-    const base64Data = await blobToBase64(testBlob);
-    const base64VideoData = base64Data.split(',')[1];
-    
-    console.log('✅ Base64 conversion successful:', {
-      originalSize: testBlob.size,
-      base64Length: base64VideoData.length
-    });
-    
-    // Test 5: Test actual upload
-    console.log('5. Testing upload with tiny file...');
-    const uploadData = {
-      action: 'upload_video',
-      sessionCode: 'DEBUG_' + Date.now(),
-      imageNumber: 99,
-      videoData: base64VideoData,
-      mimeType: testBlob.type,
-      timestamp: new Date().toISOString()
-    };
-    
-    const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(uploadData)
-    });
-    
-    console.log('Upload response:', {
-      status: uploadResponse.status,
-      ok: uploadResponse.ok,
-      statusText: uploadResponse.statusText,
-      contentType: uploadResponse.headers.get('content-type')
-    });
-    
-    const uploadText = await uploadResponse.text();
-    let uploadResult;
-    try {
-      uploadResult = JSON.parse(uploadText);
-    } catch {
-      uploadResult = uploadText;
-    }
-    
-    if (uploadResponse.ok && uploadResult.success) {
-      console.log('✅ Upload successful:', uploadResult);
-      
-      // Note about cleanup
-      if (uploadResult.fileId) {
-        console.log('🧹 Test file created with ID:', uploadResult.fileId);
-        console.log('Note: You may want to delete this test file from Google Drive');
-      }
-    } else {
-      console.error('❌ Upload failed:', uploadResult);
-    }
-    
-  } catch (error) {
-    console.error('❌ Debug test failed:', error);
-  }
-  
-  console.log('🔍 Debug complete! Check the console messages above.');
-}
 // Expose functions to window
 Object.assign(window, {
   // Clipboard and communication helpers
