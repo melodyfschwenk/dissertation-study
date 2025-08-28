@@ -824,7 +824,13 @@ function getExtensionFromMime_(mime) {
 }
 function handleVideoUpload(data) {
   try {
-    console.log('Starting video upload for session:', data.sessionCode);
+    console.log('Upload request received:', {
+      sessionCode: data.sessionCode,
+      imageNumber: data.imageNumber,
+      format: data.videoFormat || 'unknown',
+      mimeType: data.mimeType || 'unknown',
+      size: data.fileSize || 'unknown'
+    });
 
     if (!data || !data.sessionCode || !data.imageNumber || !data.videoData) {
       throw new Error('Missing required fields: sessionCode, imageNumber, videoData');
@@ -833,30 +839,87 @@ function handleVideoUpload(data) {
     var studyFolder = getOrCreateStudyFolder();
     var participantFolder = getOrCreateParticipantFolder(studyFolder, data.sessionCode);
 
+    // Decode base64
     var bytes;
     try {
       bytes = Utilities.base64Decode(data.videoData);
-      console.log('Decoded video bytes:', bytes.length);
+      console.log('Decoded bytes:', bytes.length);
     } catch (decodeError) {
       console.error('Base64 decode error:', decodeError);
       throw new Error('Invalid video data encoding');
     }
 
+    // CRITICAL FIX: Respect the format from frontend
+    var extension = 'webm'; // fallback default
+
+    // Priority 1: Use explicitly provided format
+    if (data.videoFormat && data.videoFormat.length > 0) {
+      extension = String(data.videoFormat).toLowerCase();
+      console.log('Using provided format:', extension);
+    }
+    // Priority 2: Detect from MIME type
+    else if (data.mimeType && data.mimeType.length > 0) {
+      var mime = String(data.mimeType).toLowerCase();
+      if (mime.indexOf('mp4') !== -1 || mime.indexOf('mpeg4') !== -1) {
+        extension = 'mp4';
+      } else if (mime.indexOf('quicktime') !== -1) {
+        extension = 'mov';
+      } else if (mime.indexOf('x-matroska') !== -1) {
+        extension = 'mkv';
+      } else if (mime.indexOf('avi') !== -1) {
+        extension = 'avi';
+      } else if (mime.indexOf('webm') !== -1) {
+        extension = 'webm';
+      }
+      console.log('Detected from MIME type:', extension);
+    }
+    // Priority 3: Try to detect from filename if provided
+    else if (data.fileName && data.fileName.length > 0) {
+      var nameParts = String(data.fileName).split('.');
+      if (nameParts.length > 1) {
+        var fileExt = nameParts[nameParts.length - 1].toLowerCase();
+        if (['mp4', 'mov', 'webm', 'avi', 'mkv'].indexOf(fileExt) !== -1) {
+          extension = fileExt;
+          console.log('Detected from filename:', extension);
+        }
+      }
+    }
+
+    // Validate extension against whitelist
+    var allowedExtensions = ['webm', 'mp4', 'mov', 'mkv', 'avi'];
+    if (allowedExtensions.indexOf(extension) === -1) {
+      console.warn('Invalid extension detected:', extension, '- using webm fallback');
+      extension = 'webm';
+    }
+
+    // Build filename with CORRECT extension
     var ts = new Date().toISOString().replace(/[:.]/g, '-');
-    var mime = data.mimeType || 'video/webm';
-    var extension = getExtensionFromMime_(mime);
     var filename = data.sessionCode + '_image' + data.imageNumber + '_' + ts + '.' + extension;
+    console.log('Final filename:', filename);
 
     var result = withDocLock_(function () {
-      var blob = Utilities.newBlob(bytes, mime, filename);
+      // Map extension to MIME type for blob
+      var mimeTypeMap = {
+        'mp4': 'video/mp4',
+        'mov': 'video/quicktime',
+        'webm': 'video/webm',
+        'mkv': 'video/x-matroska',
+        'avi': 'video/x-msvideo'
+      };
+      var blobMimeType = mimeTypeMap[extension] || 'video/webm';
+
+      // Create blob with correct MIME type
+      var blob = Utilities.newBlob(bytes, blobMimeType, filename);
       var file = participantFolder.createFile(blob);
 
+      // Try to set sharing (may fail in some workspace setups)
       try {
         file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.VIEW);
       } catch (e) {
         console.warn('Could not set file sharing:', e);
       }
 
+      // Log with format information
       logVideoUpload({
         sessionCode: data.sessionCode,
         imageNumber: data.imageNumber,
@@ -866,16 +929,24 @@ function handleVideoUpload(data) {
         fileSize: Math.round(bytes.length / 1024),
         uploadTime: new Date().toISOString(),
         uploadMethod: 'google_drive',
+        videoFormat: extension,
+        mimeType: blobMimeType,
         dropboxPath: '',
         uploadStatus: 'success'
       });
 
-      console.log('Video uploaded successfully:', filename);
+      console.log('Upload successful:', {
+        filename: filename,
+        format: extension,
+        fileId: file.getId(),
+        sizeKB: Math.round(bytes.length / 1024)
+      });
 
       return {
         fileId: file.getId(),
         fileUrl: file.getUrl(),
-        filename: filename
+        filename: filename,
+        format: extension
       };
     });
 
@@ -883,12 +954,14 @@ function handleVideoUpload(data) {
       success: true,
       fileId: result.fileId,
       fileUrl: result.fileUrl,
-      filename: result.filename
+      filename: result.filename,
+      format: result.format
     });
 
   } catch (err) {
     console.error('Video upload error:', err);
 
+    // Log error with format info
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       withDocLock_(function () {
@@ -896,6 +969,8 @@ function handleVideoUpload(data) {
           sessionCode: (data && data.sessionCode) || 'unknown',
           imageNumber: (data && data.imageNumber) || 0,
           error: String(err),
+          format: (data && data.videoFormat) || 'unknown',
+          size: (data && data.fileSize) || 0,
           timestamp: new Date().toISOString(),
           attemptedMethod: 'google_drive',
           fallbackUsed: false

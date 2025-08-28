@@ -2189,6 +2189,27 @@ if (!window.isSecureContext) {
         uploadBtn.textContent = 'Use this upload';
       }
 
+      // Add recording instructions with size warning
+      const recordingInstructions = document.createElement('div');
+      recordingInstructions.className = 'info-box important';
+      recordingInstructions.id = 'recording-size-warning';
+      recordingInstructions.innerHTML = `
+  <strong>📹 Recording Guidelines</strong>
+  <ul style="margin: 8px 0 0 20px; text-align: left;">
+    <li><strong>Duration:</strong> Keep recordings between 30-60 seconds</li>
+    <li><strong>File size:</strong> Recordings over 45 seconds may fail to upload</li>
+    <li><strong>Language:</strong> Use ASL if you know it, otherwise spoken English</li>
+    <li><strong>Can't record?</strong> Use the "Upload a Recording" option below</li>
+  </ul>
+`;
+
+      // Insert before recording controls
+      const recordingContent = document.getElementById('recording-content');
+      const recordingControls = document.querySelector('.recording-controls');
+      if (recordingContent && recordingControls && !document.getElementById('recording-size-warning')) {
+        recordingContent.insertBefore(recordingInstructions, recordingControls);
+      }
+
       const requiredTextRec = (state.consentStatus.videoDeclined)
   ? 'This task is OPTIONAL for you (video consent declined).'
   : 'This task is required for study completion.';
@@ -2249,34 +2270,36 @@ if (instructionBox) {
       const fallbackDiv = document.getElementById('video-upload-fallback');
       if (fallbackDiv) {
         fallbackDiv.innerHTML = `
-      <h3>📁 Upload a Recording Instead</h3>
-      <div class="info-box helpful" style="margin: 15px 0;">
-        <strong>Recording Instructions:</strong>
-        <ol style="margin: 8px 0 0 20px; text-align: left;">
-          <li>Use your phone or computer to record yourself describing the image (30-60 seconds)</li>
-          <li>You can record video (preferred if using ASL) or audio-only</li>
-          <li>Accepted formats: Video (MP4, WebM, MOV) or Audio (MP3, M4A, WAV, OGG)</li>
-          <li>Maximum file size: 100MB</li>
-        </ol>
-      </div>
-      <input type="file" 
-             id="video-file-input" 
-             accept="video/*,audio/*,.mp3,.m4a,.wav,.ogg,.mp4,.webm,.mov" 
-             style="margin: 15px 0; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; width: 100%;" />
-      <div class="button-group">
-        <button class="button success" id="upload-save-btn" style="display:none;">Use this upload</button>
-      </div>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 10px;">
-        💡 Tip: Most phones can record video/audio using the Camera or Voice Memos app.
-      </p>
-    `;
+  <h3>📁 Upload a Recording Instead</h3>
+  <div class="info-box helpful" style="margin: 15px 0;">
+    <strong>Upload Instructions:</strong>
+    <ol style="margin: 8px 0 0 20px; text-align: left;">
+      <li>Record a 30-60 second video/audio on your device</li>
+      <li>Accepted formats: MP4, MOV, WebM (video) or MP3, M4A, WAV (audio)</li>
+      <li>Maximum size: 50MB for MP4/MOV, 40MB for WebM, 25MB for audio</li>
+      <li>Select your file below</li>
+    </ol>
+  </div>
+  <input type="file" 
+         id="video-file-input" 
+         accept="video/mp4,video/quicktime,video/webm,video/*,audio/mp3,audio/mpeg,audio/m4a,audio/wav,audio/*,.mp4,.mov,.webm,.mp3,.m4a,.wav" 
+         style="margin: 15px 0; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; width: 100%;" />
+  <div id="file-info" style="margin: 10px 0; font-weight: bold;"></div>
+  <div class="button-group">
+    <button class="button success" id="upload-save-btn" style="display:none;">Upload This File</button>
+  </div>
+  <p style="font-size: 14px; color: var(--text-secondary); margin-top: 10px;">
+    💡 Tips: Use Camera app for video (iPhone/Android) or Voice Memos for audio (iPhone) or Voice Recorder (Android)
+  </p>
+`;
       }
     }
 
     function bindUploadFallback() {
       const input = document.getElementById('video-file-input');
       const btn = document.getElementById('upload-save-btn');
-      if (!input || !btn) return;
+      const info = document.getElementById('file-info');
+      if (!input || !btn || !info) return;
 
       input.addEventListener('change', () => {
         const f = input.files && input.files[0];
@@ -2285,22 +2308,32 @@ if (instructionBox) {
         if (!f.type.startsWith('video/') && !f.type.startsWith('audio/')) {
           alert('Please select a video or audio file');
           input.value = '';
+          info.textContent = '';
+          btn.style.display = 'none';
           return;
         }
 
-        // Warn for very large files but allow them
-        if (f.size > 100 * 1024 * 1024) { // 100MB warning
-          if (!confirm(`Large file (${Math.round(f.size/1024/1024)}MB). This may take longer to upload. Continue?`)) {
-            input.value = '';
-            return;
-          }
+        // Determine format for size limit
+        let format = 'audio';
+        if (f.type.includes('mp4') || f.name.toLowerCase().endsWith('.mp4')) format = 'mp4';
+        else if (f.type.includes('quicktime') || f.name.toLowerCase().endsWith('.mov')) format = 'mov';
+        else if (f.type.includes('webm') || f.name.toLowerCase().endsWith('.webm')) format = 'webm';
+        else if (f.type.startsWith('video/')) format = 'other-video';
+
+        const sizeLimits = { mp4: 50, mov: 50, webm: 40, 'other-video': 40, audio: 25 };
+        const maxMB = sizeLimits[format];
+        const sizeMB = f.size / (1024 * 1024);
+        if (sizeMB > maxMB) {
+          alert(`File too large: ${sizeMB.toFixed(1)}MB. Maximum for ${format.toUpperCase()} is ${maxMB}MB.`);
+          input.value = '';
+          info.textContent = '';
+          btn.style.display = 'none';
+          return;
         }
 
         state.recording.currentBlob = f;
+        info.textContent = `${f.name} (${sizeMB.toFixed(1)}MB)`;
         btn.style.display = 'inline-block';
-
-        const fileType = f.type.startsWith('video/') ? 'Video' : 'Audio';
-        btn.textContent = `Upload ${fileType} & Continue (${Math.round(f.size/1024)}KB)`;
       });
 
       btn.addEventListener('click', saveRecording);
@@ -2385,17 +2418,34 @@ if (instructionBox) {
           }
 
           // Determine best format based on mode and browser support
+          // Detect best format with size optimization
           let options = {};
+          let recordingFormat = 'webm'; // default
 
           if (isVideoMode) {
-            // Video formats (existing logic)
-            if (MediaRecorder.isTypeSupported?.('video/mp4;codecs=h264,aac')) {
-              options.mimeType = 'video/mp4;codecs=h264,aac';
-            } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')) {
-              options.mimeType = 'video/webm;codecs=vp9,opus';
-            } else if (MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')) {
-              options.mimeType = 'video/webm;codecs=vp8,opus';
+            const formatTests = [
+              { mime: 'video/mp4;codecs=h264,aac', format: 'mp4', ext: 'mp4' },
+              { mime: 'video/webm;codecs=vp9,opus', format: 'webm-vp9', ext: 'webm' },
+              { mime: 'video/webm;codecs=vp8,opus', format: 'webm-vp8', ext: 'webm' },
+              { mime: 'video/webm', format: 'webm', ext: 'webm' }
+            ];
+
+            for (const test of formatTests) {
+              if (MediaRecorder.isTypeSupported?.(test.mime)) {
+                options.mimeType = test.mime;
+                recordingFormat = test.ext;
+                console.log(`Recording format selected: ${test.format} (${test.mime})`);
+                break;
+              }
             }
+
+            // Add bitrate limits to reduce file size (CRITICAL)
+            options.videoBitsPerSecond = 500000; // 500 kbps video
+            options.audioBitsPerSecond = 64000;  // 64 kbps audio
+
+            // Store format for later use
+            state.recording.recordingFormat = recordingFormat;
+            state.recording.recordingMimeType = options.mimeType || 'video/webm';
           } else {
             // Audio-only formats
             if (MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')) {
@@ -2405,6 +2455,10 @@ if (instructionBox) {
             } else if (MediaRecorder.isTypeSupported?.('audio/mp4')) {
               options.mimeType = 'audio/mp4';
             }
+
+            // Store audio format info
+            state.recording.recordingFormat = 'webm';
+            state.recording.recordingMimeType = options.mimeType || 'audio/webm';
           }
 
           state.recording.mediaRecorder = new MediaRecorder(stream, options);
@@ -2417,11 +2471,14 @@ if (instructionBox) {
           state.recording.mediaRecorder.onstop = () => {
             try {
               revokeRecordedURL();
-              const blob = new Blob(state.recording.chunks, {
-                type: options.mimeType || (isVideoMode ? 'video/webm' : 'audio/webm')
-              });
 
-              // For audio-only, create a simple audio player instead of video
+              const mimeType = state.recording.recordingMimeType || (isVideoMode ? 'video/webm' : 'audio/webm');
+              const blob = new Blob(state.recording.chunks, { type: mimeType });
+
+              // Attach format metadata to blob for upload
+              blob.recordingFormat = state.recording.recordingFormat || (isVideoMode ? 'webm' : 'webm');
+              blob.recordingMimeType = mimeType;
+
               if (!isVideoMode) {
                 const audioPlayer = document.createElement('audio');
                 audioPlayer.id = 'recorded-audio';
@@ -2429,15 +2486,15 @@ if (instructionBox) {
                 audioPlayer.style.width = '100%';
                 audioPlayer.src = URL.createObjectURL(blob);
 
-                // Replace video element with audio element
                 const container = document.getElementById('recorded-video').parentElement;
                 const existingAudio = document.getElementById('recorded-audio');
                 if (existingAudio) existingAudio.remove();
                 container.insertBefore(audioPlayer, document.getElementById('recorded-video'));
                 document.getElementById('recorded-video').style.display = 'none';
               } else {
+                const url = URL.createObjectURL(blob);
                 const recordedEl = document.getElementById('recorded-video');
-                recordedEl.src = URL.createObjectURL(blob);
+                recordedEl.src = url;
                 recordedEl.style.display = 'block';
                 preview.style.display = 'none';
               }
@@ -2446,22 +2503,25 @@ if (instructionBox) {
               document.getElementById('rerecord-btn').style.display = 'inline-block';
               document.getElementById('save-recording-btn').style.display = 'inline-block';
 
-              const format = isVideoMode ?
-                (blob.type.includes('mp4') ? 'MP4 video' : 'WebM video') :
-                'Audio';
-              status.textContent = `Recording complete (${format})`;
+              const format = blob.recordingFormat === 'mp4' ? 'MP4' : (isVideoMode ? 'WebM' : 'Audio');
+              const sizeKB = Math.round(blob.size / 1024);
+              const sizeMB = (blob.size / (1024 * 1024)).toFixed(1);
+
+              status.textContent = `Recording complete (${format}, ${sizeMB}MB)`;
               status.className = 'recording-status recorded';
+
+              if (blob.size > 25 * 1024 * 1024) {
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'info-box warning';
+                warningDiv.innerHTML = `
+        <strong>⚠️ Large file warning</strong>
+        <p>Your recording is ${sizeMB}MB. Files over 25MB may fail to upload. Consider re-recording with a shorter description (30-45 seconds).</p>
+      `;
+                document.querySelector('.recording-controls').appendChild(warningDiv);
+              }
+
               state.recording.currentBlob = blob;
 
-              // Warn if recording exceeds upload size limit (~30MB ≈ 60s)
-              if (blob.size > 30 * 1024 * 1024) {
-                showRecordingError(
-                  `<strong>Recording too long</strong>` +
-                  `<p style="margin-top: 6px;">Please keep videos under 60 seconds so they upload correctly. Try recording again or upload the file below.</p>`
-                );
-                document.getElementById('save-recording-btn').style.display = 'none';
-                return;
-              }
             } catch (e) {
               console.error('Finalize error:', e);
               alert('There was an issue finalizing the recording. Please try the upload option below.');
@@ -2912,29 +2972,71 @@ async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber)
 
 async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
   try {
-    updateUploadProgress(15, 'Preparing Google Drive upload…');
+    updateUploadProgress(15, 'Preparing upload…');
 
-    // Google Apps Script request limit is ~45MB after base64 encoding
-    // which means the original video must be kept around 30MB or less
-    if (videoBlob.size > 30 * 1024 * 1024) {
-      throw new Error('Video too large for Google Drive (max 30MB before upload)');
+    // Detect format from blob metadata, with multiple fallbacks
+    let videoFormat = 'webm'; // ultimate fallback
+
+    // Priority 1: Check blob metadata we added
+    if (videoBlob.recordingFormat) {
+      videoFormat = videoBlob.recordingFormat;
+    }
+    // Priority 2: Check MIME type
+    else if (videoBlob.type) {
+      if (videoBlob.type.includes('mp4') || videoBlob.type.includes('mpeg4')) {
+        videoFormat = 'mp4';
+      } else if (videoBlob.type.includes('quicktime')) {
+        videoFormat = 'mov';
+      } else if (videoBlob.type.includes('webm')) {
+        videoFormat = 'webm';
+      }
+    }
+    // Priority 3: Check file name if this is an uploaded file
+    else if (videoBlob.name) {
+      const ext = videoBlob.name.split('.').pop().toLowerCase();
+      if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext)) {
+        videoFormat = ext;
+      }
     }
 
+    console.log(`Upload format detected: ${videoFormat}, size: ${(videoBlob.size/1024/1024).toFixed(2)}MB`);
+
+    // Format-specific size limits
+    const sizeLimits = {
+      'mp4': 55 * 1024 * 1024,  // 55MB for MP4 (more compressed)
+      'mov': 50 * 1024 * 1024,  // 50MB for MOV
+      'webm': 40 * 1024 * 1024, // 40MB for WebM (less compressed)
+      'avi': 35 * 1024 * 1024,  // 35MB for AVI
+      'mkv': 40 * 1024 * 1024   // 40MB for MKV
+    };
+
+    const maxSize = sizeLimits[videoFormat] || 35 * 1024 * 1024;
+
+    if (videoBlob.size > maxSize) {
+      const currentMB = (videoBlob.size / (1024 * 1024)).toFixed(1);
+      const maxMB = (maxSize / (1024 * 1024)).toFixed(0);
+      throw new Error(`Video too large: ${currentMB}MB. Maximum for ${videoFormat.toUpperCase()}: ${maxMB}MB. Please record a shorter video (30-45 seconds).`);
+    }
+
+    updateUploadProgress(20, `Converting ${videoFormat} for upload...`);
     const base64DataUrl = await blobToBase64(videoBlob);
-    const base64VideoData = base64DataUrl.split(',').pop();
+    const base64VideoData = base64DataUrl.split(',')[1] || base64DataUrl.split(',').pop();
+
     updateUploadProgress(25, 'Encoding complete...');
 
     const uploadData = {
       action: 'upload_video',
-      sessionCode,
-      imageNumber,
+      sessionCode: sessionCode,
+      imageNumber: imageNumber,
       videoData: base64VideoData,
+      videoFormat: videoFormat,        // CRITICAL: Send format to backend
+      mimeType: videoBlob.type || '',  // Send MIME type too
+      fileName: videoBlob.name || '',  // Send filename if available
       fileSize: videoBlob.size,
-      mimeType: videoBlob.type,
       timestamp: new Date().toISOString()
     };
 
-    updateUploadProgress(30, 'Sending to Google Drive...');
+    updateUploadProgress(30, `Uploading ${videoFormat.toUpperCase()} to Google Drive...`);
 
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
@@ -2942,7 +3044,7 @@ async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
       body: JSON.stringify(uploadData)
     });
 
-    updateUploadProgress(35, 'Processing response...');
+    updateUploadProgress(75, 'Processing response...');
 
     let result;
     const contentType = response.headers.get('content-type');
@@ -2963,11 +3065,14 @@ async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
       throw new Error(result.error || result.details || `Upload failed (${response.status})`);
     }
 
+    updateUploadProgress(100, 'Upload complete!');
+
     return {
       success: true,
       filename: result.filename,
       fileId: result.fileId,
-      fileUrl: result.fileUrl
+      fileUrl: result.fileUrl,
+      format: result.format || videoFormat
     };
 
   } catch (error) {
