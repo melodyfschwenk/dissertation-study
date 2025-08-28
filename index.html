@@ -3444,11 +3444,39 @@ function updateUploadProgress(percent, message) {
         const progress = total ? `${completed}/${total}` : '';
         sendToSheets({ action: 'session_paused', sessionCode: state.sessionCode, progress, pauseType: 'exit', timestamp: new Date().toISOString() });
     }
+      function showCopyFeedback(btnEl) {
+        if (!btnEl) return;
+        const original = btnEl.textContent;
+        btnEl.textContent = '✅ Copied!';
+        setTimeout(() => btnEl.textContent = original, 2000);
+      }
+
+      function fallbackCopy(text, btnEl) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          showCopyFeedback(btnEl);
+          alert('Copied to clipboard: ' + text);
+        } catch (err) {
+          alert('Copy this text manually: ' + text);
+        }
+        document.body.removeChild(textarea);
+      }
+
       function copyCode(btnEl) {
         const code = document.getElementById('display-code').textContent;
-        navigator.clipboard.writeText(code).then(() => {
-          if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code)
+            .then(() => {
+              showCopyFeedback(btnEl);
+            })
+            .catch(() => fallbackCopy(code, btnEl));
+        } else {
+          fallbackCopy(code, btnEl);
+        }
       }
       function generateRecoveryLink() {
         if (!state.sessionCode) return '';
@@ -3458,15 +3486,29 @@ function updateUploadProgress(percent, message) {
       function copyRecoveryLink(btnEl) {
         const link = generateRecoveryLink();
         if (!link) return;
-        navigator.clipboard.writeText(link).then(() => {
-          if (btnEl) { const original = btnEl.textContent; btnEl.textContent = '✅ Copied!'; setTimeout(() => btnEl.textContent = original, 2000); }
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link)
+            .then(() => {
+              showCopyFeedback(btnEl);
+            })
+            .catch(() => fallbackCopy(link, btnEl));
+        } else {
+          fallbackCopy(link, btnEl);
+        }
       }
+
       function copyASLCTCode(btnEl) {
-  navigator.clipboard.writeText(CONFIG.ASLCT_ACCESS_CODE)
-    .then(() => { if (btnEl) { const o=btnEl.textContent; btnEl.textContent='✅ Copied!'; setTimeout(()=>btnEl.textContent=o,2000);} })
-    .catch(() => { alert('Access code: ' + CONFIG.ASLCT_ACCESS_CODE); });
-}
+        const code = CONFIG.ASLCT_ACCESS_CODE;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code)
+            .then(() => {
+              showCopyFeedback(btnEl);
+            })
+            .catch(() => fallbackCopy(code, btnEl));
+        } else {
+          fallbackCopy(code, btnEl);
+        }
+      }
 
     function openEmbedInNewTab(taskCode) {
       const task = TASKS[taskCode];
