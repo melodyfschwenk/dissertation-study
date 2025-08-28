@@ -81,3 +81,12 @@ server.on('error', err => {
   console.error('Server error:', err);
 });
 
+// Log uncaught errors to avoid silent failures
+process.on('uncaughtException', err => {
+  console.error('Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', err => {
+  console.error('Unhandled rejection:', err);
+});
+
