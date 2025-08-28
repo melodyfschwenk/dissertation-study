@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spatial Cognition & Sign Language Research Study</title>
   <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=URLSearchParams,Promise"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -937,7 +938,7 @@ document.querySelectorAll('.button.skip').forEach(btn => {
         'ID': 'Image Description',
         'DEMO': 'Demographics Survey'
       };
-      return mapping[taskCode] || TASKS[taskCode]?.name || taskCode;
+      return mapping[taskCode] || (TASKS[taskCode] ? TASKS[taskCode].name : undefined) || taskCode;
     }
 
     // ----- Consents -----
@@ -1413,7 +1414,7 @@ function showScreen(screenId) {
   if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
 
   // Accessibility: move focus to the screen heading and announce
-  const heading = screen?.querySelector('h2, h1, h3');
+  const heading = screen ? screen.querySelector('h2, h1, h3') : null;
   if (heading) {
     heading.setAttribute('tabindex', '-1');
     heading.focus({ preventScroll: false });
@@ -1649,12 +1650,12 @@ function verifyConsentCode(type) {
 
   const el = document.getElementById(inputId);
   const noteEl = document.getElementById(noteId);
-  const code = (el?.value || '').trim();
+  const code = ((el && el.value) || '').trim();
 
   // Enforce 6 digits only
   if (!CODE_REGEX.test(code)) {
     alert('Enter the 6-digit code shown at the end of the Qualtrics form.');
-    el?.focus();
+    if (el) el.focus();
     return;
   }
 
@@ -1931,8 +1932,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
   ? 'This task is optional for you (video consent declined).'
   : 'This task is required for study completion.';
-const eta = TASKS[taskCode]?.estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
-const reqs = TASKS[taskCode]?.requirements || '—';
+const eta = TASKS[taskCode] && TASKS[taskCode].estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
+const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
       document.getElementById('task-instructions').innerHTML = `
   <div class="info-box friendly-tip" style="margin-bottom:10px;">
@@ -2010,7 +2011,7 @@ const reqs = TASKS[taskCode]?.requirements || '—';
 
       function leaveFullscreenModes() {
         if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-        if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
+        if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
         exitDistractionFree();
       }
 
@@ -2044,8 +2045,8 @@ function showExternalTask(taskCode) {
   const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
     ? 'This task is OPTIONAL for you (video consent declined).'
     : 'This task is required for study completion.';
-  const eta  = TASKS[taskCode]?.estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
-  const reqs = TASKS[taskCode]?.requirements || '—';
+  const eta  = TASKS[taskCode] && TASKS[taskCode].estMinutes ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
+  const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
   if (taskCode === 'ASLCT') {
     const ASLCT_CODE = CONFIG.ASLCT_ACCESS_CODE;
@@ -2166,7 +2167,7 @@ if (!window.isSecureContext) {
       if (recorded && recorded.src) {
         try { URL.revokeObjectURL(recorded.src); } catch(e) {}
         recorded.removeAttribute('src');
-        recorded.load?.();
+        if (recorded.load) recorded.load();
       }
     }
 
@@ -2232,8 +2233,8 @@ if (!window.isSecureContext) {
       const requiredTextRec = (state.consentStatus.videoDeclined)
   ? 'This task is OPTIONAL for you (video consent declined).'
   : 'This task is required for study completion.';
-const etaRec = TASKS['ID']?.estMinutes ? `${TASKS['ID'].estMinutes} minutes` : 'a few minutes';
-const reqsRec = TASKS['ID']?.requirements || '—';
+const etaRec = TASKS['ID'] && TASKS['ID'].estMinutes ? `${TASKS['ID'].estMinutes} minutes` : 'a few minutes';
+const reqsRec = (TASKS['ID'] && TASKS['ID'].requirements) || '—';
 
 const instructionBox = document.getElementById('task-instructions');
 if (instructionBox) {
@@ -2267,8 +2268,8 @@ if (instructionBox) {
       try {
         const camPerm = await navigator.permissions.query({ name: 'camera' });
         const micPerm = await navigator.permissions.query({ name: 'microphone' });
-        cam = camPerm?.state || 'unknown';
-        mic = micPerm?.state || 'unknown';
+        cam = (camPerm && camPerm.state) || 'unknown';
+        mic = (micPerm && micPerm.state) || 'unknown';
       } catch(e) {}
       return { cam, mic };
     }
@@ -2359,8 +2360,10 @@ if (instructionBox) {
     }
 
     function bindRecordingSkips() {
-      document.getElementById('skip-recording-btn')?.addEventListener('click', () => showSkipDialog('ID'));
-      document.getElementById('skip-recording-consent-btn')?.addEventListener('click', () => showSkipDialog('ID'));
+      const skipBtn = document.getElementById('skip-recording-btn');
+      if (skipBtn) skipBtn.addEventListener('click', () => showSkipDialog('ID'));
+      const skipConsentBtn = document.getElementById('skip-recording-consent-btn');
+      if (skipConsentBtn) skipConsentBtn.addEventListener('click', () => showSkipDialog('ID'));
     }
 
     async function toggleRecording() {
@@ -2450,7 +2453,7 @@ if (instructionBox) {
             ];
 
             for (const test of formatTests) {
-              if (MediaRecorder.isTypeSupported?.(test.mime)) {
+              if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(test.mime)) {
                 options.mimeType = test.mime;
                 recordingFormat = test.ext;
                 console.log(`Recording format selected: ${test.format} (${test.mime})`);
@@ -2467,11 +2470,11 @@ if (instructionBox) {
             state.recording.recordingMimeType = options.mimeType || 'video/webm';
           } else {
             // Audio-only formats
-            if (MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')) {
+            if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
               options.mimeType = 'audio/webm;codecs=opus';
-            } else if (MediaRecorder.isTypeSupported?.('audio/ogg;codecs=opus')) {
+            } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
               options.mimeType = 'audio/ogg;codecs=opus';
-            } else if (MediaRecorder.isTypeSupported?.('audio/mp4')) {
+            } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/mp4')) {
               options.mimeType = 'audio/mp4';
             }
 
@@ -2582,7 +2585,7 @@ if (instructionBox) {
     }
 
     function handleRecordingError(err) {
-      const name = err?.name || err?.code || 'Unknown';
+      const name = (err && err.name) || (err && err.code) || 'Unknown';
 
       // More helpful error messages
       const errorMessages = {
@@ -2610,7 +2613,7 @@ if (instructionBox) {
 
       const errorInfo = errorMessages[name] || {
         title: 'Recording not available',
-        message: `${err?.message || 'Recording failed'}. You can upload a file instead.`,
+        message: `${(err && err.message) || 'Recording failed'}. You can upload a file instead.`,
         showUpload: true
       };
 
@@ -2644,7 +2647,7 @@ async function saveRecording() {
   uploadProgress.style.display = 'block';
 
   const recType = state.recording.isVideoMode ? 'video'
-    : (state.recording.currentBlob?.type?.startsWith('audio') ? 'audio' : 'video');
+    : ((state.recording.currentBlob && state.recording.currentBlob.type && state.recording.currentBlob.type.startsWith('audio')) ? 'audio' : 'video');
 
   sendToSheets({
     action: 'image_recorded',
@@ -2978,7 +2981,7 @@ async function uploadToDropboxRegularFolder(videoBlob, sessionCode, imageNumber)
   } catch (error) {
     console.error('Dropbox upload failed:', error);
 
-    if (error.message?.includes('auth') || error.status === 401) {
+    if ((error.message && error.message.includes('auth')) || error.status === 401) {
       localStorage.removeItem('dropbox_access_token');
     }
 
@@ -3117,7 +3120,7 @@ function updateUploadProgress(percent, message) {
   if (status) status.textContent = `${percent}%`;
   
   // Update the progress message
-  const progressText = progressDiv?.querySelector('div[style*="font-weight: bold"]');
+  const progressText = progressDiv ? progressDiv.querySelector('div[style*="font-weight: bold"]') : null;
   if (progressText && message) {
     progressText.textContent = message;
   }
@@ -3274,7 +3277,7 @@ function updateUploadProgress(percent, message) {
 
         if (!keepPreviewUI) {
           const preview = document.getElementById('video-preview');
-          if (preview) { preview.pause?.(); preview.srcObject = null; preview.style.display = 'none'; }
+          if (preview) { if (preview.pause) preview.pause(); preview.srcObject = null; preview.style.display = 'none'; }
           const recorded = document.getElementById('recorded-video');
           if (recorded) { revokeRecordedURL(); recorded.style.display = 'none'; }
           state.recording.mediaRecorder = null;
@@ -3354,7 +3357,7 @@ function updateUploadProgress(percent, message) {
       taskTimer.stop();
       if (taskCode === 'ID') {
         if (state.recording && (state.recording.stream || state.recording.active)) {
-          try { state.recording.stream?.getTracks().forEach(t => t.stop()); } catch(e){}
+          try { if (state.recording.stream) state.recording.stream.getTracks().forEach(t => t.stop()); } catch(e){}
           state.recording.active = false; state.recording.chunks = []; stopRecordingTimer();
         }
       }
@@ -3470,7 +3473,7 @@ function updateUploadProgress(percent, message) {
 
     function openEmbedInNewTab(taskCode) {
       const task = TASKS[taskCode];
-      if (task?.embedUrl) window.open(task.embedUrl, '_blank', 'noopener');
+      if (task && task.embedUrl) window.open(task.embedUrl, '_blank', 'noopener');
     }
     function reloadEmbed(iframeId) {
       const f = document.getElementById(iframeId);
