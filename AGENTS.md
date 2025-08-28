@@ -6,6 +6,7 @@
 - Check server logs for startup/runtime errors and ensure request and server errors are properly handled.
 - Guard against missing critical configuration values at server startup, logging warnings on the backend so participants don't see them.
 - Use `npm start` to launch the Node server and monitor logs for warnings or errors.
+- Do not commit `.env`, `*.log`, or `.DS_Store` files; these are ignored.
 - Upload metrics expect file sizes in kilobytes.
 
 ## TODO
