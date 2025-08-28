@@ -1342,6 +1342,64 @@ function revokeRecordedURL() {
     if (recorded.load) recorded.load();
   }
 }
+function startPreview() {
+  return _startPreview.apply(this, arguments);
+}
+function _startPreview() {
+  _startPreview = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+    var preview, perm, how, stream, _t3;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.p = _context4.n) {
+        case 0:
+          preview = document.getElementById('video-preview');
+          if (!state.recording.stream) {
+            _context4.n = 1;
+            break;
+          }
+          preview.srcObject = state.recording.stream;
+          preview.style.display = 'block';
+          return _context4.a(2);
+        case 1:
+          _context4.p = 1;
+          _context4.n = 2;
+          return checkSecureAndPermissions();
+        case 2:
+          perm = _context4.v;
+          if (!(perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied'))) {
+            _context4.n = 3;
+            break;
+          }
+          how = isIOS() ? "Settings \u2192 Safari \u2192 Camera/Microphone \u2192 Allow for this site, then reload." : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+          showRecordingError("<strong>Camera or microphone is blocked</strong><p style=\"margin-top: 6px;\">Please allow access for this site. ".concat(how, "</p>"));
+          return _context4.a(2);
+        case 3:
+          _context4.n = 4;
+          return navigator.mediaDevices.getUserMedia({
+            video: {
+              width: 640,
+              height: 480
+            },
+            audio: true
+          });
+        case 4:
+          stream = _context4.v;
+          state.recording.stream = stream;
+          state.recording.isVideoMode = true;
+          preview.srcObject = stream;
+          preview.style.display = 'block';
+          _context4.n = 6;
+          break;
+        case 5:
+          _context4.p = 5;
+          _t3 = _context4.v;
+          console.error('Preview failed:', _t3);
+        case 6:
+          return _context4.a(2);
+      }
+    }, _callee4, null, [[1, 5]]);
+  }));
+  return _startPreview.apply(this, arguments);
+}
 function updateRecordingImage() {
   var imageNum = state.recording.currentImage + 1;
   document.getElementById('image-number').textContent = imageNum;
@@ -1397,6 +1455,7 @@ function updateRecordingImage() {
     document.getElementById('task-title').textContent = TASKS['ID'].name;
     instructionBox.innerHTML = "\n    <div class=\"info-box friendly-tip\" style=\"margin-bottom:10px;\">\n      <strong>\u26A0\uFE0F Ready to Start ".concat(TASKS['ID'].name, "?</strong>\n      <ul style=\"margin:8px 0 0 20px; text-align:left;\">\n        <li>").concat(requiredTextRec, "</li>\n        <li>Having problems? Email us instead of skipping</li>\n        <li>Estimated time: <strong>").concat(etaRec, "</strong></li>\n        <li>Requirements/tips: <em>").concat(reqsRec, "</em></li>\n      </ul>\n    </div>\n  ");
   }
+  if (window.isSecureContext) startPreview();
 }
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -1405,13 +1464,13 @@ function checkSecureAndPermissions() {
   return _checkSecureAndPermissions.apply(this, arguments);
 }
 function _checkSecureAndPermissions() {
-  _checkSecureAndPermissions = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-    var hint, cam, mic, permissionsChecked, camPerm, micPerm, _t3;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.p = _context4.n) {
+  _checkSecureAndPermissions = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+    var hint, cam, mic, permissionsChecked, camPerm, micPerm, _t4;
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.p = _context5.n) {
         case 0:
           if (window.isSecureContext) {
-            _context4.n = 1;
+            _context5.n = 1;
             break;
           }
           hint = location.protocol === 'http:' ? 'This page must be served over https.' : 'This page cannot run from a local file.';
@@ -1421,7 +1480,7 @@ function _checkSecureAndPermissions() {
           };
         case 1:
           if (!(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
-            _context4.n = 2;
+            _context5.n = 2;
             break;
           }
           throw {
@@ -1430,7 +1489,7 @@ function _checkSecureAndPermissions() {
           };
         case 2:
           if (window.MediaRecorder) {
-            _context4.n = 3;
+            _context5.n = 3;
             break;
           }
           throw {
@@ -1441,44 +1500,44 @@ function _checkSecureAndPermissions() {
           cam = 'unknown', mic = 'unknown';
           permissionsChecked = false;
           if (!(navigator.permissions && navigator.permissions.query)) {
-            _context4.n = 9;
+            _context5.n = 9;
             break;
           }
-          _context4.p = 4;
-          _context4.n = 5;
+          _context5.p = 4;
+          _context5.n = 5;
           return navigator.permissions.query({
             name: 'camera'
           });
         case 5:
-          camPerm = _context4.v;
-          _context4.n = 6;
+          camPerm = _context5.v;
+          _context5.n = 6;
           return navigator.permissions.query({
             name: 'microphone'
           });
         case 6:
-          micPerm = _context4.v;
+          micPerm = _context5.v;
           cam = camPerm && camPerm.state || 'unknown';
           mic = micPerm && micPerm.state || 'unknown';
           permissionsChecked = true;
-          _context4.n = 8;
+          _context5.n = 8;
           break;
         case 7:
-          _context4.p = 7;
-          _t3 = _context4.v;
-          console.warn('Permission query failed:', _t3);
+          _context5.p = 7;
+          _t4 = _context5.v;
+          console.warn('Permission query failed:', _t4);
         case 8:
-          _context4.n = 10;
+          _context5.n = 10;
           break;
         case 9:
           console.warn('Permissions API not available; skipping permission pre-check.');
         case 10:
-          return _context4.a(2, {
+          return _context5.a(2, {
             cam: cam,
             mic: mic,
             permissionsChecked: permissionsChecked
           });
       }
-    }, _callee4, null, [[4, 7]]);
+    }, _callee5, null, [[4, 7]]);
   }));
   return _checkSecureAndPermissions.apply(this, arguments);
 }
@@ -1556,38 +1615,43 @@ function toggleRecording() {
   return _toggleRecording.apply(this, arguments);
 }
 function _toggleRecording() {
-  _toggleRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
-    var btn, status, preview, perm, how, stream, isVideoMode, audioNotice, options, recordingFormat, formatTests, _i, _formatTests, test, _t4, _t5, _t6;
-    return _regenerator().w(function (_context5) {
-      while (1) switch (_context5.p = _context5.n) {
+  _toggleRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    var btn, status, preview, stream, isVideoMode, perm, how, audioNotice, options, recordingFormat, formatTests, _i, _formatTests, test, _t5, _t6, _t7;
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.p = _context6.n) {
         case 0:
           btn = document.getElementById('record-btn');
           status = document.getElementById('recording-status');
           preview = document.getElementById('video-preview');
           if (state.recording.active) {
-            _context5.n = 20;
+            _context6.n = 20;
             break;
           }
-          _context5.p = 1;
-          _context5.n = 2;
+          _context6.p = 1;
+          stream = state.recording.stream;
+          isVideoMode = state.recording.isVideoMode;
+          if (stream) {
+            _context6.n = 11;
+            break;
+          }
+          _context6.n = 2;
           return checkSecureAndPermissions();
         case 2:
-          perm = _context5.v;
+          perm = _context6.v;
           if (!(perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied'))) {
-            _context5.n = 3;
+            _context6.n = 3;
             break;
           }
-          how = isIOS() ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.' : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
+          how = isIOS() ? "Settings \u2192 Safari \u2192 Camera/Microphone \u2192 Allow for this site, then reload." : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
           showRecordingError("<strong>Camera or microphone is blocked</strong><p style=\"margin-top: 6px;\">Please allow access for this site. ".concat(how, "</p>"));
-          return _context5.a(2);
+          return _context6.a(2);
         case 3:
           if (!perm.permissionsChecked) {
             console.warn('Permissions API unsupported; unable to pre-check camera/microphone permissions.');
           }
         case 4:
-          isVideoMode = true;
-          _context5.p = 5;
-          _context5.n = 6;
+          _context6.p = 4;
+          _context6.n = 5;
           return navigator.mediaDevices.getUserMedia({
             video: {
               width: 640,
@@ -1595,63 +1659,59 @@ function _toggleRecording() {
             },
             audio: true
           });
-        case 6:
-          stream = _context5.v;
+        case 5:
+          stream = _context6.v;
           isVideoMode = true;
-          _context5.n = 11;
+          _context6.n = 10;
           break;
-        case 7:
-          _context5.p = 7;
-          _t4 = _context5.v;
-          console.warn('Video capture failed, trying audio-only:', _t4);
-
-          // Fall back to audio-only
-          _context5.p = 8;
-          _context5.n = 9;
+        case 6:
+          _context6.p = 6;
+          _t5 = _context6.v;
+          console.warn('Video capture failed, trying audio-only:', _t5);
+          _context6.p = 7;
+          _context6.n = 8;
           return navigator.mediaDevices.getUserMedia({
             audio: true,
             video: false
           });
-        case 9:
-          stream = _context5.v;
+        case 8:
+          stream = _context6.v;
           isVideoMode = false;
-
-          // Show a notice that we're in audio-only mode
           audioNotice = document.createElement('div');
           audioNotice.className = 'info-box helpful';
           audioNotice.innerHTML = "\n            <strong>\uD83D\uDCE2 Audio-Only Mode</strong>\n            <p>Recording voice only (camera not available). This is fine for the task!</p>\n          ";
           document.getElementById('recording-content').insertBefore(audioNotice, document.querySelector('.recording-controls'));
-          _context5.n = 11;
+          _context6.n = 10;
           break;
+        case 9:
+          _context6.p = 9;
+          _t6 = _context6.v;
+          console.error('Audio capture also failed:', _t6);
+          throw _t6;
         case 10:
-          _context5.p = 10;
-          _t5 = _context5.v;
-          console.error('Audio capture also failed:', _t5);
-          throw _t5;
-        case 11:
           state.recording.stream = stream;
           state.recording.isVideoMode = isVideoMode;
+        case 11:
           if (isVideoMode) {
             preview.srcObject = stream;
             preview.style.display = 'block';
           } else {
             preview.style.display = 'none';
-            // Show audio visualization or indicator
             status.textContent = '🎤 Audio ready to record';
           }
           if (window.MediaRecorder) {
-            _context5.n = 12;
+            _context6.n = 12;
             break;
           }
           showRecordingError("<strong>Recording not supported in this browser</strong><p style=\"margin-top: 6px;\">Please record using your device's camera or voice recorder, then upload the file below.</p>");
-          return _context5.a(2);
+          return _context6.a(2);
         case 12:
           // Determine best format based on mode and browser support
           // Detect best format with size optimization
           options = {};
           recordingFormat = 'webm'; // default
           if (!isVideoMode) {
-            _context5.n = 16;
+            _context6.n = 16;
             break;
           }
           formatTests = [{
@@ -1674,21 +1734,21 @@ function _toggleRecording() {
           _i = 0, _formatTests = formatTests;
         case 13:
           if (!(_i < _formatTests.length)) {
-            _context5.n = 15;
+            _context6.n = 15;
             break;
           }
           test = _formatTests[_i];
           if (!(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(test.mime))) {
-            _context5.n = 14;
+            _context6.n = 14;
             break;
           }
           options.mimeType = test.mime;
           recordingFormat = test.ext;
           console.log("Recording format selected: ".concat(test.format, " (").concat(test.mime, ")"));
-          return _context5.a(3, 15);
+          return _context6.a(3, 15);
         case 14:
           _i++;
-          _context5.n = 13;
+          _context6.n = 13;
           break;
         case 15:
           // Add bitrate limits to reduce file size (CRITICAL)
@@ -1698,7 +1758,7 @@ function _toggleRecording() {
           // Store format for later use
           state.recording.recordingFormat = recordingFormat;
           state.recording.recordingMimeType = options.mimeType || 'video/webm';
-          _context5.n = 17;
+          _context6.n = 17;
           break;
         case 16:
           // Audio-only formats
@@ -1775,15 +1835,15 @@ function _toggleRecording() {
           status.textContent = isVideoMode ? '🔴 Recording video...' : '🎤 Recording audio...';
           status.className = 'recording-status recording';
           startRecordingTimer();
-          _context5.n = 19;
+          _context6.n = 19;
           break;
         case 18:
-          _context5.p = 18;
-          _t6 = _context5.v;
-          console.error('Recording error:', _t6);
-          handleRecordingError(_t6);
+          _context6.p = 18;
+          _t7 = _context6.v;
+          console.error('Recording error:', _t7);
+          handleRecordingError(_t7);
         case 19:
-          _context5.n = 21;
+          _context6.n = 21;
           break;
         case 20:
           // Stop recording (existing code)
@@ -1807,9 +1867,9 @@ function _toggleRecording() {
             stopRecordingTimer();
           }
         case 21:
-          return _context5.a(2);
+          return _context6.a(2);
       }
-    }, _callee5, null, [[8, 10], [5, 7], [1, 18]]);
+    }, _callee6, null, [[7, 9], [4, 6], [1, 18]]);
   }));
   return _toggleRecording.apply(this, arguments);
 }
@@ -1863,17 +1923,17 @@ function saveRecording() {
   return _saveRecording.apply(this, arguments);
 } // Updated continueWithoutUpload with enhanced logging
 function _saveRecording() {
-  _saveRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
-    var saveBtn, originalText, status, uploadProgress, recType, uploadResult, logData, _t7;
-    return _regenerator().w(function (_context6) {
-      while (1) switch (_context6.p = _context6.n) {
+  _saveRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+    var saveBtn, originalText, status, uploadProgress, recType, uploadResult, logData, _t8;
+    return _regenerator().w(function (_context7) {
+      while (1) switch (_context7.p = _context7.n) {
         case 0:
           if (state.recording.currentBlob) {
-            _context6.n = 1;
+            _context7.n = 1;
             break;
           }
           alert('Please record or upload a recording first.');
-          return _context6.a(2);
+          return _context7.a(2);
         case 1:
           saveBtn = document.getElementById('save-recording-btn');
           originalText = saveBtn.textContent;
@@ -1899,13 +1959,13 @@ function _saveRecording() {
             timestamp: new Date().toISOString(),
             recordingType: recType
           });
-          _context6.p = 2;
-          _context6.n = 3;
+          _context7.p = 2;
+          _context7.n = 3;
           return uploadVideoToDrive(state.recording.currentBlob, state.sessionCode, state.recording.currentImage + 1);
         case 3:
-          uploadResult = _context6.v;
+          uploadResult = _context7.v;
           if (!uploadResult.success) {
-            _context6.n = 4;
+            _context7.n = 4;
             break;
           }
           // Store the upload info with method tracking
@@ -1965,24 +2025,24 @@ function _saveRecording() {
               completeTask('ID');
             }
           }, 1000);
-          _context6.n = 5;
+          _context7.n = 5;
           break;
         case 4:
           throw new Error(uploadResult.error || 'Upload failed');
         case 5:
-          _context6.n = 7;
+          _context7.n = 7;
           break;
         case 6:
-          _context6.p = 6;
-          _t7 = _context6.v;
-          console.error('Upload error:', _t7);
+          _context7.p = 6;
+          _t8 = _context7.v;
+          console.error('Upload error:', _t8);
 
           // Enhanced error logging
           sendToSheets({
             action: 'log_video_upload_error',
             sessionCode: state.sessionCode,
             imageNumber: state.recording.currentImage + 1,
-            error: _t7.message,
+            error: _t8.message,
             timestamp: new Date().toISOString(),
             deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
             attemptedMethod: 'drive',
@@ -1993,14 +2053,14 @@ function _saveRecording() {
           status.className = 'recording-status recording';
           enqueueFailedUpload(state.recording.currentBlob, state.sessionCode, state.recording.currentImage + 1);
         case 7:
-          _context6.p = 7;
+          _context7.p = 7;
           saveBtn.disabled = false;
           saveBtn.textContent = originalText;
-          return _context6.f(7);
+          return _context7.f(7);
         case 8:
-          return _context6.a(2);
+          return _context7.a(2);
       }
-    }, _callee6, null, [[2, 6, 7, 8]]);
+    }, _callee7, null, [[2, 6, 7, 8]]);
   }));
   return _saveRecording.apply(this, arguments);
 }
@@ -2053,12 +2113,12 @@ function uploadToCloudinary(_x2, _x3, _x4) {
   return _uploadToCloudinary.apply(this, arguments);
 } // Makes a valid 0.8s WebM by recording a tiny canvas
 function _uploadToCloudinary() {
-  _uploadToCloudinary = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(videoBlob, sessionCode, imageNumber) {
-    var formData, timestamp, filename, response, responseText, errorDetail, errorJson, result, _t8;
-    return _regenerator().w(function (_context7) {
-      while (1) switch (_context7.p = _context7.n) {
+  _uploadToCloudinary = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(videoBlob, sessionCode, imageNumber) {
+    var formData, timestamp, filename, response, responseText, errorDetail, errorJson, result, _t9;
+    return _regenerator().w(function (_context8) {
+      while (1) switch (_context8.p = _context8.n) {
         case 0:
-          _context7.p = 0;
+          _context8.p = 0;
           console.log('Starting Cloudinary upload...');
           console.log('Config check:', {
             cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
@@ -2067,13 +2127,13 @@ function _uploadToCloudinary() {
 
           // Verify config
           if (CONFIG.CLOUDINARY_CLOUD_NAME) {
-            _context7.n = 1;
+            _context8.n = 1;
             break;
           }
           throw new Error('Cloudinary cloud name not configured');
         case 1:
           if (CONFIG.CLOUDINARY_UPLOAD_PRESET) {
-            _context7.n = 2;
+            _context8.n = 2;
             break;
           }
           throw new Error('Cloudinary upload preset not configured');
@@ -2099,20 +2159,20 @@ function _uploadToCloudinary() {
           });
 
           // Actually upload
-          _context7.n = 3;
+          _context8.n = 3;
           return fetch("https://api.cloudinary.com/v1_1/".concat(CONFIG.CLOUDINARY_CLOUD_NAME, "/video/upload"), {
             method: 'POST',
             body: formData
           });
         case 3:
-          response = _context7.v;
-          _context7.n = 4;
+          response = _context8.v;
+          _context8.n = 4;
           return response.text();
         case 4:
-          responseText = _context7.v;
+          responseText = _context8.v;
           console.log('Cloudinary response:', responseText);
           if (response.ok) {
-            _context7.n = 5;
+            _context8.n = 5;
             break;
           }
           // Parse error details
@@ -2129,7 +2189,7 @@ function _uploadToCloudinary() {
           // Parse successful response
           result = JSON.parse(responseText);
           console.log('Cloudinary upload successful:', result);
-          return _context7.a(2, {
+          return _context8.a(2, {
             success: true,
             url: result.secure_url,
             publicId: result.public_id,
@@ -2138,15 +2198,15 @@ function _uploadToCloudinary() {
             duration: result.duration
           });
         case 6:
-          _context7.p = 6;
-          _t8 = _context7.v;
-          console.error('Cloudinary upload failed:', _t8);
-          return _context7.a(2, {
+          _context8.p = 6;
+          _t9 = _context8.v;
+          console.error('Cloudinary upload failed:', _t9);
+          return _context8.a(2, {
             success: false,
-            error: _t8.message
+            error: _t9.message
           });
       }
-    }, _callee7, null, [[0, 6]]);
+    }, _callee8, null, [[0, 6]]);
   }));
   return _uploadToCloudinary.apply(this, arguments);
 }
@@ -2154,7 +2214,7 @@ function makeTinyTestVideo() {
   return _makeTinyTestVideo.apply(this, arguments);
 }
 function _makeTinyTestVideo() {
-  _makeTinyTestVideo = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
+  _makeTinyTestVideo = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
     var _MediaRecorder, _MediaRecorder$isType, _MediaRecorder2, _MediaRecorder2$isTyp, _canvas$captureStream;
     var _ref3,
       _ref3$ms,
@@ -2169,11 +2229,11 @@ function _makeTinyTestVideo() {
       chunks,
       t,
       drawId,
-      _args8 = arguments;
-    return _regenerator().w(function (_context8) {
-      while (1) switch (_context8.n) {
+      _args9 = arguments;
+    return _regenerator().w(function (_context9) {
+      while (1) switch (_context9.n) {
         case 0:
-          _ref3 = _args8.length > 0 && _args8[0] !== undefined ? _args8[0] : {}, _ref3$ms = _ref3.ms, ms = _ref3$ms === void 0 ? 800 : _ref3$ms, _ref3$fps = _ref3.fps, fps = _ref3$fps === void 0 ? 10 : _ref3$fps;
+          _ref3 = _args9.length > 0 && _args9[0] !== undefined ? _args9[0] : {}, _ref3$ms = _ref3.ms, ms = _ref3$ms === void 0 ? 800 : _ref3$ms, _ref3$fps = _ref3.fps, fps = _ref3$fps === void 0 ? 10 : _ref3$fps;
           canvas = document.createElement('canvas');
           canvas.width = 64;
           canvas.height = 64;
@@ -2181,7 +2241,7 @@ function _makeTinyTestVideo() {
           mime = (_MediaRecorder = MediaRecorder) !== null && _MediaRecorder !== void 0 && (_MediaRecorder$isType = _MediaRecorder.isTypeSupported) !== null && _MediaRecorder$isType !== void 0 && _MediaRecorder$isType.call(_MediaRecorder, 'video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : (_MediaRecorder2 = MediaRecorder) !== null && _MediaRecorder2 !== void 0 && (_MediaRecorder2$isTyp = _MediaRecorder2.isTypeSupported) !== null && _MediaRecorder2$isTyp !== void 0 && _MediaRecorder2$isTyp.call(_MediaRecorder2, 'video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
           stream = (_canvas$captureStream = canvas.captureStream) === null || _canvas$captureStream === void 0 ? void 0 : _canvas$captureStream.call(canvas, fps);
           if (stream) {
-            _context8.n = 1;
+            _context9.n = 1;
             break;
           }
           throw new Error('Canvas captureStream is not supported in this browser');
@@ -2205,13 +2265,13 @@ function _makeTinyTestVideo() {
             t++;
           }, Math.round(1000 / fps));
           rec.start(100);
-          _context8.n = 2;
+          _context9.n = 2;
           return new Promise(function (r) {
             return setTimeout(r, ms);
           });
         case 2:
           rec.stop();
-          _context8.n = 3;
+          _context9.n = 3;
           return new Promise(function (r) {
             return rec.onstop = r;
           });
@@ -2220,11 +2280,11 @@ function _makeTinyTestVideo() {
           stream.getTracks().forEach(function (tr) {
             return tr.stop();
           });
-          return _context8.a(2, new Blob(chunks, {
+          return _context9.a(2, new Blob(chunks, {
             type: 'video/webm'
           }));
       }
-    }, _callee8);
+    }, _callee9);
   }));
   return _makeTinyTestVideo.apply(this, arguments);
 }
@@ -2232,10 +2292,10 @@ function testCloudinaryUpload() {
   return _testCloudinaryUpload.apply(this, arguments);
 } // Add to your window exports at the bottom
 function _testCloudinaryUpload() {
-  _testCloudinaryUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
-    var blob, input, file, result, _t9;
-    return _regenerator().w(function (_context9) {
-      while (1) switch (_context9.p = _context9.n) {
+  _testCloudinaryUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    var blob, input, file, result, _t0;
+    return _regenerator().w(function (_context0) {
+      while (1) switch (_context0.p = _context0.n) {
         case 0:
           console.log('🧪 Testing Cloudinary setup...');
           console.log('Config check:', {
@@ -2244,28 +2304,28 @@ function _testCloudinaryUpload() {
             folder: 'spatial-cognition-videos'
           });
           if (!(!CONFIG.CLOUDINARY_CLOUD_NAME || !CONFIG.CLOUDINARY_UPLOAD_PRESET)) {
-            _context9.n = 1;
+            _context0.n = 1;
             break;
           }
           alert('Set CONFIG.CLOUDINARY_CLOUD_NAME and CONFIG.CLOUDINARY_UPLOAD_PRESET first.');
-          return _context9.a(2);
+          return _context0.a(2);
         case 1:
-          _context9.p = 1;
-          _context9.n = 2;
+          _context0.p = 1;
+          _context0.n = 2;
           return makeTinyTestVideo();
         case 2:
-          blob = _context9.v;
-          _context9.n = 6;
+          blob = _context0.v;
+          _context0.n = 6;
           break;
         case 3:
-          _context9.p = 3;
-          _t9 = _context9.v;
+          _context0.p = 3;
+          _t0 = _context0.v;
           // Fallback: let you pick any small mp4 or webm
           input = document.createElement('input');
           input.type = 'file';
           input.accept = 'video/mp4,video/webm,video/quicktime';
           input.click();
-          _context9.n = 4;
+          _context0.n = 4;
           return new Promise(function (resolve) {
             return input.onchange = function () {
               var _input$files;
@@ -2273,20 +2333,20 @@ function _testCloudinaryUpload() {
             };
           });
         case 4:
-          file = _context9.v;
+          file = _context0.v;
           if (file) {
-            _context9.n = 5;
+            _context0.n = 5;
             break;
           }
           alert('No file selected.');
-          return _context9.a(2);
+          return _context0.a(2);
         case 5:
           blob = file;
         case 6:
-          _context9.n = 7;
+          _context0.n = 7;
           return uploadToCloudinary(blob, 'TEST_' + Date.now(), 1);
         case 7:
-          result = _context9.v;
+          result = _context0.v;
           if (result.success) {
             console.log('✅ SUCCESS! Video URL:', result.url);
             alert('Cloudinary is working! URL: ' + result.url);
@@ -2295,9 +2355,9 @@ function _testCloudinaryUpload() {
             alert('Cloudinary setup has an issue: ' + result.error);
           }
         case 8:
-          return _context9.a(2);
+          return _context0.a(2);
       }
-    }, _callee9, null, [[1, 3]]);
+    }, _callee0, null, [[1, 3]]);
   }));
   return _testCloudinaryUpload.apply(this, arguments);
 }
@@ -2306,29 +2366,29 @@ function uploadVideoToDrive(_x5, _x6, _x7) {
   return _uploadVideoToDrive.apply(this, arguments);
 }
 function _uploadVideoToDrive() {
-  _uploadVideoToDrive = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(videoBlob, sessionCode, imageNumber) {
-    var cloudinaryResult, _t0;
-    return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.p = _context0.n) {
+  _uploadVideoToDrive = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(videoBlob, sessionCode, imageNumber) {
+    var cloudinaryResult, _t1;
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.p = _context1.n) {
         case 0:
-          _context0.p = 0;
+          _context1.p = 0;
           updateUploadProgress(5, 'Starting upload...');
 
           // TRY CLOUDINARY FIRST (NEW!)
           console.log('Trying Cloudinary first...');
           updateUploadProgress(10, 'Uploading to cloud storage...');
-          _context0.n = 1;
+          _context1.n = 1;
           return uploadToCloudinary(videoBlob, sessionCode, imageNumber);
         case 1:
-          cloudinaryResult = _context0.v;
+          cloudinaryResult = _context1.v;
           if (!cloudinaryResult.success) {
-            _context0.n = 3;
+            _context1.n = 3;
             break;
           }
           updateUploadProgress(100, 'Upload complete!');
 
           // Log to Google Sheets (just the URL, not the video data)
-          _context0.n = 2;
+          _context1.n = 2;
           return sendToSheets({
             action: 'log_video_upload',
             sessionCode: sessionCode,
@@ -2343,7 +2403,7 @@ function _uploadVideoToDrive() {
             uploadStatus: 'success'
           });
         case 2:
-          return _context0.a(2, {
+          return _context1.a(2, {
             success: true,
             filename: cloudinaryResult.publicId,
             fileId: cloudinaryResult.publicId,
@@ -2356,25 +2416,25 @@ function _uploadVideoToDrive() {
 
           // YOUR EXISTING GOOGLE DRIVE CODE STAYS AS FALLBACK
           // (Keep your existing code here as backup)
-          _context0.n = 4;
+          _context1.n = 4;
           return uploadToGoogleDrive(videoBlob, sessionCode, imageNumber);
         case 4:
-          return _context0.a(2, _context0.v);
+          return _context1.a(2, _context1.v);
         case 5:
-          _context0.n = 7;
+          _context1.n = 7;
           break;
         case 6:
-          _context0.p = 6;
-          _t0 = _context0.v;
-          console.error('All upload methods failed:', _t0);
-          return _context0.a(2, {
+          _context1.p = 6;
+          _t1 = _context1.v;
+          console.error('All upload methods failed:', _t1);
+          return _context1.a(2, {
             success: false,
-            error: _t0.message
+            error: _t1.message
           });
         case 7:
-          return _context0.a(2);
+          return _context1.a(2);
       }
-    }, _callee0, null, [[0, 6]]);
+    }, _callee1, null, [[0, 6]]);
   }));
   return _uploadVideoToDrive.apply(this, arguments);
 }
@@ -2382,12 +2442,12 @@ function uploadToGoogleDrive(_x8, _x9, _x0) {
   return _uploadToGoogleDrive.apply(this, arguments);
 } // Add this NEW function after uploadVideoToDrive
 function _uploadToGoogleDrive() {
-  _uploadToGoogleDrive = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(videoBlob, sessionCode, imageNumber) {
-    var videoFormat, ext, sizeLimits, maxSize, currentMB, maxMB, base64DataUrl, base64VideoData, uploadData, response, result, contentType, text, _t1, _t10;
-    return _regenerator().w(function (_context1) {
-      while (1) switch (_context1.p = _context1.n) {
+  _uploadToGoogleDrive = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(videoBlob, sessionCode, imageNumber) {
+    var videoFormat, ext, sizeLimits, maxSize, currentMB, maxMB, base64DataUrl, base64VideoData, uploadData, response, result, contentType, text, _t10, _t11;
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.p = _context10.n) {
         case 0:
-          _context1.p = 0;
+          _context10.p = 0;
           updateUploadProgress(15, 'Preparing upload…');
 
           // Detect format from blob metadata, with multiple fallbacks
@@ -2429,7 +2489,7 @@ function _uploadToGoogleDrive() {
           };
           maxSize = sizeLimits[videoFormat] || 35 * 1024 * 1024;
           if (!(videoBlob.size > maxSize)) {
-            _context1.n = 1;
+            _context10.n = 1;
             break;
           }
           currentMB = (videoBlob.size / (1024 * 1024)).toFixed(1);
@@ -2437,10 +2497,10 @@ function _uploadToGoogleDrive() {
           throw new Error("Video too large: ".concat(currentMB, "MB. Maximum for ").concat(videoFormat.toUpperCase(), ": ").concat(maxMB, "MB. Please record a shorter video (30-45 seconds)."));
         case 1:
           updateUploadProgress(20, "Converting ".concat(videoFormat, " for upload..."));
-          _context1.n = 2;
+          _context10.n = 2;
           return blobToBase64(videoBlob);
         case 2:
-          base64DataUrl = _context1.v;
+          base64DataUrl = _context10.v;
           base64VideoData = base64DataUrl.split(',')[1] || base64DataUrl.split(',').pop();
           updateUploadProgress(25, 'Encoding complete...');
           uploadData = {
@@ -2458,7 +2518,7 @@ function _uploadToGoogleDrive() {
             timestamp: new Date().toISOString()
           };
           updateUploadProgress(30, "Uploading ".concat(videoFormat.toUpperCase(), " to Google Drive..."));
-          _context1.n = 3;
+          _context10.n = 3;
           return fetch(CONFIG.SHEETS_URL, {
             method: 'POST',
             headers: {
@@ -2467,42 +2527,42 @@ function _uploadToGoogleDrive() {
             body: JSON.stringify(uploadData)
           });
         case 3:
-          response = _context1.v;
+          response = _context10.v;
           updateUploadProgress(75, 'Processing response...');
           contentType = response.headers.get('content-type');
           if (!(contentType && contentType.includes('application/json'))) {
-            _context1.n = 5;
+            _context10.n = 5;
             break;
           }
-          _context1.n = 4;
+          _context10.n = 4;
           return response.json();
         case 4:
-          result = _context1.v;
-          _context1.n = 9;
+          result = _context10.v;
+          _context10.n = 9;
           break;
         case 5:
-          _context1.n = 6;
+          _context10.n = 6;
           return response.text();
         case 6:
-          text = _context1.v;
-          _context1.p = 7;
+          text = _context10.v;
+          _context10.p = 7;
           result = JSON.parse(text);
-          _context1.n = 9;
+          _context10.n = 9;
           break;
         case 8:
-          _context1.p = 8;
-          _t1 = _context1.v;
+          _context10.p = 8;
+          _t10 = _context10.v;
           console.error('Response text:', text);
           throw new Error('Invalid response format from server');
         case 9:
           if (!(!response.ok || !result.success)) {
-            _context1.n = 10;
+            _context10.n = 10;
             break;
           }
           throw new Error(result.error || result.details || "Upload failed (".concat(response.status, ")"));
         case 10:
           updateUploadProgress(100, 'Upload complete!');
-          return _context1.a(2, {
+          return _context10.a(2, {
             success: true,
             filename: result.filename,
             fileId: result.fileId,
@@ -2510,15 +2570,15 @@ function _uploadToGoogleDrive() {
             format: result.format || videoFormat
           });
         case 11:
-          _context1.p = 11;
-          _t10 = _context1.v;
-          console.error('Google Drive upload error:', _t10);
-          return _context1.a(2, {
+          _context10.p = 11;
+          _t11 = _context10.v;
+          console.error('Google Drive upload error:', _t11);
+          return _context10.a(2, {
             success: false,
-            error: _t10.message || String(_t10)
+            error: _t11.message || String(_t11)
           });
       }
-    }, _callee1, null, [[7, 8], [0, 11]]);
+    }, _callee10, null, [[7, 8], [0, 11]]);
   }));
   return _uploadToGoogleDrive.apply(this, arguments);
 }
@@ -2561,60 +2621,60 @@ function processUploadQueue() {
   return _processUploadQueue.apply(this, arguments);
 }
 function _processUploadQueue() {
-  _processUploadQueue = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
-    var item, uploadResult, _t11;
-    return _regenerator().w(function (_context10) {
-      while (1) switch (_context10.p = _context10.n) {
+  _processUploadQueue = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
+    var item, uploadResult, _t12;
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.p = _context11.n) {
         case 0:
           if (!(state.processingUpload || state.uploadQueue.length === 0)) {
-            _context10.n = 1;
+            _context11.n = 1;
             break;
           }
-          return _context10.a(2);
+          return _context11.a(2);
         case 1:
           state.processingUpload = true;
           item = state.uploadQueue[0];
-          _context10.p = 2;
-          _context10.n = 3;
+          _context11.p = 2;
+          _context11.n = 3;
           return uploadVideoToDrive(item.blob, item.sessionCode, item.imageNumber);
         case 3:
-          uploadResult = _context10.v;
+          uploadResult = _context11.v;
           if (!uploadResult.success) {
-            _context10.n = 4;
+            _context11.n = 4;
             break;
           }
           handleUploadSuccess(uploadResult, item.imageNumber, item.blob);
           state.uploadQueue.shift();
-          _context10.n = 5;
+          _context11.n = 5;
           break;
         case 4:
           throw new Error(uploadResult.error || 'Upload failed');
         case 5:
-          _context10.n = 8;
+          _context11.n = 8;
           break;
         case 6:
-          _context10.p = 6;
-          _t11 = _context10.v;
+          _context11.p = 6;
+          _t12 = _context11.v;
           item.attempts++;
           if (!(item.attempts < 3)) {
-            _context10.n = 7;
+            _context11.n = 7;
             break;
           }
           setTimeout(function () {
             state.processingUpload = false;
             processUploadQueue();
           }, 5000 * item.attempts);
-          return _context10.a(2);
+          return _context11.a(2);
         case 7:
           state.uploadQueue.shift();
-          showUploadError(_t11, item.imageNumber, item.blob);
+          showUploadError(_t12, item.imageNumber, item.blob);
         case 8:
           state.processingUpload = false;
           if (state.uploadQueue.length > 0) processUploadQueue();
         case 9:
-          return _context10.a(2);
+          return _context11.a(2);
       }
-    }, _callee10, null, [[2, 6]]);
+    }, _callee11, null, [[2, 6]]);
   }));
   return _processUploadQueue.apply(this, arguments);
 }
@@ -2699,17 +2759,17 @@ function retryVideoUpload() {
   return _retryVideoUpload.apply(this, arguments);
 }
 function _retryVideoUpload() {
-  _retryVideoUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
-    return _regenerator().w(function (_context11) {
-      while (1) switch (_context11.n) {
+  _retryVideoUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
+    return _regenerator().w(function (_context12) {
+      while (1) switch (_context12.n) {
         case 0:
           document.getElementById('recording-error').style.display = 'none';
-          _context11.n = 1;
+          _context12.n = 1;
           return saveRecording();
         case 1:
-          return _context11.a(2);
+          return _context12.a(2);
       }
-    }, _callee11);
+    }, _callee12);
   }));
   return _retryVideoUpload.apply(this, arguments);
 }
@@ -2771,34 +2831,34 @@ function skipRecording() {
   return _skipRecording.apply(this, arguments);
 }
 function _skipRecording() {
-  _skipRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
-    var _t12;
-    return _regenerator().w(function (_context12) {
-      while (1) switch (_context12.p = _context12.n) {
+  _skipRecording = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13() {
+    var _t13;
+    return _regenerator().w(function (_context13) {
+      while (1) switch (_context13.p = _context13.n) {
         case 0:
           if (confirm('Unable to complete the image description task?')) {
-            _context12.n = 1;
+            _context13.n = 1;
             break;
           }
-          return _context12.a(2);
+          return _context13.a(2);
         case 1:
-          _context12.p = 1;
-          _context12.n = 2;
+          _context13.p = 1;
+          _context13.n = 2;
           return cleanupRecording();
         case 2:
-          _context12.n = 4;
+          _context13.n = 4;
           break;
         case 3:
-          _context12.p = 3;
-          _t12 = _context12.v;
-          console.warn('Cleanup on skip failed silently:', _t12);
+          _context13.p = 3;
+          _t13 = _context13.v;
+          console.warn('Cleanup on skip failed silently:', _t13);
         case 4:
           ensureTaskPointer('ID');
           skipTask('ID');
         case 5:
-          return _context12.a(2);
+          return _context13.a(2);
       }
-    }, _callee12, null, [[1, 3]]);
+    }, _callee13, null, [[1, 3]]);
   }));
   return _skipRecording.apply(this, arguments);
 }
@@ -2912,10 +2972,10 @@ function markComplete() {
   return _markComplete.apply(this, arguments);
 } // ----- Utilities -----
 function _markComplete() {
-  _markComplete = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13() {
+  _markComplete = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
     var sessSummary, btn;
-    return _regenerator().w(function (_context13) {
-      while (1) switch (_context13.n) {
+    return _regenerator().w(function (_context14) {
+      while (1) switch (_context14.n) {
         case 0:
           if (sessionTimer.startTime && !sessionTimer.endTime) sessionTimer.stop();
           sessSummary = sessionTimer.getSummary();
@@ -2923,7 +2983,7 @@ function _markComplete() {
           logSessionTime('final', sessSummary);
           btn = document.getElementById('mark-complete-btn');
           btn.disabled = true;
-          _context13.n = 1;
+          _context14.n = 1;
           return sendToSheets({
             action: 'study_completed',
             sessionCode: state.sessionCode,
@@ -2935,9 +2995,9 @@ function _markComplete() {
         case 1:
           document.getElementById('completion-message').style.display = 'block';
         case 2:
-          return _context13.a(2);
+          return _context14.a(2);
       }
-    }, _callee13);
+    }, _callee14);
   }));
   return _markComplete.apply(this, arguments);
 }
@@ -3175,31 +3235,31 @@ function skipTaskProceed(_x1) {
   return _skipTaskProceed.apply(this, arguments);
 }
 function _skipTaskProceed() {
-  _skipTaskProceed = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(taskCode) {
-    var _t13;
-    return _regenerator().w(function (_context14) {
-      while (1) switch (_context14.p = _context14.n) {
+  _skipTaskProceed = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(taskCode) {
+    var _t14;
+    return _regenerator().w(function (_context15) {
+      while (1) switch (_context15.p = _context15.n) {
         case 0:
           if (!(taskCode === 'ID')) {
-            _context14.n = 4;
+            _context15.n = 4;
             break;
           }
-          _context14.p = 1;
-          _context14.n = 2;
+          _context15.p = 1;
+          _context15.n = 2;
           return cleanupRecording();
         case 2:
-          _context14.n = 4;
+          _context15.n = 4;
           break;
         case 3:
-          _context14.p = 3;
-          _t13 = _context14.v;
+          _context15.p = 3;
+          _t14 = _context15.v;
         case 4:
           // Call your existing skip function
           skipTask(taskCode);
         case 5:
-          return _context14.a(2);
+          return _context15.a(2);
       }
-    }, _callee14, null, [[1, 3]]);
+    }, _callee15, null, [[1, 3]]);
   }));
   return _skipTaskProceed.apply(this, arguments);
 }
@@ -3233,23 +3293,23 @@ function sendToSheets(_x10) {
   return _sendToSheets.apply(this, arguments);
 }
 function _sendToSheets() {
-  _sendToSheets = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(payload) {
-    var body, _t14;
-    return _regenerator().w(function (_context15) {
-      while (1) switch (_context15.p = _context15.n) {
+  _sendToSheets = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(payload) {
+    var body, _t15;
+    return _regenerator().w(function (_context16) {
+      while (1) switch (_context16.p = _context16.n) {
         case 0:
           if (CONFIG.SHEETS_URL) {
-            _context15.n = 1;
+            _context16.n = 1;
             break;
           }
-          return _context15.a(2);
+          return _context16.a(2);
         case 1:
           body = _objectSpread(_objectSpread({}, payload), {}, {
             userAgent: navigator.userAgent,
             deviceType: payload.deviceType || (state.isMobile ? 'mobile/tablet' : 'desktop')
           });
-          _context15.p = 2;
-          _context15.n = 3;
+          _context16.p = 2;
+          _context16.n = 3;
           return fetch(CONFIG.SHEETS_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -3260,16 +3320,16 @@ function _sendToSheets() {
             body: JSON.stringify(body)
           });
         case 3:
-          _context15.n = 5;
+          _context16.n = 5;
           break;
         case 4:
-          _context15.p = 4;
-          _t14 = _context15.v;
-          console.error('Error sending to sheets:', _t14);
+          _context16.p = 4;
+          _t15 = _context16.v;
+          console.error('Error sending to sheets:', _t15);
         case 5:
-          return _context15.a(2);
+          return _context16.a(2);
       }
-    }, _callee15, null, [[2, 4]]);
+    }, _callee16, null, [[2, 4]]);
   }));
   return _sendToSheets.apply(this, arguments);
 }
@@ -3293,10 +3353,10 @@ function debugVideoUpload() {
   return _debugVideoUpload.apply(this, arguments);
 } // Expose to window
 function _debugVideoUpload() {
-  _debugVideoUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16() {
-    var res, text, payload, testData, testBlob, base64Data, base64VideoData, uploadData, uploadResponse, uploadText, uploadResult, _t15, _t16;
-    return _regenerator().w(function (_context16) {
-      while (1) switch (_context16.p = _context16.n) {
+  _debugVideoUpload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
+    var res, text, payload, testData, testBlob, base64Data, base64VideoData, uploadData, uploadResponse, uploadText, uploadResult, _t16, _t17;
+    return _regenerator().w(function (_context17) {
+      while (1) switch (_context17.p = _context17.n) {
         case 0:
           console.log('🔍 Starting video upload debug...');
 
@@ -3307,8 +3367,8 @@ function _debugVideoUpload() {
 
           // Test 2: Test basic connection
           console.log('2. Testing basic connection...');
-          _context16.p = 1;
-          _context16.n = 2;
+          _context17.p = 1;
+          _context17.n = 2;
           return fetch(CONFIG.SHEETS_URL, {
             method: 'POST',
             headers: {
@@ -3320,7 +3380,7 @@ function _debugVideoUpload() {
             })
           });
         case 2:
-          res = _context16.v;
+          res = _context17.v;
           console.log('✅ Connection response:', {
             status: res.status,
             ok: res.ok,
@@ -3329,27 +3389,27 @@ function _debugVideoUpload() {
           });
 
           // Handle response carefully
-          _context16.n = 3;
+          _context17.n = 3;
           return res.text();
         case 3:
-          text = _context16.v;
+          text = _context17.v;
           try {
             payload = JSON.parse(text);
           } catch (_unused2) {
             payload = text;
           }
           console.log('✅ Connection result:', payload);
-          _context16.n = 5;
+          _context17.n = 5;
           break;
         case 4:
-          _context16.p = 4;
-          _t15 = _context16.v;
-          console.error('❌ Connection failed:', _t15);
-          return _context16.a(2);
+          _context17.p = 4;
+          _t16 = _context17.v;
+          console.error('❌ Connection failed:', _t16);
+          return _context17.a(2);
         case 5:
           // Test 3: Create a tiny test video blob
           console.log('3. Creating test video blob...');
-          _context16.p = 6;
+          _context17.p = 6;
           // Create a minimal test "video" (just some bytes)
           testData = new Uint8Array([0x1A, 0x45, 0xDF, 0xA3]); // WebM magic number
           testBlob = new Blob([testData], {
@@ -3362,10 +3422,10 @@ function _debugVideoUpload() {
 
           // Test 4: Test base64 conversion
           console.log('4. Testing base64 conversion...');
-          _context16.n = 7;
+          _context17.n = 7;
           return blobToBase64(testBlob);
         case 7:
-          base64Data = _context16.v;
+          base64Data = _context17.v;
           base64VideoData = base64Data.split(',')[1];
           console.log('✅ Base64 conversion successful:', {
             originalSize: testBlob.size,
@@ -3382,7 +3442,7 @@ function _debugVideoUpload() {
             mimeType: testBlob.type,
             timestamp: new Date().toISOString()
           };
-          _context16.n = 8;
+          _context17.n = 8;
           return fetch(CONFIG.SHEETS_URL, {
             method: 'POST',
             headers: {
@@ -3391,17 +3451,17 @@ function _debugVideoUpload() {
             body: JSON.stringify(uploadData)
           });
         case 8:
-          uploadResponse = _context16.v;
+          uploadResponse = _context17.v;
           console.log('Upload response:', {
             status: uploadResponse.status,
             ok: uploadResponse.ok,
             statusText: uploadResponse.statusText,
             contentType: uploadResponse.headers.get('content-type')
           });
-          _context16.n = 9;
+          _context17.n = 9;
           return uploadResponse.text();
         case 9:
-          uploadText = _context16.v;
+          uploadText = _context17.v;
           try {
             uploadResult = JSON.parse(uploadText);
           } catch (_unused3) {
@@ -3418,18 +3478,18 @@ function _debugVideoUpload() {
           } else {
             console.error('❌ Upload failed:', uploadResult);
           }
-          _context16.n = 11;
+          _context17.n = 11;
           break;
         case 10:
-          _context16.p = 10;
-          _t16 = _context16.v;
-          console.error('❌ Debug test failed:', _t16);
+          _context17.p = 10;
+          _t17 = _context17.v;
+          console.error('❌ Debug test failed:', _t17);
         case 11:
           console.log('🔍 Debug complete! Check the console messages above.');
         case 12:
-          return _context16.a(2);
+          return _context17.a(2);
       }
-    }, _callee16, null, [[6, 10], [1, 4]]);
+    }, _callee17, null, [[6, 10], [1, 4]]);
   }));
   return _debugVideoUpload.apply(this, arguments);
 }
