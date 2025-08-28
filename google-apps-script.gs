@@ -274,7 +274,8 @@ function doPost(e) {
             uploadTime: data.timestamp,
             uploadMethod: data.uploadMethod || 'unknown',
             dropboxPath: data.dropboxPath || '',
-            uploadStatus: data.uploadStatus || 'success'
+            uploadStatus: data.uploadStatus || 'success',
+            mimeType: data.mimeType || ''
           });
         });
         break;
@@ -292,7 +293,8 @@ function doPost(e) {
             uploadTime: data.timestamp,
             uploadMethod: data.uploadMethod || 'local_only',
             dropboxPath: '',
-            uploadStatus: data.uploadStatus || 'skipped'
+            uploadStatus: data.uploadStatus || 'skipped',
+            mimeType: data.mimeType || ''
           });
         });
         break;
@@ -752,6 +754,14 @@ function safeSetupOrMigrate_() {
 // ===============================
 // Video upload
 // ===============================
+function getExtensionFromMime_(mime) {
+  mime = (mime || '').toLowerCase();
+  if (mime.indexOf('mp4') !== -1 || mime.indexOf('m4a') !== -1) return 'mp4';
+  if (mime.indexOf('ogg') !== -1) return 'ogg';
+  if (mime.indexOf('wav') !== -1) return 'wav';
+  if (mime.indexOf('webm') !== -1) return 'webm';
+  return 'bin';
+}
 function handleVideoUpload(data) {
   try {
     console.log('Starting video upload for session:', data.sessionCode);
@@ -773,10 +783,12 @@ function handleVideoUpload(data) {
     }
 
     var ts = new Date().toISOString().replace(/[:.]/g, '-');
-    var filename = data.sessionCode + '_image' + data.imageNumber + '_' + ts + '.webm';
+    var mime = data.mimeType || 'video/webm';
+    var extension = getExtensionFromMime_(mime);
+    var filename = data.sessionCode + '_image' + data.imageNumber + '_' + ts + '.' + extension;
 
     var result = withDocLock_(function () {
-      var blob = Utilities.newBlob(bytes, 'video/webm', filename);
+      var blob = Utilities.newBlob(bytes, mime, filename);
       var file = participantFolder.createFile(blob);
 
       try {
@@ -1387,21 +1399,22 @@ function logImageRecorded(ss, data) {
   withDocLock_(function () {
     var p = ss.getSheetByName('Task Progress');
     var dev = detectDeviceType_(data).label;
+    var recType = (data.recordingType || 'video');
     p.appendRow([
       data.timestamp,
       data.sessionCode,
       data.participantID || '',
       dev,
       'Image Description',
-      'Image ' + data.imageNumber + ' Recorded',
+      'Image ' + data.imageNumber + ' Recorded (' + recType + ')',
       '', '', 0, 0, 0, 0, 0,
-      'Image ' + data.imageNumber + '/2',
+      'Image ' + data.imageNumber + '/2 (' + recType + ')',
       false
     ]);
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
       eventType: 'Image Recorded',
-      details: 'Image ' + data.imageNumber + '/2',
+      details: 'Image ' + data.imageNumber + '/2 (' + recType + ')',
       timestamp: data.timestamp
     });
   });
@@ -1411,21 +1424,22 @@ function logImageRecordedAndUploaded(ss, data) {
   withDocLock_(function () {
     var p = ss.getSheetByName('Task Progress');
     var dev = detectDeviceType_(data).label;
+    var recType = (data.recordingType || 'video');
     p.appendRow([
       data.timestamp,
       data.sessionCode,
       data.participantID || '',
       dev,
       'Image Description',
-      'Image ' + data.imageNumber + ' Recorded & Uploaded',
+      'Image ' + data.imageNumber + ' Recorded & Uploaded (' + recType + ')',
       '', '', 0, 0, 0, 0, 0,
-      'File: ' + data.filename,
+      'File: ' + data.filename + ' (' + recType + ')',
       false
     ]);
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
       eventType: 'Image Recorded & Uploaded',
-      details: 'Image ' + data.imageNumber + '/2 - File: ' + data.filename + ' - ID: ' + data.driveFileId + ' - Method: ' + (data.uploadMethod || 'unknown'),
+      details: 'Image ' + data.imageNumber + '/2 - File: ' + data.filename + ' (' + recType + ') - ID: ' + data.driveFileId + ' - Method: ' + (data.uploadMethod || 'unknown'),
       timestamp: data.timestamp
     });
   });
@@ -1435,21 +1449,22 @@ function logImageRecordedNoUpload(ss, data) {
   withDocLock_(function () {
     var p = ss.getSheetByName('Task Progress');
     var dev = detectDeviceType_(data).label;
+    var recType = (data.recordingType || 'video');
     p.appendRow([
       data.timestamp,
       data.sessionCode,
       data.participantID || '',
       dev,
       'Image Description',
-      'Image ' + data.imageNumber + ' Recorded (Local Only)',
+      'Image ' + data.imageNumber + ' Recorded (Local Only - ' + recType + ')',
       '', '', 0, 0, 0, 0, 0,
-      'Reason: ' + data.reason,
+      'Reason: ' + data.reason + ' (' + recType + ')',
       false
     ]);
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
       eventType: 'Image Recorded (No Upload)',
-      details: 'Image ' + data.imageNumber + '/2 - Reason: ' + data.reason,
+      details: 'Image ' + data.imageNumber + '/2 - ' + recType + ' - Reason: ' + data.reason,
       timestamp: data.timestamp
     });
   });
@@ -1459,22 +1474,23 @@ function logVideoRecording(ss, data) {
   withDocLock_(function () {
     var p = ss.getSheetByName('Task Progress');
     var dev = detectDeviceType_(data).label;
+    var recType = (data.recordingType || 'video');
     p.appendRow([
       data.timestamp,
       data.sessionCode,
       data.participantID || '',
       dev,
       'Image Description',
-      'Video Recorded - Image ' + data.imageNumber,
+      'Recording Completed - Image ' + data.imageNumber + ' (' + recType + ')',
       '', '', 0, 0, 0, 0, 0,
-      'Image ' + data.imageNumber + ' of 2 recorded',
+      'Image ' + data.imageNumber + ' of 2 recorded (' + recType + ')',
       false
     ]);
 
     logSessionEvent(ss, {
       sessionCode: data.sessionCode,
-      eventType: 'Video Recording',
-      details: 'Image ' + data.imageNumber + ' recorded',
+      eventType: 'Recording Completed',
+      details: 'Image ' + data.imageNumber + ' recorded (' + recType + ')',
       timestamp: data.timestamp
     });
   });
