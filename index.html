@@ -2264,13 +2264,21 @@ if (instructionBox) {
         throw { code: 'NO_MEDIADEVICES', message: 'This browser does not support in-page recording.' };
       }
       let cam = 'unknown', mic = 'unknown';
-      try {
-        const camPerm = await navigator.permissions.query({ name: 'camera' });
-        const micPerm = await navigator.permissions.query({ name: 'microphone' });
-        cam = camPerm?.state || 'unknown';
-        mic = micPerm?.state || 'unknown';
-      } catch(e) {}
-      return { cam, mic };
+      let permissionsChecked = false;
+      if (navigator.permissions?.query) {
+        try {
+          const camPerm = await navigator.permissions.query({ name: 'camera' });
+          const micPerm = await navigator.permissions.query({ name: 'microphone' });
+          cam = camPerm?.state || 'unknown';
+          mic = micPerm?.state || 'unknown';
+          permissionsChecked = true;
+        } catch (e) {
+          console.warn('Permission query failed:', e);
+        }
+      } else {
+        console.warn('Permissions API not available; skipping permission pre-check.');
+      }
+      return { cam, mic, permissionsChecked };
     }
 
     function showRecordingError(html, showFallback = true) {
@@ -2372,12 +2380,14 @@ if (instructionBox) {
         try {
           // First check permissions
           const perm = await checkSecureAndPermissions();
-          if (perm.cam === 'denied' || perm.mic === 'denied') {
+          if (perm.permissionsChecked && (perm.cam === 'denied' || perm.mic === 'denied')) {
             const how = isIOS()
               ? 'Settings → Safari → Camera/Microphone → Allow for this site, then reload.'
               : 'Click the camera icon in the address bar and allow camera and microphone, then reload.';
             showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
             return;
+          } else if (!perm.permissionsChecked) {
+            console.warn('Permissions API unsupported; unable to pre-check camera/microphone permissions.');
           }
 
           // Try video first, fall back to audio-only if needed
@@ -2593,7 +2603,7 @@ if (instructionBox) {
         },
         'NotAllowedError': {
           title: 'Permission needed',
-          message: 'Please allow camera and/or microphone access. You may need to refresh the page after granting permission.',
+          message: 'Please allow camera and/or microphone access. If no prompt appeared, check your browser settings and refresh after granting permission.',
           showUpload: true
         },
         'NotFoundError': {
