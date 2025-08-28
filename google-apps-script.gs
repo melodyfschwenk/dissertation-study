@@ -1465,8 +1465,20 @@ function saveSessionState(ss, data) {
 
     var row = findRowBySessionCode_(sheet, data.sessionCode);
     if (row) {
-      sheet.getRange(row, stateIdx).setValue(JSON.stringify(data.state || {}));
+      var stateObj;
+      try {
+        stateObj = typeof data.state === 'string' ? JSON.parse(data.state) : (data.state || {});
+      } catch (e) {
+        stateObj = data.state || {};
+      }
+      sheet.getRange(row, stateIdx).setValue(JSON.stringify(stateObj));
       if (lastIdx) sheet.getRange(row, lastIdx).setValue(data.timestamp || new Date().toISOString());
+      if (stateObj && stateObj.consentStatus) {
+        var cols = ensureConsentColumns_(ss);
+        var status = stateObj.consentStatus.videoDeclined ? 'Declined'
+          : (stateObj.consentStatus.consent2 ? 'Complete' : 'Pending');
+        sheet.getRange(row, cols.status).setValue(status);
+      }
     }
   });
 }
@@ -2273,6 +2285,18 @@ function getSessionData(ss, sessionCode) {
     if (data[r][0] === sessionCode) {
       var activitySummary = getSessionActivitySummary(sessionCode);
       var activityTracking = getSessionActivityTracking(sessionCode);
+      var stateRaw = map['State JSON'] != null ? data[r][map['State JSON']] : '';
+      var c2 = false;
+      var vDeclined = false;
+      if (stateRaw) {
+        try {
+          var parsed = JSON.parse(stateRaw);
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+          var cs = parsed.consentStatus || {};
+          c2 = !!cs.consent2;
+          vDeclined = !!cs.videoDeclined;
+        } catch (e) {}
+      }
       return createCorsOutput({
         success: true,
         session: {
@@ -2288,7 +2312,9 @@ function getSessionData(ss, sessionCode) {
           status: map['Status'] != null ? data[r][map['Status']] : '',
           deviceType: map['Device Type'] != null ? data[r][map['Device Type']] : '',
           consentStatus: map['Consent Status'] != null ? data[r][map['Consent Status']] : '',
-          state: map['State JSON'] != null ? data[r][map['State JSON']] : ''
+          consent2: c2,
+          videoDeclined: vDeclined,
+          state: stateRaw
         },
         activity_tracking: activityTracking,
         activity_summary: activitySummary
