@@ -3456,10 +3456,11 @@ function _sendToSheets() {
           _context17.n = 3;
           return fetch(CONFIG.SHEETS_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
-              'Content-Type': 'text/plain;charset=utf-8'
+              'Content-Type': 'text/plain'
             },
-            // simple request, no preflight
+            // simple request, bypasses CORS preflight
             body: JSON.stringify(body)
           });
         case 3:
