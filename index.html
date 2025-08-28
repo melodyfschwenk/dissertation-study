@@ -2263,6 +2263,12 @@ if (instructionBox) {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw { code: 'NO_MEDIADEVICES', message: 'This browser does not support in-page recording.' };
       }
+      if (!window.MediaRecorder) {
+        throw {
+          code: 'NO_MEDIARECORDER',
+          message: 'This browser does not support in-page recording.'
+        };
+      }
       let cam = 'unknown', mic = 'unknown';
       let permissionsChecked = false;
       if (navigator.permissions?.query) {
@@ -2442,7 +2448,7 @@ if (instructionBox) {
           }
 
           if (!window.MediaRecorder) {
-            showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please use Chrome, Edge, or Firefox, or upload a recording below.</p>`);
+            showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please record using your device's camera or voice recorder, then upload the file below.</p>`);
             return;
           }
 
@@ -2614,6 +2620,11 @@ if (instructionBox) {
         'NotReadableError': {
           title: 'Device in use',
           message: 'Camera or microphone is being used by another application. Please close other apps and try again.',
+          showUpload: true
+        },
+        'NO_MEDIARECORDER': {
+          title: 'Recording not supported',
+          message: 'This browser cannot record directly. Use your device\'s camera or voice recorder and upload the file below.',
           showUpload: true
         }
       };
