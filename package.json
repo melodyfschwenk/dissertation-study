@@ -10,5 +10,8 @@
     "@babel/cli": "^7.24.0",
     "@babel/core": "^7.24.0",
     "@babel/preset-env": "^7.24.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
   }
 }
