@@ -11,6 +11,7 @@
     CLOUDINARY_UPLOAD_PRESET: "study_videos",
     CLOUDINARY_FOLDER: "spatial-cognition-videos"
   };
+  var CODE_REGEX = /^[A-Z0-9]{8}$/;
 
   // src/tasks.js
   var TASKS = {
@@ -879,8 +880,8 @@ Session code: ${state.sessionCode || ""}`);
   }
   async function resumeSession(codeFromLink) {
     const input = codeFromLink || document.getElementById("resume-code").value;
-    const code = input.toUpperCase();
-    if (code.length !== 8) {
+    const code = input.trim().toUpperCase();
+    if (!CODE_REGEX.test(code)) {
       alert("Please enter your 8-character resume code");
       return;
     }
