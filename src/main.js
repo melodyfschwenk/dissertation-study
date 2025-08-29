@@ -1,8 +1,7 @@
-import { CONFIG, CODE_REGEX, CONSENT_CODE_REGEX } from './config.js';
+import { CONFIG, CODE_REGEX } from './config.js';
 import {
   TASKS,
   getStandardTaskName,
-  CONSENTS,
   DESKTOP_TASKS,
   MOBILE_TASKS,
   mulberry32,
@@ -74,14 +73,6 @@ function closeEEGModal() {
   pauseStart: null,
   totalPausedTime: 0,
   lastPauseType: null,
-
-  consentStatus: { consent1: false, consent2: false, videoDeclined: false },
-
-  // ⬇️ ADD THIS INSIDE THE STATE OBJECT
-  consentVerify: {
-    consent1: { verified: false, method: null, note: '' },
-    consent2: { verified: false, method: null, note: '' }
-  },
 
   recording: {
     active: false, mediaRecorder: null, chunks: [], currentImage: 0, recordings: [],
@@ -430,8 +421,7 @@ function showScreen(screenId) {
   updateProgressBar();
 
   const crumbs = ['Home'];
-  if (screenId === 'consent-screen') crumbs.push('Consent');
-  else if (screenId === 'eeg-info') crumbs.push('EEG Info');
+  if (screenId === 'eeg-info') crumbs.push('EEG Info');
   else if (screenId === 'progress-screen') crumbs.push('Tasks');
   else if (screenId === 'task-screen' || screenId === 'recording-screen') {
     crumbs.push('Tasks');
@@ -443,7 +433,7 @@ function showScreen(screenId) {
 
   // Show/hide session widget + FAB
   const widget = document.getElementById('session-widget');
-  const showWidget = ['progress-screen','task-screen','consent-screen','recording-screen'].includes(screenId);
+  const showWidget = ['progress-screen','task-screen','recording-screen'].includes(screenId);
   if (widget) widget.classList.toggle('active', showWidget && state.sessionCode);
   const fab = document.getElementById('pause-fab');
   if (fab) fab.classList.toggle('active', showWidget && state.sessionCode);
@@ -546,7 +536,7 @@ function showScreen(screenId) {
         if (data.activity_summary) state.activity_summary = data.activity_summary;
         saveState();
         updateSessionWidget();
-        if (!state.consentStatus.consent1) showScreen('consent-screen'); else showProgressScreen();
+        showProgressScreen();
         if (!sessionTimer.startTime) sessionTimer.start();
       } catch (err) {
         console.error(err);
@@ -617,276 +607,7 @@ function checkRecoveryLink() {
     function proceedToEEGInfo() {
       showScreen('eeg-info');
     }
-
-    // ----- Consent -----
-    function proceedToConsent() {
-      if (!sessionTimer.startTime) sessionTimer.start();
-      showScreen('consent-screen');
-      updateConsentDisplay();
-    }
-function openConsent(type) {
-  const consent = CONSENTS[type];
-  if (consent) {
-    window.open(consent.url, '_blank', 'noopener');
-    sendToSheets({ action: 'consent_opened', sessionCode: state.sessionCode, type, timestamp: new Date().toISOString() });
-  }
-}
-function toggleCodeEntry(type) {
-  const container = document.getElementById(`${type}-code-container`);
-  const note = document.getElementById(`${type}-verify-note`);
-  if (!container) return;
-  const show = container.style.display === 'none' || container.style.display === '';
-  container.style.display = show ? 'block' : 'none';
-  if (show && note) {
-    note.textContent = '🔄 Waiting for consent form code...';
-    note.style.color = 'var(--text-secondary)';
-  }
-}
-   function markConsentDone(type) {
-  // Safety interlock: explicit warning + typed phrase
-  const niceName = (type === 'consent1') ? 'Research Consent' : 'Video Consent';
-  const ok = confirm(
-    `Did you actually complete and submit the ${niceName} form on Qualtrics?\n\n` +
-    `Clicking “OK” without completing the form will disqualify your participation.`
-  );
-  if (!ok) return;
-
-  const phrase = prompt(
-    `To confirm, type exactly: I COMPLETED THE CONSENT\n\n` +
-    `This helps prevent accidental or invalid confirmation.`
-  );
-
-  if (!phrase || phrase.trim().toUpperCase() !== 'I COMPLETED THE CONSENT') {
-    alert('Not confirmed. Please complete the form first.');
-    return;
-  }
-
-  // Mark the consent as completed (same as before)
-  if (type === 'consent1') {
-    state.consentStatus.consent1 = true;
-  } else if (type === 'consent2') {
-    state.consentStatus.consent2 = true;
-  }
-  saveState(); updateConsentDisplay();
-
-  // Log a stricter audit trail
-  sendToSheets({
-    action: 'consent_affirmed',
-    sessionCode: state.sessionCode,
-    type,
-    method: 'typed-affirmation',
-    timestamp: new Date().toISOString()
-  });
-  logSessionTime(type);
-}
-function verifyConsentCode(type) {
-  const inputId = type === 'consent1' ? 'consent1-code' : 'consent2-code';
-  const noteId  = type === 'consent1' ? 'consent1-verify-note' : 'consent2-verify-note';
-
-  const el = document.getElementById(inputId);
-  const noteEl = document.getElementById(noteId);
-  const code = ((el && el.value) || '').trim().toUpperCase();
-
-  // Enforce 6 alphanumeric characters
-  if (!CONSENT_CODE_REGEX.test(code)) {
-    alert('Enter the 6-character code shown at the end of the Qualtrics form.');
-    if (el) el.focus();
-    return;
-  }
-
-  // Mark this consent complete & verified
-  if (type === 'consent1') state.consentStatus.consent1 = true;
-  if (type === 'consent2') state.consentStatus.consent2 = true;
-
-  state.consentVerify[type] = { verified: true, method: 'code', note: '6-character' };
-  saveState();
-  updateConsentDisplay();
-
-  if (noteEl) {
-    noteEl.textContent = '✅ Code verified!';
-    noteEl.style.color = '#1b5e20';
-  }
-
-  // Log (store only the 6-digit suffix; no PII)
-  sendToSheets({
-    action: 'consent_verified',
-    sessionCode: state.sessionCode || 'none',
-    type,
-    method: 'code',
-    codeSuffix: code,           // already 6 digits
-    timestamp: new Date().toISOString()
-  });
-}
-
-function autoVerifyConsentsFromURL() {
-  try {
-    const p = new URLSearchParams(location.search);
-    // Support: ?c1=1&c2=1 or ?consent1=done etc. You can set these in Qualtrics "End of Survey" redirect.
-    const c1 = p.get('c1') || p.get('consent1');
-    const c2 = p.get('c2') || p.get('consent2');
-    const rid1 = p.get('rid1') || p.get('rid'); // optionally pass ResponseID
-    const rid2 = p.get('rid2');
-
-    if (c1 && String(c1).toLowerCase() !== '0') {
-      state.consentStatus.consent1 = true;
-      state.consentVerify.consent1 = { verified: true, method: 'url-param', note: rid1 ? `RID …${String(rid1).slice(-6)}` : '' };
-      sendToSheets({
-        action: 'consent_verified',
-        sessionCode: state.sessionCode || 'none',
-        type: 'consent1',
-        method: 'url-param',
-        ridSuffix: rid1 ? String(rid1).slice(-6) : '',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    if (c2 && String(c2).toLowerCase() !== '0') {
-      state.consentStatus.consent2 = true;
-      state.consentVerify.consent2 = { verified: true, method: 'url-param', note: rid2 ? `RID …${String(rid2).slice(-6)}` : '' };
-      sendToSheets({
-        action: 'consent_verified',
-        sessionCode: state.sessionCode || 'none',
-        type: 'consent2',
-        method: 'url-param',
-        ridSuffix: rid2 ? String(rid2).slice(-6) : '',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    if (c1 || c2) {
-      saveState(); updateConsentDisplay();
-      // Optional: clean query so it doesn't re-trigger on refresh
-      try {
-        const cleanURL = location.origin + location.pathname;
-        window.history.replaceState({}, '', cleanURL);
-      } catch (e) {}
-    }
-  } catch (e) {
-    console.warn('Auto-verify failed', e);
-  }
-}
-
-// Call it during init:
-document.addEventListener('DOMContentLoaded', () => {
-  // ... your existing init
-  autoVerifyConsentsFromURL(); // <— add this line
-});
-
-    function declineVideo() {
-      if (confirm('Decline video consent? You can still participate in other tasks.')) {
-        state.consentStatus.videoDeclined = true;
-        state.consentStatus.consent2 = true;
-        document.getElementById('consent2-card').classList.add('declined');
-        document.querySelector('#consent2-card .status-icon').textContent = '⚠️';
-        saveState(); updateConsentDisplay();
-        sendToSheets({ action: 'video_declined', sessionCode: state.sessionCode, timestamp: new Date().toISOString() });
-        logSessionTime('consent2_declined');
-        updateSessionWidget();
-        updateProgressBar();
-      }
-    }
-
-    async function checkVideoConsent() {
-      if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
-      try {
-        const saved = localStorage.getItem(`study_${state.sessionCode}`);
-        if (saved) {
-          const s = JSON.parse(saved);
-          if (s.consentStatus && (s.consentStatus.consent2 || s.consentStatus.videoDeclined)) {
-            state.consentStatus = s.consentStatus;
-            return true;
-          }
-        }
-      } catch (_) {}
-
-      if (!state.sessionCode || !CONFIG.SHEETS_URL) return false;
-      try {
-        const res = await fetch(CONFIG.SHEETS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'get_session', sessionCode: state.sessionCode })
-        });
-        const data = await res.json();
-        if (data && data.success && data.session) {
-          if (data.session.consent2 || data.session.videoDeclined) {
-            state.consentStatus.consent2 = !!data.session.consent2;
-            state.consentStatus.videoDeclined = !!data.session.videoDeclined;
-            return state.consentStatus.consent2 || state.consentStatus.videoDeclined;
-          }
-          if (data.session.consentStatus) {
-            const cs = String(data.session.consentStatus).toLowerCase();
-            if (cs === 'complete') state.consentStatus.consent2 = true;
-            else if (cs === 'declined') {
-              state.consentStatus.consent2 = true;
-              state.consentStatus.videoDeclined = true;
-            }
-            if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
-          }
-          if (data.session.state) {
-            try {
-              const st = typeof data.session.state === 'string'
-                ? JSON.parse(data.session.state)
-                : data.session.state;
-              const cs2 = st && st.consentStatus ? st.consentStatus : {};
-              state.consentStatus.consent2 = !!cs2.consent2;
-              state.consentStatus.videoDeclined = !!cs2.videoDeclined;
-              return state.consentStatus.consent2 || state.consentStatus.videoDeclined;
-            } catch (_) {}
-          }
-        }
-      } catch (err) {
-        console.warn('hasVideoConsent fetch failed', err);
-      }
-      return false;
-    }
-    function updateConsentDisplay() {
-  const render = () => {
-    const c1 = state.consentStatus.consent1;
-    const c2 = state.consentStatus.consent2 || state.consentStatus.videoDeclined;
-
-    document.getElementById('continue-from-consent').disabled = !(c1 && c2);
-
-    const card1 = document.getElementById('consent1-card');
-    const card2 = document.getElementById('consent2-card');
-
-    if (c1) {
-      card1.classList.remove('declined');
-      card1.classList.add('completed');
-      card1.querySelector('.status-icon').textContent = '✅';
-
-      const note = document.getElementById('consent1-verify-note');
-      if (state.consentVerify.consent1.verified) {
-        if (note) { note.textContent = '✅ Code verified!'; note.style.color = '#1b5e20'; }
-      } else {
-        if (note) { note.textContent = 'Affirmed without code'; note.style.color = '#856404'; }
-      }
-    }
-
-    if (state.consentStatus.videoDeclined) {
-      card2.classList.remove('completed');
-      card2.classList.add('declined');
-      card2.querySelector('.status-icon').textContent = '⚠️';
-    } else if (state.consentStatus.consent2) {
-      card2.classList.remove('declined');
-      card2.classList.add('completed');
-      card2.querySelector('.status-icon').textContent = '✅';
-
-      const note = document.getElementById('consent2-verify-note');
-      if (state.consentVerify.consent2.verified) {
-        if (note) { note.textContent = '✅ Code verified!'; note.style.color = '#1b5e20'; }
-      } else if (note) {
-        note.textContent = state.consentStatus.consent2 ? 'Affirmed without code' : '';
-        note.style.color = '#856404';
-      }
-    }
-  };
-
-  render();
-  checkVideoConsent().then(render).catch(err => console.warn('checkVideoConsent failed', err));
-}
-
     function proceedToTasks() {
-      if (!state.consentStatus.consent1) { alert('Please complete the research consent form'); return; }
       showProgressScreen();
     }
 
@@ -941,10 +662,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     function getTaskCounts() {
-      const isRequired = code => !(code === 'ID' && state.consentStatus.videoDeclined);
       return {
-        total: state.sequence.filter(isRequired).length,
-        completed: state.completedTasks.filter(isRequired).length
+        total: state.sequence.length,
+        completed: state.completedTasks.length
       };
     }
     function updateProgressBar() {
@@ -1041,9 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       document.getElementById('task-title').textContent = task.name;
-      const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
-  ? 'This task is optional for you (video consent declined).'
-  : 'This task is required for study completion.';
+      const requiredText = 'This task is required for study completion.';
 const eta = (TASKS[taskCode] && TASKS[taskCode].estMinutes) ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
 const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
@@ -1154,9 +872,7 @@ function showExternalTask(taskCode) {
   const task = TASKS[taskCode];
   let extra = '';
 
-  const requiredText = (taskCode === 'ID' && state.consentStatus.videoDeclined)
-    ? 'This task is OPTIONAL for you (video consent declined).'
-    : 'This task is required for study completion.';
+  const requiredText = 'This task is required for study completion.';
   const eta  = (TASKS[taskCode] && TASKS[taskCode].estMinutes) ? `${TASKS[taskCode].estMinutes} minutes` : 'a few minutes';
   const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
@@ -1249,37 +965,14 @@ function openExternalTask(taskCode) {
 }
 
     // ----- Recording task -----
-    function hasStoredVideoConsent() {
-      if (state.consentStatus.consent2 || state.consentStatus.videoDeclined) return true;
-      try {
-        const recent = localStorage.getItem('recent_session');
-        if (!recent) return false;
-        const saved = localStorage.getItem(`study_${recent}`);
-        if (!saved) return false;
-        const data = JSON.parse(saved);
-        return !!(data.consentStatus && (data.consentStatus.consent2 || data.consentStatus.videoDeclined));
-      } catch (e) {
-        console.warn('Could not check saved consent', e);
-        return false;
-      }
-    }
-
     function showRecordingTask() {
       state.recording.currentImage = 0;
       state.recording.recordings = [];
       state.recording.currentBlob = null;
-      if (!hasStoredVideoConsent()) {
-        document.getElementById('recording-consent-check').style.display = 'block';
-        document.getElementById('recording-content').style.display = 'none';
-      } else {
-        document.getElementById('recording-consent-check').style.display = 'none';
-        document.getElementById('recording-content').style.display = 'block';
-        updateRecordingImage();
-      }
+      document.getElementById('recording-content').style.display = 'block';
+      updateRecordingImage();
       // NEW: if page not secure, skip recorder UI and show upload UI
       if (!window.isSecureContext) {
-        document.getElementById('recording-consent-check').style.display = 'none';
-        document.getElementById('recording-content').style.display = 'block';
         document.getElementById('video-upload-fallback').style.display = 'block';
         // Ensure the current image is shown even without recording
         updateRecordingImage();
@@ -1390,9 +1083,7 @@ function openExternalTask(taskCode) {
       recordingControls.parentNode.insertBefore(recordingInstructions, recordingControls);
       }
 
-      const requiredTextRec = (state.consentStatus.videoDeclined)
-  ? 'This task is OPTIONAL for you (video consent declined).'
-  : 'This task is required for study completion.';
+      const requiredTextRec = 'This task is required for study completion.';
 const etaRec = (TASKS['ID'] && TASKS['ID'].estMinutes) ? `${TASKS['ID'].estMinutes} minutes` : 'a few minutes';
 const reqsRec = (TASKS['ID'] && TASKS['ID'].requirements) || '—';
 
@@ -1537,8 +1228,6 @@ if (instructionBox) {
 function bindRecordingSkips() {
       const btn1 = document.getElementById('skip-recording-btn');
       if (btn1) btn1.addEventListener('click', () => showSkipDialog('ID'));
-      const btn2 = document.getElementById('skip-recording-consent-btn');
-      if (btn2) btn2.addEventListener('click', () => showSkipDialog('ID'));
     }
 
     async function toggleRecording() {
@@ -2215,7 +1904,7 @@ function continueWithoutUpload() {
         action: 'task_skipped',
         sessionCode: state.sessionCode,
         task: getStandardTaskName(taskCode),
-        reason: taskCode === 'ASLCT' ? 'Does not know ASL' : taskCode === 'ID' ? (state.consentStatus.videoDeclined ? 'Video consent declined' : 'User chose to skip') : 'User chose to skip',
+        reason: taskCode === 'ASLCT' ? 'Does not know ASL' : 'User chose to skip',
         timestamp: new Date().toISOString(),
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop'
       });
@@ -2531,12 +2220,8 @@ Object.assign(window, {
   openSupportEmail,
   tryMailto,
 
-  // Consent and EEG flow handlers
+  // EEG flow handlers
   closeEEGModal,
-  declineVideo,
-  markConsentDone,
-  openConsent,
-  proceedToConsent,
   proceedToEEGInfo,
 
   // Debug utilities
@@ -2571,8 +2256,6 @@ Object.assign(window, {
   skipTask,
   skipTaskProceed,
 
-  // Consent helpers
-  toggleCodeEntry,
-  verifyConsentCode
+  
 });
 

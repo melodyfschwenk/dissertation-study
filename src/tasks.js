@@ -21,11 +21,6 @@ export function getStandardTaskName(taskCode) {
   return mapping[taskCode] || (TASKS[taskCode] ? TASKS[taskCode].name : undefined) || taskCode;
 }
 
-export const CONSENTS = {
-  'CONSENT1': { name: 'Research Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_cGZEQDXQpUbGq1g' },
-  'CONSENT2': { name: 'Video Consent', url: 'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_5j0XhME387Kii8u' }
-};
-
 export const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
 export const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN', 'ID'];
 
