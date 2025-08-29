@@ -775,6 +775,31 @@
   </div>
 </div>
 
+  <!-- === MS-RECORDER-HTML START === -->
+  <section id="recorder" class="recorder">
+    <h2>Recording task</h2>
+
+    <fieldset>
+      <legend>Mode</legend>
+      <label><input type="radio" name="rec-mode" value="video" checked> Video + audio</label>
+      <label><input type="radio" name="rec-mode" value="audio"> Audio only</label>
+    </fieldset>
+
+    <div class="rec-controls">
+      <button id="rec-start" type="button">Start recording</button>
+      <button id="rec-stop" type="button" disabled>Stop</button>
+      <button id="rec-upload" type="button" disabled>Upload</button>
+    </div>
+
+    <p id="rec-status" aria-live="polite">Idle</p>
+
+    <video id="rec-preview-video" playsinline controls style="max-width:480px; display:none;"></video>
+    <audio id="rec-preview-audio" controls style="width:480px; display:none;"></audio>
+
+    <progress id="rec-progress" value="0" max="100" style="width:480px; display:none;"></progress>
+  </section>
+  <!-- === MS-RECORDER-HTML END === -->
+
   <script src="main.js"></script>
 </body>
 </html>
