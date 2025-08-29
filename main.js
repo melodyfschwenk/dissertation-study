@@ -1000,6 +1000,27 @@ Session code: ${state.sessionCode || ""}`);
     const m = document.getElementById("eeg-modal");
     if (m) m.classList.remove("active");
   }
+  var msLiveStream = null;
+  async function msEnsureLivePreview(constraints = {
+    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    audio: true
+  }) {
+    const el = document.querySelector("#rec-preview-video");
+    if (!el) return null;
+    el.muted = true;
+    el.playsInline = true;
+    el.autoplay = true;
+    if (!msLiveStream) {
+      msLiveStream = await navigator.mediaDevices.getUserMedia(constraints);
+    }
+    el.srcObject = msLiveStream;
+    el.style.display = "";
+    try {
+      await el.play();
+    } catch (_) {
+    }
+    return msLiveStream;
+  }
   var state = {
     sessionCode: "",
     participantID: "",
@@ -2307,10 +2328,17 @@ Thank you!`);
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
           audio: { echoCancellation: true, noiseSuppression: true }
         };
+        const live = await msEnsureLivePreview(constraints);
+        const stream = live || await navigator.mediaDevices.getUserMedia(constraints);
+        if (currentMode !== "audio") {
+          document.querySelector("#rec-preview-video")?.style && (document.querySelector("#rec-preview-video").style.display = "");
+        } else {
+          document.querySelector("#rec-preview-video")?.style && (document.querySelector("#rec-preview-video").style.display = "none");
+        }
         chosenMime = pickMime(currentMode);
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaStream = stream;
         chunks = [];
-        mediaRecorder = chosenMime ? new MediaRecorder(mediaStream, { mimeType: chosenMime }) : new MediaRecorder(mediaStream);
+        mediaRecorder = chosenMime ? new MediaRecorder(stream, { mimeType: chosenMime }) : new MediaRecorder(stream);
         mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size) chunks.push(e.data);
         };
@@ -2356,17 +2384,25 @@ Thank you!`);
           return;
         }
         recordedFile = new File([blob], `study-recording.${ext}`, { type });
+        const el = document.querySelector("#rec-preview-video");
+        if (el) {
+          try {
+            el.pause();
+          } catch (_) {
+          }
+          el.srcObject = null;
+          el.src = URL.createObjectURL(recordedFile);
+          try {
+            el.src += "#t=0.001";
+          } catch (_) {
+          }
+          el.style.display = "";
+        }
         if (isAudio) {
           audioEl.src = URL.createObjectURL(recordedFile);
           audioEl.style.display = "";
           videoEl.style.display = "none";
         } else {
-          videoEl.src = URL.createObjectURL(recordedFile);
-          try {
-            videoEl.src += "#t=0.001";
-          } catch {
-          }
-          videoEl.style.display = "";
           audioEl.style.display = "none";
         }
         statusEl.textContent = `Ready to upload, ${Math.round(recordedFile.size / 1024 / 1024)} MB`;
