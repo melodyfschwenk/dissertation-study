@@ -2361,7 +2361,7 @@ What I've tried:
 Accessibility needs (if any): 
 
 Thank you!`);
-    window.open(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=${subject}&body=${body}`, "_blank");
+    window.location.href = `mailto:${CONFIG.SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
   }
   async function skipTaskProceed(taskCode) {
     if (taskCode === "ID") {
