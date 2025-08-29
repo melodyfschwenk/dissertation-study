@@ -1531,6 +1531,228 @@ Session code: ${state.sessionCode || ""}`);
     const btn1 = document.getElementById("skip-recording-btn");
     if (btn1) btn1.addEventListener("click", () => showSkipDialog("ID"));
   }
+  async function toggleRecording() {
+    const btn = document.getElementById("record-btn");
+    const status = document.getElementById("recording-status");
+    const preview = document.getElementById("video-preview");
+    if (!state.recording.active) {
+      try {
+        let stream = state.recording.stream;
+        let isVideoMode = state.recording.isVideoMode;
+        if (!stream) {
+          const perm = await checkSecureAndPermissions();
+          if (perm.permissionsChecked && (perm.cam === "denied" || perm.mic === "denied")) {
+            const how = isIOS() ? "Settings \u2192 Safari \u2192 Camera/Microphone \u2192 Allow for this site, then reload." : "Click the camera icon in the address bar and allow camera and microphone, then reload.";
+            showRecordingError(`<strong>Camera or microphone is blocked</strong><p style="margin-top: 6px;">Please allow access for this site. ${how}</p>`);
+            return;
+          } else if (!perm.permissionsChecked) {
+            console.warn("Permissions API unsupported; unable to pre-check camera/microphone permissions.");
+          }
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 640, height: 480 },
+              audio: true
+            });
+            isVideoMode = true;
+          } catch (videoError) {
+            console.warn("Video capture failed, trying audio-only:", videoError);
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: false
+              });
+              isVideoMode = false;
+              const audioNotice = document.createElement("div");
+              audioNotice.className = "info-box helpful";
+              audioNotice.innerHTML = `
+            <strong>\u{1F4E2} Audio-Only Mode</strong>
+            <p>Recording voice only (camera not available). This is fine for the task!</p>
+          `;
+              document.getElementById("recording-content").insertBefore(
+                audioNotice,
+                document.querySelector(".recording-controls")
+              );
+            } catch (audioError) {
+              console.error("Audio capture also failed:", audioError);
+              throw audioError;
+            }
+          }
+          state.recording.stream = stream;
+          state.recording.isVideoMode = isVideoMode;
+        }
+        if (isVideoMode) {
+          preview.srcObject = stream;
+          preview.style.display = "block";
+          preview.play().catch(() => {
+          });
+        } else {
+          preview.style.display = "none";
+          status.textContent = "\u{1F3A4} Audio ready to record";
+        }
+        if (!window.MediaRecorder) {
+          showRecordingError(`<strong>Recording not supported in this browser</strong><p style="margin-top: 6px;">Please record using your device's camera or voice recorder, then upload the file below.</p>`);
+          return;
+        }
+        let options = {};
+        let recordingFormat = "webm";
+        if (isVideoMode) {
+          const formatTests = [
+            { mime: "video/mp4;codecs=h264,aac", format: "mp4", ext: "mp4" },
+            { mime: "video/webm;codecs=vp9,opus", format: "webm-vp9", ext: "webm" },
+            { mime: "video/webm;codecs=vp8,opus", format: "webm-vp8", ext: "webm" },
+            { mime: "video/webm", format: "webm", ext: "webm" }
+          ];
+          for (const test of formatTests) {
+            if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(test.mime)) {
+              options.mimeType = test.mime;
+              recordingFormat = test.ext;
+              console.log(`Recording format selected: ${test.format} (${test.mime})`);
+              break;
+            }
+          }
+          options.videoBitsPerSecond = 5e5;
+          options.audioBitsPerSecond = 64e3;
+          state.recording.recordingFormat = recordingFormat;
+          state.recording.recordingMimeType = options.mimeType || "video/webm";
+        } else {
+          if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+            options.mimeType = "audio/webm;codecs=opus";
+          } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+            options.mimeType = "audio/ogg;codecs=opus";
+          } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported("audio/mp4")) {
+            options.mimeType = "audio/mp4";
+          }
+          state.recording.recordingFormat = "webm";
+          state.recording.recordingMimeType = options.mimeType || "audio/webm";
+        }
+        state.recording.mediaRecorder = new MediaRecorder(stream, options);
+        state.recording.chunks = [];
+        state.recording.mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) state.recording.chunks.push(e.data);
+        };
+        state.recording.mediaRecorder.onstop = () => {
+          try {
+            revokeRecordedURL();
+            const mimeType = state.recording.recordingMimeType || (isVideoMode ? "video/webm" : "audio/webm");
+            const blob = new Blob(state.recording.chunks, { type: mimeType });
+            blob.recordingFormat = state.recording.recordingFormat || (isVideoMode ? "webm" : "webm");
+            blob.recordingMimeType = mimeType;
+            if (!isVideoMode) {
+              const audioPlayer = document.createElement("audio");
+              audioPlayer.id = "recorded-audio";
+              audioPlayer.controls = true;
+              audioPlayer.style.width = "100%";
+              audioPlayer.src = URL.createObjectURL(blob);
+              const container = document.getElementById("recorded-video").parentElement;
+              const existingAudio = document.getElementById("recorded-audio");
+              if (existingAudio) existingAudio.remove();
+              container.insertBefore(audioPlayer, document.getElementById("recorded-video"));
+              document.getElementById("recorded-video").style.display = "none";
+            } else {
+              const url = URL.createObjectURL(blob);
+              const recordedEl = document.getElementById("recorded-video");
+              recordedEl.src = url;
+              recordedEl.style.display = "block";
+              preview.style.display = "none";
+            }
+            document.getElementById("record-btn").style.display = "none";
+            document.getElementById("rerecord-btn").style.display = "inline-block";
+            document.getElementById("save-recording-btn").style.display = "inline-block";
+            const format = blob.recordingFormat === "mp4" ? "MP4" : isVideoMode ? "WebM" : "Audio";
+            const sizeKB = Math.round(blob.size / 1024);
+            const sizeMB = (blob.size / (1024 * 1024)).toFixed(1);
+            status.textContent = `Recording complete (${format}, ${sizeMB}MB)`;
+            status.className = "recording-status recorded";
+            if (blob.size > 25 * 1024 * 1024) {
+              const warningDiv = document.createElement("div");
+              warningDiv.className = "info-box warning";
+              warningDiv.innerHTML = `
+        <strong>\u26A0\uFE0F Large file warning</strong>
+        <p>Your recording is ${sizeMB}MB. Files over 25MB may fail to upload. Consider re-recording with a shorter description (30-45 seconds).</p>
+      `;
+              document.querySelector(".recording-controls").appendChild(warningDiv);
+            }
+            state.recording.currentBlob = blob;
+          } catch (e) {
+            console.error("Finalize error:", e);
+            alert("There was an issue finalizing the recording. Please try the upload option below.");
+          }
+        };
+        state.recording.mediaRecorder.start();
+        state.recording.active = true;
+        btn.textContent = "Stop Recording";
+        btn.className = "button danger";
+        status.textContent = isVideoMode ? "\u{1F534} Recording video..." : "\u{1F3A4} Recording audio...";
+        status.className = "recording-status recording";
+        startRecordingTimer();
+      } catch (err) {
+        console.error("Recording error:", err);
+        handleRecordingError(err);
+      }
+    } else {
+      try {
+        if (state.recording.mediaRecorder && state.recording.mediaRecorder.state !== "inactive") {
+          state.recording.mediaRecorder.stop();
+        }
+      } catch (e) {
+        console.warn("Stop error:", e);
+      } finally {
+        if (state.recording.stream) {
+          try {
+            state.recording.stream.getTracks().forEach((track) => track.stop());
+          } catch (e) {
+          }
+        }
+        state.recording.active = false;
+        btn.textContent = "Start Recording";
+        btn.className = "button danger";
+        stopRecordingTimer();
+      }
+    }
+  }
+  function handleRecordingError(err) {
+    const name = err && (err.name || err.code) || "Unknown";
+    const errorMessages = {
+      "NOT_SECURE": {
+        title: "Secure connection required",
+        message: "This page must be served over HTTPS for recording to work.",
+        showUpload: true
+      },
+      "NotAllowedError": {
+        title: "Permission needed",
+        message: "Please allow camera and/or microphone access. If no prompt appeared, check your browser settings and refresh after granting permission.",
+        showUpload: true
+      },
+      "NotFoundError": {
+        title: "No recording device found",
+        message: "No camera or microphone detected. You can upload a recording instead.",
+        showUpload: true
+      },
+      "NotReadableError": {
+        title: "Device in use",
+        message: "Camera or microphone is being used by another application. Please close other apps and try again.",
+        showUpload: true
+      },
+      "NO_MEDIARECORDER": {
+        title: "Recording not supported",
+        message: "This browser cannot record directly. Use your device's camera or voice recorder and upload the file below.",
+        showUpload: true
+      }
+    };
+    const errorInfo = errorMessages[name] || {
+      title: "Recording not available",
+      message: `${err && err.message || "Recording failed"}. You can upload a file instead.`,
+      showUpload: true
+    };
+    showRecordingError(
+      `<strong>${errorInfo.title}</strong>
+     <p style="margin-top: 6px;">${errorInfo.message}</p>`,
+      errorInfo.showUpload
+    );
+  }
+  function reRecord() {
+    cleanupRecording(true).finally(() => updateRecordingImage());
+  }
   async function saveRecording() {
     if (!state.recording.currentBlob) {
       alert("Please record or upload a recording first.");
@@ -1831,6 +2053,18 @@ Session code: ${state.sessionCode || ""}`);
     });
   }
   var recordingTimer;
+  function startRecordingTimer() {
+    const timer = document.getElementById("recording-timer");
+    timer.style.display = "block";
+    let seconds = 0;
+    state.recording.recordingStart = Date.now();
+    recordingTimer = setInterval(() => {
+      seconds++;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      timer.textContent = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }, 1e3);
+  }
   function stopRecordingTimer() {
     clearInterval(recordingTimer);
     const t = document.getElementById("recording-timer");
@@ -2218,6 +2452,9 @@ Thank you!`);
     showSkipDialog,
     skipCurrentTask,
     skipTask,
-    skipTaskProceed
+    skipTaskProceed,
+    toggleRecording,
+    reRecord,
+    saveRecording
   });
 })();
