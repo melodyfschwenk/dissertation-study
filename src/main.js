@@ -13,6 +13,13 @@ import { uploadVideoToDrive } from './videoUpload.js';
 import { debugVideoUpload, testCloudinaryUpload } from './debug.js';
 
 // ----- Configuration -----
+/* === MS-RECORDER-CONFIG START === */
+const CLOUDINARY_CLOUD = 'demo';        // your cloud name
+const CLOUDINARY_PRESET = 'unsigned';       // your unsigned preset
+const CLOUDINARY_FOLDER = 'spatial-cognition-videos';
+const RECORDING_BYTES_LIMIT = 50 * 1024 * 1024; // 50 MB limit
+/* === MS-RECORDER-CONFIG END === */
+
 document.querySelectorAll('.support-email').forEach(el => {
   el.textContent = CONFIG.SUPPORT_EMAIL;
   if (el.tagName === 'A') el.href = `mailto:${CONFIG.SUPPORT_EMAIL}`;
@@ -346,6 +353,7 @@ window.addEventListener('focus', () => {
 // Call on page load
 function init() {
   setupEventListeners();
+  msRecorderInit();
 
   // Secure-context guard: disable inline recording if not https
   if (!window.isSecureContext) {
@@ -1980,6 +1988,250 @@ async function sendToSheets(payload) {
     console.error('Error sending to sheets:', error);
   }
 }
+
+/* === MS-RECORDER-CODE START === */
+function msRecorderInit() {
+  const $ = s => document.querySelector(s);
+
+  const btnStart = $('#rec-start');
+  const btnStop = $('#rec-stop');
+  const btnUpload = $('#rec-upload');
+  const statusEl = $('#rec-status');
+  const progressEl = $('#rec-progress');
+  const videoEl = $('#rec-preview-video');
+  const audioEl = $('#rec-preview-audio');
+  const modeInputs = Array.from(document.querySelectorAll('input[name="rec-mode"]'));
+
+  let mediaStream = null;
+  let mediaRecorder = null;
+  let chunks = [];
+  let recordedFile = null;
+  let chosenMime = '';
+  let currentMode = modeInputs.find(r => r.checked)?.value || 'video';
+
+  modeInputs.forEach(r => r.addEventListener('change', () => {
+    currentMode = modeInputs.find(x => x.checked)?.value || 'video';
+    // Reset any previews when mode changes
+    videoEl.style.display = 'none';
+    audioEl.style.display = 'none';
+    videoEl.src = '';
+    audioEl.src = '';
+    recordedFile = null;
+    btnUpload.disabled = true;
+    statusEl.textContent = `Mode set to ${currentMode === 'audio' ? 'Audio only' : 'Video + audio'}`;
+  }));
+
+  function pickMime(mode) {
+    // Prefer mp4 on Safari, webm on Chromium, include audio candidates
+    const ua = navigator.userAgent.toLowerCase();
+    const isSafari = ua.includes('safari') && !ua.includes('chrome');
+    const videoListSafariFirst = [
+      'video/mp4;codecs=avc1,mp4a',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    const videoListChromeFirst = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4;codecs=avc1,mp4a',
+      'video/mp4'
+    ];
+    const audioListSafariFirst = [
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4',
+      'audio/webm;codecs=opus',
+      'audio/webm'
+    ];
+    const audioListChromeFirst = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4'
+    ];
+
+    const list = mode === 'audio'
+      ? (isSafari ? audioListSafariFirst : audioListChromeFirst)
+      : (isSafari ? videoListSafariFirst : videoListChromeFirst);
+
+    for (const t of list) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+        return t;
+      }
+    }
+    return ''; // let browser choose
+  }
+
+  async function startRecording() {
+    try {
+      btnStart.disabled = true;
+      statusEl.textContent = 'Requesting media...';
+
+      const constraints = currentMode === 'audio'
+        ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
+        : {
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            audio: { echoCancellation: true, noiseSuppression: true }
+          };
+
+      chosenMime = pickMime(currentMode);
+      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      chunks = [];
+      mediaRecorder = chosenMime ? new MediaRecorder(mediaStream, { mimeType: chosenMime })
+                                 : new MediaRecorder(mediaStream);
+
+      mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstart = () => { statusEl.textContent = `Recording... ${chosenMime || '(default)'}`; };
+      mediaRecorder.onstop = handleStop;
+
+      // Start must be in a direct click handler. This function is bound directly to a click.
+      mediaRecorder.start();
+      btnStop.disabled = false;
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Failed to start recording. Check camera and mic permissions.';
+      btnStart.disabled = false;
+    }
+  }
+
+  function stopRecording() {
+    try {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    } catch (e) {
+      console.error(e);
+      handleStop(); // finalize anyway
+    }
+  }
+
+  function cleanupStream() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+  }
+
+  function handleStop() {
+    try {
+      const isAudio = currentMode === 'audio';
+      const type = chosenMime || (isAudio ? 'audio/webm' : 'video/webm');
+      let ext = 'webm';
+      if (type.includes('mp4')) ext = isAudio ? 'm4a' : 'mp4';
+
+      const blob = new Blob(chunks, { type });
+      if (blob.size > RECORDING_BYTES_LIMIT) {
+        statusEl.textContent = `Recording is ${Math.round(blob.size/1024/1024)} MB, over limit of ${Math.round(RECORDING_BYTES_LIMIT/1024/1024)} MB. Please record a shorter clip.`;
+        recordedFile = null;
+        btnUpload.disabled = true;
+        return;
+      }
+
+      recordedFile = new File([blob], `study-recording.${ext}`, { type });
+
+      // Preview
+      if (isAudio) {
+        audioEl.src = URL.createObjectURL(recordedFile);
+        audioEl.style.display = '';
+        videoEl.style.display = 'none';
+      } else {
+        videoEl.src = URL.createObjectURL(recordedFile);
+        try { videoEl.src += '#t=0.001'; } catch {}
+        videoEl.style.display = '';
+        audioEl.style.display = 'none';
+      }
+
+      statusEl.textContent = `Ready to upload, ${Math.round(recordedFile.size/1024/1024)} MB`;
+      btnUpload.disabled = false;
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Error finalizing recording.';
+    } finally {
+      btnStop.disabled = true;
+      btnStart.disabled = false;
+      cleanupStream();
+    }
+  }
+
+  function uploadToCloudinary(file) {
+    return new Promise((resolve, reject) => {
+      // Use video endpoint for both video and audio
+      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`;
+      const form = new FormData();
+      form.append('file', file, file.name);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      form.append('folder', CLOUDINARY_FOLDER);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url);
+
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          progressEl.style.display = '';
+          progressEl.value = pct;
+          statusEl.textContent = `Uploading... ${pct}%`;
+        }
+      };
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          progressEl.style.display = 'none';
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              statusEl.textContent = 'Upload complete';
+              resolve(res);
+            } catch (err) {
+              statusEl.textContent = 'Upload complete, parse error';
+              resolve({ raw: xhr.responseText });
+            }
+          } else {
+            statusEl.textContent = `Upload failed, status ${xhr.status}`;
+            reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        progressEl.style.display = 'none';
+        statusEl.textContent = 'Network error during upload';
+        reject(new Error('Network error'));
+      };
+
+      xhr.send(form);
+    });
+  }
+
+  // Bind click handlers. Keep these as real user gestures.
+  btnStart.addEventListener('click', startRecording);
+  btnStop.addEventListener('click', stopRecording);
+  btnUpload.addEventListener('click', async () => {
+    if (!recordedFile) return;
+    btnUpload.disabled = true;
+    try {
+      const res = await uploadToCloudinary(recordedFile);
+      console.log('Cloudinary response', res);
+      statusEl.textContent = 'Uploaded successfully';
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'Upload error. Please try again.';
+      btnUpload.disabled = false;
+    }
+  });
+
+  // Support case where MediaRecorder is missing
+  if (!window.MediaRecorder) {
+    statusEl.textContent = 'MediaRecorder not supported in this browser.';
+    btnStart.disabled = true;
+    btnStop.disabled = true;
+    btnUpload.disabled = true;
+  }
+}
+/* === MS-RECORDER-CODE END === */
 
 window.addEventListener('beforeunload', () => {
   if (!CONFIG.SHEETS_URL) return;
