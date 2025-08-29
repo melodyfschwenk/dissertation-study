@@ -414,7 +414,7 @@ function init() {
       warning.innerHTML = `
   <strong>📱 Mobile or Tablet?</strong>
   <p style="margin-top: 10px;">
-    Some tasks work best on a computer. You can pause now and resume later with your code.
+    Some tasks work best on a computer. You can pause now. Copy your session code in case of a glitch so support can verify your progress.
   </p>
   <ul style="margin: 10px 0 0 20px; text-align: left;">
     <li><strong>Virtual Campus Navigation</strong> needs keyboard controls (WASD/arrow keys)</li>
@@ -522,7 +522,7 @@ function showScreen(screenId) {
         const proceed = confirm(
           'You are on a phone or tablet.\n\n' +
           'A computer is preferred for the best experience, but you can continue now.\n' +
-          'You can also pause and resume later on a computer using your resume code.\n\n' +
+          'If you encounter a glitch, share your session code with support while we fix the resume feature.\n\n' +
           'Continue on this device?'
         );
         if (!proceed) return;
@@ -572,7 +572,7 @@ function showScreen(screenId) {
       async function resumeSession(codeFromLink) {
         const input = codeFromLink || document.getElementById('resume-code').value;
         const code = input.trim().toUpperCase();
-        if (!CODE_REGEX.test(code)) { alert('Please enter your 8-character resume code'); return; }
+        if (!CODE_REGEX.test(code)) { alert('Please enter your 8-character session code'); return; }
       try {
         const res = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',

@@ -304,9 +304,9 @@
     <div>
       <h4 style="margin-bottom: 8px; font-weight: 600;">How it works</h4>
       <ul style="margin: 8px 0 0 0; padding-left: 16px; color: inherit;">
-        <li>Get your unique resume code to save progress</li>
+        <li>Get your unique session code in case a glitch occurs</li>
         <li>Complete tasks at your own pace</li>
-        <li>Return anytime using your code</li>
+        <li>Share your code with support if something goes wrong</li>
       </ul>
     </div>
   </div>
@@ -340,14 +340,14 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="display: none;">
       <div style="text-align: center;">
         <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
         <h3 style="margin-bottom: 12px; font-size: 20px;">Returning Participant</h3>
         <p style="color: var(--text-secondary); margin-bottom: 20px;">
           Continue where you left off with your code
         </p>
-        <button class="button secondary" onclick="showScreen('returning-participant')">
+        <button class="button secondary" onclick="showScreen('returning-participant')" style="display: none;">
           Resume Session →
         </button>
       </div>
@@ -418,17 +418,17 @@
       </div>
 
       <!-- Returning Participant -->
-      <div class="screen" id="returning-participant">
+      <div class="screen" id="returning-participant" style="display: none;">
         <h2>Resume Your Session</h2>
         <p style="color: var(--text-secondary); margin-bottom: 30px;">Enter your 8-character code to continue</p>
 
         <div class="form-group">
-          <label for="resume-code">Resume Code</label>
+          <label for="resume-code">Session Code</label>
           <input type="text" id="resume-code" maxlength="8" placeholder="ABC12345" style="text-transform: uppercase; font-family: monospace; font-size: 24px; letter-spacing: 2px; text-align: center;" />
         </div>
 
         <div class="button-group">
-          <button class="button primary" onclick="resumeSession()">Resume Session</button>
+          <button class="button primary" onclick="resumeSession()" style="display: none;">Resume Session</button>
           <button class="button secondary" onclick="showScreen('welcome-screen')">Back</button>
         </div>
       </div>
@@ -437,18 +437,18 @@
       <div class="screen" id="session-created">
         <h2>✅ Session Created Successfully!</h2>
         <div class="code-display">
-          <p>Your Resume Code:</p>
+          <p>Your Session Code:</p>
           <div class="code" id="display-code">ABC12345</div>
         <button class="button optional outline" onclick="copyCode(this)">📋 Copy Code</button>
         <button class="button optional outline" onclick="copyRecoveryLink(this)">🔗 Copy Recovery Link</button>
-          <p style="font-size: 14px; margin-top: 15px;">Save this code to resume anytime</p>
+          <p style="font-size: 14px; margin-top: 15px;">Copy this code in case of a glitch so we can verify your session</p>
         </div>
 
         <div class="info-box important">
           <strong>⚠️ Important: Save Your Code!</strong>
           <ul style="margin: 10px 0 0 20px; text-align: left;">
             <li>Write down or screenshot your code</li>
-            <li>Use this code to continue from any device</li>
+            <li>Share this code with support if something goes wrong</li>
             <li>Progress saves automatically after each task</li>
           </ul>
         </div>
@@ -707,7 +707,7 @@
         <button class="button optional outline" onclick="copyCode(this)">📋 Copy Code</button>
         <button class="button optional outline" onclick="copyRecoveryLink(this)">🔗 Copy Recovery Link</button>
       </div>
-      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 20px;">Return anytime to complete remaining tasks.</p>
+      <p style="font-size: 14px; color: var(--text-secondary); margin-top: 20px;">Copy this code in case of a glitch so support can verify your progress.</p>
       <button class="button" onclick="location.reload()">Exit Study</button>
     </div>
   </div>
