@@ -1324,6 +1324,7 @@ Session code: ${state.sessionCode || ""}`);
       status.className = "recording-status warning";
     }
     showScreen("recording-screen");
+    if (window.isSecureContext) startPreview();
   }
   function revokeRecordedURL() {
     const recorded = document.getElementById("recorded-video");
@@ -1338,6 +1339,10 @@ Session code: ${state.sessionCode || ""}`);
   }
   async function startPreview() {
     const preview = document.getElementById("video-preview");
+    if (!preview) return;
+    preview.muted = true;
+    preview.playsInline = true;
+    preview.autoplay = true;
     if (state.recording.stream) {
       preview.srcObject = state.recording.stream;
       preview.style.display = state.recording.isVideoMode ? "block" : "none";
@@ -1430,7 +1435,6 @@ Session code: ${state.sessionCode || ""}`);
     </div>
   `;
     }
-    if (window.isSecureContext) startPreview();
   }
   function showRecordingError(html, showFallback = true) {
     const box = document.getElementById("recording-error");
@@ -1570,8 +1574,10 @@ Session code: ${state.sessionCode || ""}`);
       status.className = "recording-status recording";
     }
   }
-  function reRecord() {
-    cleanupRecording(true).finally(() => updateRecordingImage());
+  async function reRecord() {
+    await cleanupRecording(true);
+    updateRecordingImage();
+    if (window.isSecureContext) startPreview();
   }
   async function saveRecording() {
     if (!state.recording.currentBlob) {
@@ -1658,6 +1664,7 @@ Session code: ${state.sessionCode || ""}`);
           if (state.recording.currentImage === 0) {
             state.recording.currentImage = 1;
             updateRecordingImage();
+            if (window.isSecureContext) startPreview();
           } else {
             completeTask("ID");
           }
@@ -1712,6 +1719,7 @@ Session code: ${state.sessionCode || ""}`);
       if (state.recording.currentImage === 0) {
         state.recording.currentImage = 1;
         updateRecordingImage();
+        if (window.isSecureContext) startPreview();
       } else {
         completeTask("ID");
       }
@@ -1798,6 +1806,7 @@ Session code: ${state.sessionCode || ""}`);
       if (imageNumber === 1 && state.recording.currentImage === 0) {
         state.recording.currentImage = 1;
         updateRecordingImage();
+        if (window.isSecureContext) startPreview();
       } else {
         completeTask("ID");
       }

@@ -992,6 +992,7 @@ function openExternalTask(taskCode) {
       }
 
       showScreen('recording-screen');
+      if (window.isSecureContext) startPreview();
     }
 
     function revokeRecordedURL() {
@@ -1005,6 +1006,10 @@ function openExternalTask(taskCode) {
 
     async function startPreview() {
       const preview = document.getElementById('video-preview');
+      if (!preview) return;
+      preview.muted = true;
+      preview.playsInline = true;
+      preview.autoplay = true;
       if (state.recording.stream) {
         preview.srcObject = state.recording.stream;
         preview.style.display = state.recording.isVideoMode ? 'block' : 'none';
@@ -1114,10 +1119,9 @@ if (instructionBox) {
   `;
 }
 
-      if (window.isSecureContext) startPreview();
-    }
+      }
 
-    // Removed complex permission checks in favor of direct getUserMedia attempts for broader browser support
+      // Removed complex permission checks in favor of direct getUserMedia attempts for broader browser support
 
     function showRecordingError(html, showFallback = true) {
       const box = document.getElementById('recording-error');
@@ -1272,7 +1276,11 @@ function bindRecordingSkips() {
       }
     }
 
-    function reRecord() { cleanupRecording(true).finally(() => updateRecordingImage()); }
+    async function reRecord() {
+      await cleanupRecording(true);
+      updateRecordingImage();
+      if (window.isSecureContext) startPreview();
+    }
 
     // Updated saveRecording function with Google Drive upload
 // Updated saveRecording function with enhanced logging
@@ -1377,11 +1385,12 @@ async function saveRecording() {
       uploadProgress.style.display = 'none';
 
       setTimeout(() => {
-        if (state.recording.currentImage === 0) { 
-          state.recording.currentImage = 1; 
-          updateRecordingImage(); 
-        } else { 
-          completeTask('ID'); 
+        if (state.recording.currentImage === 0) {
+          state.recording.currentImage = 1;
+          updateRecordingImage();
+          if (window.isSecureContext) startPreview();
+        } else {
+          completeTask('ID');
         }
       }, 1000);
 
@@ -1441,11 +1450,12 @@ function continueWithoutUpload() {
       mimeType: state.recording.currentBlob.type
     });
 
-    if (state.recording.currentImage === 0) { 
-      state.recording.currentImage = 1; 
-      updateRecordingImage(); 
-    } else { 
-      completeTask('ID'); 
+    if (state.recording.currentImage === 0) {
+      state.recording.currentImage = 1;
+      updateRecordingImage();
+      if (window.isSecureContext) startPreview();
+    } else {
+      completeTask('ID');
     }
     
     document.getElementById('recording-error').style.display = 'none';
@@ -1535,6 +1545,7 @@ function continueWithoutUpload() {
         if (imageNumber === 1 && state.recording.currentImage === 0) {
           state.recording.currentImage = 1;
           updateRecordingImage();
+          if (window.isSecureContext) startPreview();
         } else {
           completeTask('ID');
         }
