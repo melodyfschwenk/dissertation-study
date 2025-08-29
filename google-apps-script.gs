@@ -1307,7 +1307,6 @@ function createSession(ss, data) {
 
     if (data.email) {
       addEmailReminder(ss, data.sessionCode, data.email);
-      sendRecoveryEmail(data.email, data.sessionCode);
     }
 
     try {
@@ -1335,18 +1334,6 @@ function addEmailReminder(ss, sessionCode, email) {
   });
 }
 
-function sendRecoveryEmail(email, sessionCode) {
-  try {
-    var link = 'https://<your-domain>/?recover=' + encodeURIComponent(Utilities.base64Encode(sessionCode));
-    MailApp.sendEmail({
-      to: email,
-      subject: 'Resume your session',
-      htmlBody: 'Click <a href="' + link + '">resume link</a> or use code ' + sessionCode
-    });
-  } catch (e) {
-    handleError(e);
-  }
-}
 
 function resumeSession(ss, data) {
   withDocLock_(function () {
