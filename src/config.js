@@ -10,4 +10,4 @@ export const CONFIG = {
   CLOUDINARY_FOLDER: 'spatial-cognition-videos',
 };
 
-export const CODE_REGEX = /^\d{6}$/;
+export const CODE_REGEX = /^[A-Z0-9]{8}$/;
