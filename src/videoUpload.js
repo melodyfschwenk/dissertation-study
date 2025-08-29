@@ -153,7 +153,7 @@ export async function uploadToGoogleDrive(videoBlob, sessionCode, imageNumber) {
     updateUploadProgress(30, `Uploading ${videoFormat.toUpperCase()} to Google Drive...`);
     const response = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(uploadData)
     });
     updateUploadProgress(75, 'Processing response...');
