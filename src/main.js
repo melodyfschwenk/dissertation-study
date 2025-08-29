@@ -10,17 +10,6 @@ import {
   isMobileDevice
 } from './tasks.js';
 import { debugVideoUpload, testCloudinaryUpload } from './debug.js';
-import {
-  startPreview,
-  updateRecordingImage,
-  enhanceUploadFallback,
-  bindRecordingSkips,
-  toggleRecording,
-  reRecord,
-  saveRecording,
-  retryVideoUpload,
-  cleanupRecording
-} from './recorder.js';
 
 // ----- Configuration -----
 /* === MS-RECORDER-CONFIG START === */
@@ -390,7 +379,6 @@ window.addEventListener('focus', () => {
 // Call on page load
 function init() {
   setupEventListeners();
-  msRecorderInit();
 
   // Secure-context guard: disable inline recording if not https
   if (!window.isSecureContext) {
@@ -441,8 +429,6 @@ if (document.readyState === 'loading') {
       document.getElementById('consent-code').addEventListener('input', validateInitials);
       document.getElementById('consent-confirm').addEventListener('change', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
-        bindRecordingSkips(showSkipDialog);
-        enhanceUploadFallback(state, () => saveRecording(state, sendToSheets, completeTask));
     }
 
     function validateInitials(e) {
@@ -1019,61 +1005,14 @@ function openExternalTask(taskCode) {
 }
 
     // ----- Recording task -----
-      function showRecordingTask() {
-        state.recording.currentImage = 0;
-        state.recording.recordings = [];
-        state.recording.currentBlob = null;
-        document.getElementById('recording-content').style.display = 'block';
-        updateRecordingImage(state);
-        if (!window.isSecureContext) {
-          document.getElementById('video-upload-fallback').style.display = 'block';
-          updateRecordingImage(state);
-          const status = document.getElementById('recording-status');
-          status.textContent = 'Recording disabled (requires https). Please use the upload option below.';
-          status.className = 'recording-status warning';
-        }
+    function showRecordingTask() {
+      showScreen('recording-screen');
+      msRecorderInit();
+    }
 
-        showScreen('recording-screen');
-        if (window.isSecureContext) startPreview(state);
-      }
-// Updated continueWithoutUpload with enhanced logging
-function continueWithoutUpload() {
-  if (confirm('Continue without uploading the video? The recording will only be saved locally in your browser.')) {
-    state.recording.recordings.push({
-      image: state.recording.currentImage + 1,
-      blob: state.recording.currentBlob,
-      timestamp: new Date().toISOString(),
-      uploadSkipped: true,
-      uploadMethod: 'local_only',
-      recordingType: state.recording.isVideoMode ? 'video' : 'audio',
-      mimeType: state.recording.currentBlob.type
-    });
-
-    // Enhanced logging for skipped upload
-    sendToSheets({
-      action: 'image_recorded_no_upload',
-      sessionCode: state.sessionCode,
-      imageNumber: state.recording.currentImage + 1,
-      reason: 'Upload failed - continued locally',
-      timestamp: new Date().toISOString(),
-      deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
-      uploadMethod: 'local_only',
-      uploadStatus: 'skipped',
-      recordingType: state.recording.isVideoMode ? 'video' : 'audio',
-      mimeType: state.recording.currentBlob.type
-    });
-
-      if (state.recording.currentImage === 0) {
-        state.recording.currentImage = 1;
-        updateRecordingImage(state);
-        if (window.isSecureContext) startPreview(state);
-      } else {
-        completeTask('ID');
-      }
-    
-    document.getElementById('recording-error').style.display = 'none';
-  }
-}
+    function continueWithoutUpload() {
+      console.warn('continueWithoutUpload is not implemented in the test recorder.');
+    }
 
 function ensureTaskPointer(taskCode) {
       if (!state.sequence || !state.sequence.length) return;
@@ -1085,8 +1024,8 @@ function ensureTaskPointer(taskCode) {
 
     async function skipRecording() {
       if (!confirm('Unable to complete the image description task?')) return;
-        try { await cleanupRecording(state); } catch(e) { console.warn('Cleanup on skip failed silently:', e); }
-      ensureTaskPointer('ID'); skipTask('ID');
+      ensureTaskPointer('ID');
+      skipTask('ID');
     }
   // ----- Complete/Skip -----
     function completeTask(taskCode) {
@@ -1129,7 +1068,7 @@ function ensureTaskPointer(taskCode) {
       if (taskCode === 'ID') {
         if (state.recording && (state.recording.stream || state.recording.active)) {
           try { if (state.recording.stream && state.recording.stream.getTracks) state.recording.stream.getTracks().forEach(t => t.stop()); } catch(e){}
-          state.recording.active = false; state.recording.chunks = []; stopRecordingTimer();
+          state.recording.active = false; state.recording.chunks = [];
         }
       }
       if (!state.completedTasks.includes(taskCode)) state.completedTasks.push(taskCode);
@@ -1384,9 +1323,7 @@ Thank you!`);
 
 // Do the actual skip (handles video task cleanup)
   async function skipTaskProceed(taskCode) {
-    if (taskCode === 'ID') {
-      try { await cleanupRecording(state); } catch(e) {}
-    }
+    // No special cleanup needed for test recorder
     skipTask(taskCode);
   }
 
@@ -1757,16 +1694,11 @@ Object.assign(window, {
     markComplete,
     openEmbedInNewTab,
     reloadEmbed,
-    retryVideoUpload: () => retryVideoUpload(state, sendToSheets, completeTask),
     showScreen,
     showSkipDialog,
     skipCurrentTask,
     skipTask,
     skipTaskProceed,
-    toggleRecording: () => toggleRecording(state),
-    reRecord: () => reRecord(state),
-    saveRecording: () => saveRecording(state, sendToSheets, completeTask),
-
-
+    testRecorder: showRecordingTask,
 });
 

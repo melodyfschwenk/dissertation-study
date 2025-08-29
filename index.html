@@ -584,76 +584,28 @@
       <div class="screen" id="recording-screen">
         <h2>Image Description Task</h2>
 
-        <div id="recording-content" style="display: none;">
-          <div class="info-box helpful">
-            <strong>Language for descriptions:</strong>
-            <p>If you know ASL, please use ASL. Otherwise, spoken English is fine.</p>
+        <section id="recorder" class="recorder">
+          <fieldset>
+            <legend>Mode</legend>
+            <label><input type="radio" name="rec-mode" value="video" checked> Video + audio</label>
+            <label><input type="radio" name="rec-mode" value="audio"> Audio only</label>
+          </fieldset>
+
+          <div class="rec-controls">
+            <button id="rec-start" type="button">Start recording</button>
+            <button id="rec-stop" type="button" disabled>Stop</button>
+            <button id="rec-upload" type="button" disabled>Upload</button>
           </div>
 
-          <div class="info-box friendly-tip">
-            <strong>Keep recordings short</strong>
-            <p>Videos over ~60 seconds (about 30MB) may fail to upload.</p>
-          </div>
+          <p id="rec-status" aria-live="polite">Idle</p>
 
-          <div style="text-align: center; margin: 20px 0;">
-            <span style="background: var(--info); color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold;">
-              Image <span id="image-number">1</span> of 2
-            </span>
-          </div>
+          <!-- === MS-LIVE-HTML START === -->
+          <video id="rec-preview-video" autoplay muted playsinline controls style="max-width:480px; display:none;"></video>
+          <!-- === MS-LIVE-HTML END === -->
+          <audio id="rec-preview-audio" controls style="width:480px; display:none;"></audio>
 
-          <div class="video-container">
-            <div class="video-panel">
-              <h3>Image to Describe</h3>
-              <img id="current-image" src="about:blank" alt="Image to describe" style="width: 100%; border-radius: 10px;" />
-            </div>
-
-            <div class="video-panel">
-              <h3>Your Video</h3>
-              <video id="video-preview" autoplay muted playsinline style="display: none;"></video>
-              <video id="recorded-video" controls playsinline style="display: none;"></video>
-
-              <div class="recording-controls">
-                <div class="recording-status ready" id="recording-status">Ready to record</div>
-                <div id="recording-timer" style="font-size: 24px; color: #ef4444; margin: 10px 0; display: none;">00:00</div>
-
-                <!-- Upload Progress Indicator -->
-                <div id="upload-progress">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="flex: 1;">
-                      <div style="font-weight: bold; margin-bottom: 5px;">Uploading video to secure storage...</div>
-                      <div class="upload-progress-bar">
-                        <div id="upload-progress-fill"></div>
-                      </div>
-                    </div>
-                    <div id="upload-status">0%</div>
-                  </div>
-                </div>
-
-                <div class="button-group">
-                  <button class="button danger" id="record-btn" onclick="toggleRecording()">Start Recording</button>
-                  <button class="button secondary" id="rerecord-btn" onclick="reRecord()" style="display: none;">Re-record</button>
-                  <button class="button success" id="save-recording-btn" onclick="saveRecording()" style="display: none;">Save & Continue</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="info-box helpful">
-            <strong>What to describe (30–60 seconds):</strong>
-            <ul style="margin: 10px 0 0 20px; text-align: left;">
-              <li>Objects and people you see</li>
-              <li>Where things are located</li>
-              <li>What is happening in the image</li>
-              <li>Spatial relationships between objects</li>
-            </ul>
-          </div>
-
-          <div id="recording-error" class="info-box friendly-tip" style="display:none; margin-top: 15px;"></div>
-
-          <div class="card" id="video-upload-fallback" style="margin-top: 15px; display:none;"></div>
-
-          <button class="button skip" id="skip-recording-btn" style="display: block; margin: 20px auto;">Unable to complete</button>
-        </div>
+          <progress id="rec-progress" value="0" max="100" style="width:480px; display:none;"></progress>
+        </section>
       </div>
 
       <!-- Completion -->
@@ -774,33 +726,6 @@
     </div>
   </div>
 </div>
-
-  <!-- === MS-RECORDER-HTML START === -->
-  <section id="recorder" class="recorder">
-    <h2>Recording task</h2>
-
-    <fieldset>
-      <legend>Mode</legend>
-      <label><input type="radio" name="rec-mode" value="video" checked> Video + audio</label>
-      <label><input type="radio" name="rec-mode" value="audio"> Audio only</label>
-    </fieldset>
-
-    <div class="rec-controls">
-      <button id="rec-start" type="button">Start recording</button>
-      <button id="rec-stop" type="button" disabled>Stop</button>
-      <button id="rec-upload" type="button" disabled>Upload</button>
-    </div>
-
-    <p id="rec-status" aria-live="polite">Idle</p>
-
-    <!-- === MS-LIVE-HTML START === -->
-    <video id="rec-preview-video" autoplay muted playsinline controls style="max-width:480px; display:none;"></video>
-    <!-- === MS-LIVE-HTML END === -->
-    <audio id="rec-preview-audio" controls style="width:480px; display:none;"></audio>
-
-    <progress id="rec-progress" value="0" max="100" style="width:480px; display:none;"></progress>
-  </section>
-  <!-- === MS-RECORDER-HTML END === -->
 
   <script src="main.js"></script>
 </body>
