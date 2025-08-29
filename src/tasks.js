@@ -4,7 +4,8 @@ export const TASKS = {
   'ASLCT':{ name:'ASL Comprehension Test',   description:'For ASL users only',                                                 url:'https://vl2portal.gallaudet.edu/assessment/', type:'external', canSkip:true, estMinutes:15, requirements:'ASL users; stable connection', skilled:true },
   'VCN':  { name:'Virtual Campus Navigation', description:'Virtual SILC Test of Navigation (SILCton)',                         url:'http://www.virtualsilcton.com/study/753798747', type:'external', canSkip:true, estMinutes:20, requirements:'Desktop/laptop; keyboard (WASD) & mouse', skilled:true },
   'SN':   { name:'Spatial Navigation',        description:'Choose the first step from the player to the stop sign (embedded below)', type:'embed',   embedUrl:'https://melodyfschwenk.github.io/spatial-navigation-web/', canSkip:true, estMinutes:8,  requirements:'Arrow keys',                     skilled:true },
-  'ID':   { name:'Image Description',        description:'Record two short videos describing images (or upload if recording is unavailable).', type:'recording', canSkip:true, estMinutes:2, requirements:'Camera & microphone or video upload' },
+  // Temporarily disabled
+  'ID':   { name:'Image Description',        description:'Record two short videos describing images (or upload if recording is unavailable).', type:'recording', canSkip:true, estMinutes:2, requirements:'Camera & microphone or video upload', disabled:true },
   'DEMO': { name:'Demographics Survey',      description:'Background information & payment', url:'https://gallaudet.iad1.qualtrics.com/jfe/form/SV_8GJcoF3hkHoP8BU', type:'external', estMinutes:6, requirements:'None' }
 };
 
@@ -21,8 +22,8 @@ export function getStandardTaskName(taskCode) {
   return mapping[taskCode] || (TASKS[taskCode] ? TASKS[taskCode].name : undefined) || taskCode;
 }
 
-export const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN', 'ID'];
-export const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN', 'ID'];
+export const DESKTOP_TASKS = ['RC', 'MRT', 'ASLCT', 'VCN', 'SN'];
+export const MOBILE_TASKS = ['RC', 'MRT', 'ASLCT', 'SN'];
 
 export function mulberry32(a) {
   return function() {

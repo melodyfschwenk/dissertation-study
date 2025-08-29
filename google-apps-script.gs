@@ -2141,14 +2141,12 @@ function getRequiredTasksForSession_(ss, sessionCode) {
     'Mental Rotation Task',
     'ASL Comprehension Test',
     'Spatial Navigation',
-    'Image Description',
+    // 'Image Description', temporarily disabled
     'Demographics Survey'
   ];
   if (!isMobile) required.splice(3, 0, 'Virtual Campus Navigation');
 
-  if (String(consentStatus).toLowerCase() === 'declined') {
-    required = required.filter(function (t) { return t !== 'Image Description'; });
-  }
+  // Image Description task is disabled; consent filtering not needed
 
   var progress = ss.getSheetByName('Task Progress').getDataRange().getValues();
   var aslctOptional = false;
@@ -2190,8 +2188,7 @@ function updateCompletedTasksCount(ss, sessionCode) {
 
       var isCompleted = (eventType === 'Completed');
       var isValidSkip = (eventType === 'Skipped' && (
-        (taskName === 'ASL Comprehension Test' && details.indexOf('does not know asl') !== -1) ||
-        (taskName === 'Image Description'      && details.indexOf('video consent declined') !== -1)
+        (taskName === 'ASL Comprehension Test' && details.indexOf('does not know asl') !== -1)
       ));
 
       if ((isCompleted || isValidSkip) && requiredSet[taskName]) {
