@@ -6,7 +6,6 @@ export async function debugVideoUpload() {
 
   console.log('1. Configuration check:');
   console.log('SHEETS_URL:', CONFIG.SHEETS_URL);
-  console.log('Is valid URL:', CONFIG.SHEETS_URL.includes('script.google.com'));
 
   console.log('2. Testing basic connection...');
   try {

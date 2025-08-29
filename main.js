@@ -1,7 +1,7 @@
 (() => {
   // src/config.js
   var CONFIG = {
-    SHEETS_URL: "https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec",
+    SHEETS_URL: window.SHEETS_URL || "https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec",
     IMAGE_1: "images/description1.jpg",
     IMAGE_2: "images/description2.jpg",
     ASLCT_ACCESS_CODE: "DVCWHNABJ",
@@ -11,6 +11,7 @@
     CLOUDINARY_UPLOAD_PRESET: "study_videos",
     CLOUDINARY_FOLDER: "spatial-cognition-videos"
   };
+  var CODE_REGEX = /^[A-Z0-9]{8}$/;
 
   // src/tasks.js
   var TASKS = {
@@ -269,7 +270,6 @@
     console.log("\u{1F50D} Starting video upload debug...");
     console.log("1. Configuration check:");
     console.log("SHEETS_URL:", CONFIG.SHEETS_URL);
-    console.log("Is valid URL:", CONFIG.SHEETS_URL.includes("script.google.com"));
     console.log("2. Testing basic connection...");
     try {
       const res = await fetch(CONFIG.SHEETS_URL, {
@@ -879,8 +879,8 @@ Session code: ${state.sessionCode || ""}`);
   }
   async function resumeSession(codeFromLink) {
     const input = codeFromLink || document.getElementById("resume-code").value;
-    const code = input.toUpperCase();
-    if (code.length !== 8) {
+    const code = input.trim().toUpperCase();
+    if (!CODE_REGEX.test(code)) {
       alert("Please enter your 8-character resume code");
       return;
     }
