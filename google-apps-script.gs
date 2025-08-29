@@ -1560,6 +1560,12 @@ function getSessionActivitySummary(sessionCode) {
         summary.tasks[taskName].duration = duration;
         summary.totalDuration += Number(duration) || 0;
         summary.completedCount++;
+      } else if (eventType === 'Skipped') {
+        summary.tasks[taskName].started = true;
+        summary.tasks[taskName].completed = true;
+        summary.tasks[taskName].attempts++;
+        summary.startedCount++;
+        summary.completedCount++;
       }
     }
   }
@@ -2171,14 +2177,10 @@ function updateCompletedTasksCount(ss, sessionCode) {
 
       var eventType = progress[i][5];
       var taskName  = normalizeTaskName_(progress[i][4]);
-      var details   = String(progress[i][14] || '').toLowerCase();
 
-      var isCompleted = (eventType === 'Completed');
-      var isValidSkip = (eventType === 'Skipped' && (
-        (taskName === 'ASL Comprehension Test' && details.indexOf('does not know asl') !== -1)
-      ));
+      var isCompleted = (eventType === 'Completed' || eventType === 'Skipped');
 
-      if ((isCompleted || isValidSkip) && requiredSet[taskName]) {
+      if (isCompleted && requiredSet[taskName]) {
         completedSet[taskName] = true;
       }
     }
