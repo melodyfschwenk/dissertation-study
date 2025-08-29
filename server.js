@@ -18,12 +18,6 @@ function validateConfig() {
 
 validateConfig();
 
-function validatePayload(data) {
-  return data &&
-    typeof data.sessionCode === 'string' && data.sessionCode.trim() !== '' &&
-    typeof data.filename === 'string';
-}
-
 const server = http.createServer((req, res) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -46,33 +40,27 @@ const server = http.createServer((req, res) => {
 
   let body = '';
   req.on('data', chunk => { body += chunk; });
-  req.on('end', () => {
-    let data;
+  req.on('end', async () => {
     try {
-      data = JSON.parse(body || '{}');
+      const gsRes = await fetch(process.env.SHEETS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body
+      });
+      const text = await gsRes.text();
+      res.writeHead(gsRes.status, {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': gsRes.headers.get('content-type') || 'application/json'
+      });
+      res.end(text);
     } catch (err) {
-      res.writeHead(400, {
+      console.error('Proxy error:', err);
+      res.writeHead(500, {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       });
-      return res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }));
+      res.end(JSON.stringify({ success: false, error: 'Proxy request failed' }));
     }
-
-    if (!validatePayload(data)) {
-      res.writeHead(400, {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      });
-      return res.end(JSON.stringify({ success: false, error: 'Invalid input' }));
-    }
-
-    // Process the body as needed. For this example we simply acknowledge
-    // receipt of the data.
-    res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json'
-    });
-    res.end(JSON.stringify({ success: true }));
   });
 
   req.on('error', err => {

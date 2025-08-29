@@ -1,5 +1,5 @@
 export const CONFIG = {
-  SHEETS_URL: 'https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec',
+  SHEETS_URL: window.SHEETS_URL || 'https://script.google.com/macros/s/AKfycbxT4jpPNG6hTDbmpeo6utlOwHLPTrxBna_YjcG0yLNI9pO5hcI7yIJcTwgesvocSYSG4A/exec',
   IMAGE_1: 'images/description1.jpg',
   IMAGE_2: 'images/description2.jpg',
   ASLCT_ACCESS_CODE: 'DVCWHNABJ',
