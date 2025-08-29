@@ -11,4 +11,4 @@ export const CONFIG = {
 };
 
 export const CODE_REGEX = /^[A-Z0-9]{8}$/;
-export const CONSENT_CODE_REGEX = /^\d{6}$/;
+export const CONSENT_CODE_REGEX = /^[A-Z0-9]{6}$/;
