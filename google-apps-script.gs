@@ -2275,6 +2275,8 @@ function logEvent(ss, data) {
 function getSessionData(ss, sessionCode) {
   if (!sessionCode) return createCorsOutput({ success: false, error: 'Missing sessionCode' });
 
+  sessionCode = String(sessionCode).trim().toUpperCase();
+
   var sheet = ss.getSheetByName('Sessions');
   var data = sheet.getDataRange().getValues();
   var headers = data[0].map(function (v) { return String(v || ''); });
