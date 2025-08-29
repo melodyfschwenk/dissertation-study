@@ -840,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     }
     function updateConsentDisplay() {
-  checkVideoConsent().then(() => {
+  const render = () => {
     const c1 = state.consentStatus.consent1;
     const c2 = state.consentStatus.consent2 || state.consentStatus.videoDeclined;
 
@@ -879,7 +879,10 @@ document.addEventListener('DOMContentLoaded', () => {
         note.style.color = '#856404';
       }
     }
-  });
+  };
+
+  render();
+  checkVideoConsent().then(render).catch(err => console.warn('checkVideoConsent failed', err));
 }
 
     function proceedToTasks() {

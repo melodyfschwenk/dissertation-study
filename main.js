@@ -1170,7 +1170,7 @@ This helps prevent accidental or invalid confirmation.`
     return false;
   }
   function updateConsentDisplay() {
-    checkVideoConsent().then(() => {
+    const render = () => {
       const c1 = state.consentStatus.consent1;
       const c2 = state.consentStatus.consent2 || state.consentStatus.videoDeclined;
       document.getElementById("continue-from-consent").disabled = !(c1 && c2);
@@ -1212,7 +1212,9 @@ This helps prevent accidental or invalid confirmation.`
           note.style.color = "#856404";
         }
       }
-    });
+    };
+    render();
+    checkVideoConsent().then(render).catch((err) => console.warn("checkVideoConsent failed", err));
   }
   function proceedToTasks() {
     if (!state.consentStatus.consent1) {
