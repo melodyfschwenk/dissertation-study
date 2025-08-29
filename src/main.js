@@ -1,4 +1,4 @@
-import { CONFIG, CODE_REGEX } from './config.js';
+import { CONFIG, CODE_REGEX, CONSENT_CODE_REGEX } from './config.js';
 import {
   TASKS,
   getStandardTaskName,
@@ -532,7 +532,7 @@ function showScreen(screenId) {
       try {
         const res = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'get_session', sessionCode: code })
         });
         const data = await res.json();
@@ -685,11 +685,11 @@ function verifyConsentCode(type) {
 
   const el = document.getElementById(inputId);
   const noteEl = document.getElementById(noteId);
-  const code = ((el && el.value) || '').trim();
+  const code = ((el && el.value) || '').trim().toUpperCase();
 
-  // Enforce 6 digits only
-  if (!CODE_REGEX.test(code)) {
-    alert('Enter the 6-digit code shown at the end of the Qualtrics form.');
+  // Enforce 6 alphanumeric characters
+  if (!CONSENT_CODE_REGEX.test(code)) {
+    alert('Enter the 6-character code shown at the end of the Qualtrics form.');
     if (el) el.focus();
     return;
   }
@@ -698,7 +698,7 @@ function verifyConsentCode(type) {
   if (type === 'consent1') state.consentStatus.consent1 = true;
   if (type === 'consent2') state.consentStatus.consent2 = true;
 
-  state.consentVerify[type] = { verified: true, method: 'code', note: '6-digit' };
+  state.consentVerify[type] = { verified: true, method: 'code', note: '6-char' };
   saveState();
   updateConsentDisplay();
 
@@ -707,13 +707,13 @@ function verifyConsentCode(type) {
     noteEl.style.color = '#1b5e20';
   }
 
-  // Log (store only the 6-digit suffix; no PII)
+  // Log (store only the 6-character code; no PII)
   sendToSheets({
     action: 'consent_verified',
     sessionCode: state.sessionCode || 'none',
     type,
     method: 'code',
-    codeSuffix: code,           // already 6 digits
+    codeSuffix: code,           // already 6 characters
     timestamp: new Date().toISOString()
   });
 }
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(CONFIG.SHEETS_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'get_session', sessionCode: state.sessionCode })
         });
         const data = await res.json();
@@ -2566,6 +2566,10 @@ Object.assign(window, {
   showSkipDialog,
   skipCurrentTask,
   skipTask,
-  skipTaskProceed
+  skipTaskProceed,
+
+  // Consent helpers
+  toggleCodeEntry,
+  verifyConsentCode
 });
 
