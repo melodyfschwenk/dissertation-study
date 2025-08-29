@@ -685,11 +685,11 @@ function verifyConsentCode(type) {
 
   const el = document.getElementById(inputId);
   const noteEl = document.getElementById(noteId);
-  const code = ((el && el.value) || '').trim();
+  const code = ((el && el.value) || '').trim().toUpperCase();
 
-  // Enforce 6 digits only
+  // Enforce 6 alphanumeric characters
   if (!CONSENT_CODE_REGEX.test(code)) {
-    alert('Enter the 6-digit code shown at the end of the Qualtrics form.');
+    alert('Enter the 6-character code shown at the end of the Qualtrics form.');
     if (el) el.focus();
     return;
   }
@@ -698,7 +698,7 @@ function verifyConsentCode(type) {
   if (type === 'consent1') state.consentStatus.consent1 = true;
   if (type === 'consent2') state.consentStatus.consent2 = true;
 
-  state.consentVerify[type] = { verified: true, method: 'code', note: '6-digit' };
+  state.consentVerify[type] = { verified: true, method: 'code', note: '6-character' };
   saveState();
   updateConsentDisplay();
 
@@ -2491,7 +2491,7 @@ async function sendToSheets(payload) {
     await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' }, // simple request, bypasses CORS preflight
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // simple request, bypasses CORS preflight
       body: JSON.stringify(body)
     });
   } catch (error) {
