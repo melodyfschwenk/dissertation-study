@@ -1305,7 +1305,10 @@ function createSession(ss, data) {
       userAgent: data.userAgent || ''
     });
 
-    if (data.email) addEmailReminder(ss, data.sessionCode, data.email);
+    if (data.email) {
+      addEmailReminder(ss, data.sessionCode, data.email);
+      sendRecoveryEmail(data.email, data.sessionCode);
+    }
 
     try {
       var folder = getOrCreateStudyFolder();
@@ -1330,6 +1333,19 @@ function addEmailReminder(ss, sessionCode, email) {
     }
     sheet.appendRow([sessionCode, email || '', '', 0, 'New Session']);
   });
+}
+
+function sendRecoveryEmail(email, sessionCode) {
+  try {
+    var link = 'https://<your-domain>/?recover=' + encodeURIComponent(Utilities.base64Encode(sessionCode));
+    MailApp.sendEmail({
+      to: email,
+      subject: 'Resume your session',
+      htmlBody: 'Click <a href="' + link + '">resume link</a> or use code ' + sessionCode
+    });
+  } catch (e) {
+    handleError(e);
+  }
 }
 
 function resumeSession(ss, data) {
