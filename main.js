@@ -12,6 +12,7 @@
     CLOUDINARY_FOLDER: "spatial-cognition-videos"
   };
   var CODE_REGEX = /^[A-Z0-9]{8}$/;
+  var CONSENT_CODE_REGEX = /^[A-Z0-9]{6}$/;
 
   // src/tasks.js
   var TASKS = {
@@ -211,7 +212,7 @@
       updateUploadProgress(30, `Uploading ${videoFormat.toUpperCase()} to Google Drive...`);
       const response = await fetch(CONFIG.SHEETS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(uploadData)
       });
       updateUploadProgress(75, "Processing response...");
@@ -274,7 +275,7 @@
     try {
       const res = await fetch(CONFIG.SHEETS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
           action: "test_connection",
           timestamp: (/* @__PURE__ */ new Date()).toISOString()
@@ -324,7 +325,7 @@
       };
       const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(uploadData)
       });
       console.log("Upload response:", {
@@ -887,7 +888,7 @@ Session code: ${state.sessionCode || ""}`);
     try {
       const res = await fetch(CONFIG.SHEETS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "get_session", sessionCode: code })
       });
       const data = await res.json();
@@ -980,6 +981,17 @@ Session code: ${state.sessionCode || ""}`);
       sendToSheets({ action: "consent_opened", sessionCode: state.sessionCode, type, timestamp: (/* @__PURE__ */ new Date()).toISOString() });
     }
   }
+  function toggleCodeEntry(type) {
+    const container = document.getElementById(`${type}-code-container`);
+    const note = document.getElementById(`${type}-verify-note`);
+    if (!container) return;
+    const show = container.style.display === "none" || container.style.display === "";
+    container.style.display = show ? "block" : "none";
+    if (show && note) {
+      note.textContent = "\u{1F504} Waiting for consent form code...";
+      note.style.color = "var(--text-secondary)";
+    }
+  }
   function markConsentDone(type) {
     const niceName = type === "consent1" ? "Research Consent" : "Video Consent";
     const ok = confirm(
@@ -1012,6 +1024,36 @@ This helps prevent accidental or invalid confirmation.`
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
     logSessionTime(type);
+  }
+  function verifyConsentCode(type) {
+    const inputId = type === "consent1" ? "consent1-code" : "consent2-code";
+    const noteId = type === "consent1" ? "consent1-verify-note" : "consent2-verify-note";
+    const el = document.getElementById(inputId);
+    const noteEl = document.getElementById(noteId);
+    const code = (el && el.value || "").trim().toUpperCase();
+    if (!CONSENT_CODE_REGEX.test(code)) {
+      alert("Enter the 6-character code shown at the end of the Qualtrics form.");
+      if (el) el.focus();
+      return;
+    }
+    if (type === "consent1") state.consentStatus.consent1 = true;
+    if (type === "consent2") state.consentStatus.consent2 = true;
+    state.consentVerify[type] = { verified: true, method: "code", note: "6-char" };
+    saveState();
+    updateConsentDisplay();
+    if (noteEl) {
+      noteEl.textContent = "\u2705 Code verified!";
+      noteEl.style.color = "#1b5e20";
+    }
+    sendToSheets({
+      action: "consent_verified",
+      sessionCode: state.sessionCode || "none",
+      type,
+      method: "code",
+      codeSuffix: code,
+      // already 6 characters
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    });
   }
   function autoVerifyConsentsFromURL() {
     try {
@@ -1091,7 +1133,7 @@ This helps prevent accidental or invalid confirmation.`
     try {
       const res = await fetch(CONFIG.SHEETS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "get_session", sessionCode: state.sessionCode })
       });
       const data = await res.json();
@@ -2465,6 +2507,9 @@ Thank you!`);
     showSkipDialog,
     skipCurrentTask,
     skipTask,
-    skipTaskProceed
+    skipTaskProceed,
+    // Consent helpers
+    toggleCodeEntry,
+    verifyConsentCode
   });
 })();

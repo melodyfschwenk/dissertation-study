@@ -11,7 +11,7 @@ export async function debugVideoUpload() {
   try {
     const res = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'test_connection',
         timestamp: new Date().toISOString()
@@ -69,7 +69,7 @@ export async function debugVideoUpload() {
 
     const uploadResponse = await fetch(CONFIG.SHEETS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(uploadData)
     });
 
