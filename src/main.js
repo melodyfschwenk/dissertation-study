@@ -393,6 +393,8 @@ if (document.readyState === 'loading') {
       document.getElementById('last-initial').addEventListener('input', validateInitials);
       document.getElementById('hearing-status').addEventListener('change', validateInitials);
       document.getElementById('fluency').addEventListener('change', validateInitials);
+      document.getElementById('consent-code').addEventListener('input', validateInitials);
+      document.getElementById('consent-confirm').addEventListener('change', validateInitials);
       document.getElementById('resume-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
       bindRecordingSkips();
       enhanceUploadFallback();
@@ -407,7 +409,9 @@ if (document.readyState === 'loading') {
       const last = document.getElementById('last-initial').value;
       const hearing = document.getElementById('hearing-status').value;
       const fluency = document.getElementById('fluency').value;
-      document.getElementById('create-session-btn').disabled = !(first && last && hearing && fluency);
+      const consentCode = document.getElementById('consent-code').value;
+      const consent = document.getElementById('consent-confirm').checked;
+      document.getElementById('create-session-btn').disabled = !(first && last && hearing && fluency && consentCode && consent);
     }
 
     // ----- Screens -----
@@ -466,7 +470,9 @@ function showScreen(screenId) {
       const email = document.getElementById('email').value.trim();
       const hearing = document.getElementById('hearing-status').value;
       const fluency = document.getElementById('fluency').value;
-      if (!first || !last || !hearing || !fluency) { alert('Please complete all fields'); return; }
+      const consentCode = document.getElementById('consent-code').value.trim();
+      const consent = document.getElementById('consent-confirm').checked;
+      if (!first || !last || !hearing || !fluency || !consentCode || !consent) { alert('Please complete all fields and confirm consent'); return; }
 
       if (isMobileDevice()) {
         const proceed = confirm(
@@ -483,6 +489,8 @@ function showScreen(screenId) {
       state.email = email;
       state.hearingStatus = hearing;
       state.fluency = fluency;
+      state.consentCode = consentCode;
+      state.consentConfirmed = consent;
 
       // Choose sequence (mobile vs desktop)
       const seed = Math.abs(hashCode(state.sessionCode));
@@ -507,6 +515,8 @@ function showScreen(screenId) {
         email: state.email,
         hearingStatus: state.hearingStatus,
         fluency: state.fluency,
+        consentCode: state.consentCode,
+        consentConfirmed: state.consentConfirmed,
         deviceType: state.isMobile ? 'mobile/tablet' : 'desktop',
         timestamp: new Date().toISOString()
       });
