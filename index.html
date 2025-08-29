@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spatial Cognition & Sign Language Research Study</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css" />
+  <script type="module">
+    import * as UC from "https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.js";
+    UC.defineComponents(UC);
+  </script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -609,31 +614,25 @@
 
             <div class="video-panel">
               <h3>Your Video</h3>
-              <video id="video-preview" autoplay muted playsinline style="display: none;"></video>
-              <video id="recorded-video" controls playsinline style="display: none;"></video>
+              <div id="uploader-container">
+                <uc-config
+                  ctx-name="study-uploader"
+                  pubkey="5bbde6a6390e682bbbe7"
+                  source-list="local, url, camera"
+                  accept="video/*,audio/*"
+                  camera-modes="video"
+                  default-camera-mode="video"
+                  enable-audio-recording="true"
+                  camera-capture="user"
+                  multiple="false"
+                  store="auto"
+                  max-local-file-size-bytes="52428800"
+                ></uc-config>
 
-              <div class="recording-controls">
-                <div class="recording-status ready" id="recording-status">Ready to record</div>
-                <div id="recording-timer" style="font-size: 24px; color: #ef4444; margin: 10px 0; display: none;">00:00</div>
+                <uc-upload-ctx-provider id="ucctx" ctx-name="study-uploader"></uc-upload-ctx-provider>
 
-                <!-- Upload Progress Indicator -->
-                <div id="upload-progress">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="flex: 1;">
-                      <div style="font-weight: bold; margin-bottom: 5px;">Uploading video to secure storage...</div>
-                      <div class="upload-progress-bar">
-                        <div id="upload-progress-fill"></div>
-                      </div>
-                    </div>
-                    <div id="upload-status">0%</div>
-                  </div>
-                </div>
-
-                <div class="button-group">
-                  <button class="button danger" id="record-btn" onclick="toggleRecording()">Start Recording</button>
-                  <button class="button secondary" id="rerecord-btn" onclick="reRecord()" style="display: none;">Re-record</button>
-                  <button class="button success" id="save-recording-btn" onclick="saveRecording()" style="display: none;">Save & Continue</button>
-                </div>
+                <uc-file-uploader-regular ctx-name="study-uploader" class="uc-light"></uc-file-uploader-regular>
+                <div class="recording-status ready" id="recording-status">Ready to upload</div>
               </div>
             </div>
           </div>
