@@ -2255,7 +2255,10 @@ Object.assign(window, {
   skipCurrentTask,
   skipTask,
   skipTaskProceed,
+  toggleRecording,
+  reRecord,
+  saveRecording,
 
-  
+
 });
 
