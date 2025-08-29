@@ -108,11 +108,11 @@ async function makeTinyTestVideo({ ms = 800, fps = 10 } = {}) {
   const canvas = document.createElement('canvas');
   canvas.width = 64; canvas.height = 64;
   const ctx = canvas.getContext('2d');
-  const mime =
-    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' :
-    MediaRecorder?.isTypeSupported?.('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' :
-    'video/webm';
-  const stream = canvas.captureStream?.(fps);
+  const canCheckType = (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function');
+  const mime = canCheckType && MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+    : canCheckType && MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8'
+    : 'video/webm';
+  const stream = canvas.captureStream ? canvas.captureStream(fps) : null;
   if (!stream) throw new Error('Canvas captureStream is not supported in this browser');
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 250000 });
   const chunks = [];
@@ -153,7 +153,7 @@ export async function testCloudinaryUpload() {
     input.type = 'file';
     input.accept = 'video/mp4,video/webm,video/quicktime';
     input.click();
-    const file = await new Promise(resolve => input.onchange = () => resolve(input.files?.[0]));
+    const file = await new Promise(resolve => input.onchange = () => resolve(input.files && input.files[0]));
     if (!file) { alert('No file selected.'); return; }
     blob = file;
   }
