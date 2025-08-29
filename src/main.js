@@ -2450,7 +2450,7 @@ What I've tried:
 Accessibility needs (if any): 
 
 Thank you!`);
-  window.open(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+  window.location.href = `mailto:${CONFIG.SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 }
 
 // Do the actual skip (handles video task cleanup)
