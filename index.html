@@ -793,7 +793,9 @@
 
     <p id="rec-status" aria-live="polite">Idle</p>
 
-    <video id="rec-preview-video" playsinline controls style="max-width:480px; display:none;"></video>
+    <!-- === MS-LIVE-HTML START === -->
+    <video id="rec-preview-video" autoplay muted playsinline controls style="max-width:480px; display:none;"></video>
+    <!-- === MS-LIVE-HTML END === -->
     <audio id="rec-preview-audio" controls style="width:480px; display:none;"></audio>
 
     <progress id="rec-progress" value="0" max="100" style="width:480px; display:none;"></progress>

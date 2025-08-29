@@ -66,8 +66,35 @@ function closeEEGModal() {
   const m = document.getElementById('eeg-modal');
   if (m) m.classList.remove('active');
 }
-    // ----- State -----
-    let state = {
+
+/* === MS-LIVE-PREVIEW START === */
+let msLiveStream = null;
+
+async function msEnsureLivePreview(constraints = {
+  video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+  audio: true
+}) {
+  const el = document.querySelector('#rec-preview-video');
+  if (!el) return null;
+
+  el.muted = true;
+  el.playsInline = true;
+  el.autoplay = true;
+
+  if (!msLiveStream) {
+    msLiveStream = await navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  // Show the live stream
+  el.srcObject = msLiveStream;
+  el.style.display = '';
+  try { await el.play(); } catch (_) {}
+
+  return msLiveStream;
+}
+/* === MS-LIVE-PREVIEW END === */
+// ----- State -----
+let state = {
   sessionCode: '',
   participantID: '',
   email: '',
@@ -1480,6 +1507,7 @@ function msRecorderInit() {
       btnStart.disabled = true;
       statusEl.textContent = 'Requesting media...';
 
+      // === MS-LIVE-HOOK START ===
       const constraints = currentMode === 'audio'
         ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
         : {
@@ -1487,12 +1515,30 @@ function msRecorderInit() {
             audio: { echoCancellation: true, noiseSuppression: true }
           };
 
+      const live = await msEnsureLivePreview(constraints);
+      const stream = live || await navigator.mediaDevices.getUserMedia(constraints);
+      // === MS-LIVE-HOOK END ===
+
+      if (currentMode !== 'audio') {
+        // === MS-LIVE-KEEP-VISIBLE START ===
+        document.querySelector('#rec-preview-video')?.style && (
+          document.querySelector('#rec-preview-video').style.display = ''
+        );
+        // === MS-LIVE-KEEP-VISIBLE END ===
+      } else {
+        document.querySelector('#rec-preview-video')?.style && (
+          document.querySelector('#rec-preview-video').style.display = 'none'
+        );
+      }
+
       chosenMime = pickMime(currentMode);
-      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      mediaStream = stream;
 
       chunks = [];
-      mediaRecorder = chosenMime ? new MediaRecorder(mediaStream, { mimeType: chosenMime })
-                                 : new MediaRecorder(mediaStream);
+      // === MS-LIVE-RECORDER START ===
+      mediaRecorder = chosenMime ? new MediaRecorder(stream, { mimeType: chosenMime })
+                                 : new MediaRecorder(stream);
+      // === MS-LIVE-RECORDER END ===
 
       mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
       mediaRecorder.onstart = () => { statusEl.textContent = `Recording... ${chosenMime || '(default)'}`; };
@@ -1543,15 +1589,24 @@ function msRecorderInit() {
 
       recordedFile = new File([blob], `study-recording.${ext}`, { type });
 
+      // === MS-LIVE-PLAYBACK START ===
+      const el = document.querySelector('#rec-preview-video');
+      if (el) {
+        try { el.pause(); } catch (_) {}
+        el.srcObject = null;
+        el.src = URL.createObjectURL(recordedFile);
+        try { el.src += '#t=0.001'; } catch (_) {}
+        el.style.display = '';
+        // Do not auto play recorded clip to avoid autoplay policies
+      }
+      // === MS-LIVE-PLAYBACK END ===
+
       // Preview
       if (isAudio) {
         audioEl.src = URL.createObjectURL(recordedFile);
         audioEl.style.display = '';
         videoEl.style.display = 'none';
       } else {
-        videoEl.src = URL.createObjectURL(recordedFile);
-        try { videoEl.src += '#t=0.001'; } catch {}
-        videoEl.style.display = '';
         audioEl.style.display = 'none';
       }
 
