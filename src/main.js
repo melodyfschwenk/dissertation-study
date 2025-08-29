@@ -1,4 +1,4 @@
-import { CONFIG, CODE_REGEX } from './config.js';
+import { CONFIG, CODE_REGEX, CONSENT_CODE_REGEX } from './config.js';
 import {
   TASKS,
   getStandardTaskName,
@@ -688,7 +688,7 @@ function verifyConsentCode(type) {
   const code = ((el && el.value) || '').trim();
 
   // Enforce 6 digits only
-  if (!CODE_REGEX.test(code)) {
+  if (!CONSENT_CODE_REGEX.test(code)) {
     alert('Enter the 6-digit code shown at the end of the Qualtrics form.');
     if (el) el.focus();
     return;
@@ -2566,6 +2566,10 @@ Object.assign(window, {
   showSkipDialog,
   skipCurrentTask,
   skipTask,
-  skipTaskProceed
+  skipTaskProceed,
+
+  // Consent helpers
+  toggleCodeEntry,
+  verifyConsentCode
 });
 
