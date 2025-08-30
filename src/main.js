@@ -19,9 +19,6 @@ import {
 
 // ----- Configuration -----
 /* === MS-RECORDER-CONFIG START === */
-const CLOUDINARY_CLOUD = 'demo';        // your cloud name
-const CLOUDINARY_PRESET = 'unsigned';       // your unsigned preset
-const CLOUDINARY_FOLDER = 'spatial-cognition-videos';
 const RECORDING_BYTES_LIMIT = 50 * 1024 * 1024; // 50 MB limit
 /* === MS-RECORDER-CONFIG END === */
 
@@ -1571,11 +1568,11 @@ function msRecorderInit() {
   function uploadToCloudinary(file) {
     return new Promise((resolve, reject) => {
       // Use video endpoint for both video and audio
-      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`;
+      const url = `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`;
       const form = new FormData();
       form.append('file', file, file.name);
-      form.append('upload_preset', CLOUDINARY_PRESET);
-      form.append('folder', CLOUDINARY_FOLDER);
+      form.append('upload_preset', CONFIG.CLOUDINARY_UPLOAD_PRESET);
+      form.append('folder', CONFIG.CLOUDINARY_FOLDER);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', url);
