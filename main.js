@@ -1507,25 +1507,8 @@ Session code: ${state.sessionCode || ""}`);
   var pendingSkipTask = null;
   function showSkipDialog(taskCode) {
     pendingSkipTask = taskCode;
-    const pre = document.getElementById("pre-skip-modal");
-    pre.classList.add("active");
-  }
-  document.getElementById("pre-skip-try-btn").onclick = () => {
-    document.getElementById("pre-skip-modal").classList.remove("active");
-  };
-  document.getElementById("pre-skip-help-btn").onclick = () => {
-    document.getElementById("pre-skip-modal").classList.remove("active");
-    openSupportEmail(pendingSkipTask);
-    sendToSheets({ action: "help_requested", sessionCode: state.sessionCode || "none", task: getStandardTaskName(pendingSkipTask), timestamp: (/* @__PURE__ */ new Date()).toISOString() });
-  };
-  document.getElementById("pre-skip-break-btn").onclick = () => {
-    document.getElementById("pre-skip-modal").classList.remove("active");
-    pauseStudy();
-  };
-  document.getElementById("pre-skip-skip-btn").onclick = () => {
-    document.getElementById("pre-skip-modal").classList.remove("active");
     document.getElementById("skip-modal").classList.add("active");
-  };
+  }
   document.getElementById("skip-help-btn").onclick = () => {
     openSupportEmail(pendingSkipTask);
     sendToSheets({ action: "help_requested", sessionCode: state.sessionCode || "none", task: getStandardTaskName(pendingSkipTask), timestamp: (/* @__PURE__ */ new Date()).toISOString() });
