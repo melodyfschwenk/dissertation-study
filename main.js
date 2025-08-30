@@ -353,9 +353,6 @@
   }
 
   // src/main.js
-  var CLOUDINARY_CLOUD = "demo";
-  var CLOUDINARY_PRESET = "unsigned";
-  var CLOUDINARY_FOLDER = "spatial-cognition-videos";
   var RECORDING_BYTES_LIMIT = 50 * 1024 * 1024;
   document.querySelectorAll(".support-email").forEach((el) => {
     el.textContent = CONFIG.SUPPORT_EMAIL;
@@ -1767,11 +1764,11 @@ Thank you!`);
     }
     function uploadToCloudinary2(file) {
       return new Promise((resolve, reject) => {
-        const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`;
+        const url = `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_CLOUD_NAME}/video/upload`;
         const form = new FormData();
         form.append("file", file, file.name);
-        form.append("upload_preset", CLOUDINARY_PRESET);
-        form.append("folder", CLOUDINARY_FOLDER);
+        form.append("upload_preset", CONFIG.CLOUDINARY_UPLOAD_PRESET);
+        form.append("folder", CONFIG.CLOUDINARY_FOLDER);
         const xhr = new XMLHttpRequest();
         xhr.open("POST", url);
         xhr.upload.onprogress = (e) => {
