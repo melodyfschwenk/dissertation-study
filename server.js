@@ -5,11 +5,26 @@
 
 require('dotenv').config();
 const http = require('http');
+const net = require('net');
 
 // Simple in-memory rate limiting
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const requestCounts = new Map();
+
+function isSuspiciousIp(ip) {
+  if (!ip) return true;
+  const cleaned = ip.replace(/^::ffff:/, '');
+  if (net.isIP(cleaned) === 0) return true;
+  if (cleaned === '::1') return true;
+  if (/^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|0\.0\.0\.0$)/.test(cleaned)) {
+    return true;
+  }
+  if (/^(fc00:|fd00:|fe80:)/i.test(cleaned)) {
+    return true;
+  }
+  return false;
+}
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -55,7 +70,14 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
   }
 
-  const ip = req.socket.remoteAddress;
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (isSuspiciousIp(ip)) {
+    res.writeHead(403, {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
+    });
+    return res.end(JSON.stringify({ success: false, error: 'Forbidden' }));
+  }
   if (isRateLimited(ip)) {
     res.writeHead(429, {
       'Access-Control-Allow-Origin': '*',
