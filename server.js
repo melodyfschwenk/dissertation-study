@@ -5,6 +5,7 @@
 
 require('dotenv').config();
 const http = require('http');
+const geoip = require('geoip-lite');
 
 // Simple in-memory rate limiting
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -24,6 +25,27 @@ function isRateLimited(ip) {
 }
 
 const REQUIRED_CONFIG = ['SHEETS_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_UPLOAD_PRESET'];
+
+// Allow local/private IPs since geolocation services may not recognize them
+const PRIVATE_IP_REGEX = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
+
+function normalizeIp(ip) {
+  return ip?.replace('::ffff:', '');
+}
+
+function isUSIp(ip) {
+  const normalized = normalizeIp(ip);
+  if (PRIVATE_IP_REGEX.test(normalized)) {
+    return true;
+  }
+  try {
+    const geo = geoip.lookup(normalized);
+    return geo?.country === 'US';
+  } catch (err) {
+    console.error('GeoIP lookup failed:', err);
+    return false;
+  }
+}
 
 function validateConfig() {
   const missing = REQUIRED_CONFIG.filter(key => !process.env[key]);
@@ -55,13 +77,22 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
   }
 
-  const ip = req.socket.remoteAddress;
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
   if (isRateLimited(ip)) {
     res.writeHead(429, {
       'Access-Control-Allow-Origin': '*',
       'Content-Type': 'application/json'
     });
     return res.end(JSON.stringify({ success: false, error: 'Too many requests' }));
+  }
+
+  if (!isUSIp(ip)) {
+    res.writeHead(403, {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
+    });
+    return res.end(JSON.stringify({ success: false, error: 'Access restricted to US' }));
   }
 
   let body = '';
