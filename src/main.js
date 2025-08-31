@@ -500,6 +500,8 @@ function showScreen(screenId) {
     }
 
     function createNewSession() {
+      const honeypot = document.getElementById('registration-website').value.trim();
+      if (honeypot) return;
       const first = document.getElementById('first-initial').value.trim().toUpperCase();
       const last = document.getElementById('last-initial').value.trim().toUpperCase();
       const email = document.getElementById('email').value.trim();
@@ -561,6 +563,10 @@ function showScreen(screenId) {
     }
 
       async function resumeSession(codeFromLink) {
+        if (!codeFromLink) {
+          const honeypot = document.getElementById('resume-website').value.trim();
+          if (honeypot) return;
+        }
         const input = codeFromLink || document.getElementById('resume-code').value;
         const code = input.trim().toUpperCase();
         if (!CODE_REGEX.test(code)) { alert('Please enter your 8-character session code'); return; }

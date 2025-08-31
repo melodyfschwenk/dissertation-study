@@ -68,6 +68,18 @@ const server = http.createServer((req, res) => {
   req.on('data', chunk => { body += chunk; });
   req.on('end', async () => {
     try {
+      const data = JSON.parse(body);
+      if (data && data.website) {
+        res.writeHead(400, {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        });
+        return res.end(JSON.stringify({ success: false, error: 'Spam detected' }));
+      }
+    } catch (e) {
+      // ignore malformed JSON
+    }
+    try {
       const gsRes = await fetch(process.env.SHEETS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
