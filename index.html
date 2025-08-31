@@ -128,7 +128,8 @@
   border-color: var(--primary); 
 }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    
+    .honeypot { display: none; }
+
     /* Buttons */
     .button {
       background: var(--primary);
@@ -412,6 +413,11 @@
           <input type="email" id="email" placeholder="your.email@example.com" />
         </div>
 
+        <div class="form-group honeypot">
+          <label for="registration-website">Website</label>
+          <input type="text" id="registration-website" name="website" autocomplete="off" tabindex="-1" aria-hidden="true" />
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="hearing-status">Hearing Status</label>
@@ -446,6 +452,11 @@
         <div class="form-group">
           <label for="resume-code">Session Code</label>
           <input type="text" id="resume-code" maxlength="8" placeholder="ABC12345" style="text-transform: uppercase; font-family: monospace; font-size: 24px; letter-spacing: 2px; text-align: center;" />
+        </div>
+
+        <div class="form-group honeypot">
+          <label for="resume-website">Website</label>
+          <input type="text" id="resume-website" name="website" autocomplete="off" tabindex="-1" aria-hidden="true" />
         </div>
 
         <div class="button-group">
