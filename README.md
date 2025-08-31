@@ -30,6 +30,8 @@ npm start
 
 Check the console for warnings or errors during startup.
 
+The server applies simple rate limiting and blocks requests from private or malformed IP addresses.
+
 ## Environment variables
 
 Create a `.env` file or export these variables before running the server:
