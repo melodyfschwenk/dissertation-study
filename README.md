@@ -30,6 +30,8 @@ npm start
 
 Check the console for warnings or errors during startup.
 
+The server records each request's IP address and timestamp to an `access.log` file in the project root. Review this file to monitor repeated visits or unusual access patterns.
+
 ## Environment variables
 
 Create a `.env` file or export these variables before running the server:

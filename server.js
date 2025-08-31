@@ -5,6 +5,8 @@
 
 require('dotenv').config();
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 // Simple in-memory rate limiting
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -24,6 +26,18 @@ function isRateLimited(ip) {
 }
 
 const REQUIRED_CONFIG = ['SHEETS_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_UPLOAD_PRESET'];
+
+const logPath = path.join(__dirname, 'access.log');
+let accessLog;
+try {
+  accessLog = fs.createWriteStream(logPath, { flags: 'a' });
+} catch (err) {
+  console.error('Failed to open access log:', err);
+}
+
+process.on('exit', () => {
+  if (accessLog) accessLog.end();
+});
 
 function validateConfig() {
   const missing = REQUIRED_CONFIG.filter(key => !process.env[key]);
@@ -56,6 +70,9 @@ const server = http.createServer((req, res) => {
   }
 
   const ip = req.socket.remoteAddress;
+  if (accessLog) {
+    accessLog.write(`${new Date().toISOString()} ${ip} ${req.method} ${req.url}\n`);
+  }
   if (isRateLimited(ip)) {
     res.writeHead(429, {
       'Access-Control-Allow-Origin': '*',
