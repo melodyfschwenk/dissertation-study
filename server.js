@@ -6,6 +6,23 @@
 require('dotenv').config();
 const http = require('http');
 
+// Simple in-memory rate limiting
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 30;
+const requestCounts = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = requestCounts.get(ip) || { count: 0, start: now };
+  if (now - entry.start > RATE_LIMIT_WINDOW_MS) {
+    entry.count = 0;
+    entry.start = now;
+  }
+  entry.count += 1;
+  requestCounts.set(ip, entry);
+  return entry.count > RATE_LIMIT_MAX_REQUESTS;
+}
+
 const REQUIRED_CONFIG = ['SHEETS_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_UPLOAD_PRESET'];
 
 function validateConfig() {
@@ -36,6 +53,15 @@ const server = http.createServer((req, res) => {
       'Content-Type': 'application/json'
     });
     return res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
+  }
+
+  const ip = req.socket.remoteAddress;
+  if (isRateLimited(ip)) {
+    res.writeHead(429, {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
+    });
+    return res.end(JSON.stringify({ success: false, error: 'Too many requests' }));
   }
 
   let body = '';
