@@ -10,7 +10,7 @@
     CLOUDINARY_CLOUD_NAME: "dll2sorkn",
     CLOUDINARY_UPLOAD_PRESET: "study_videos",
     CLOUDINARY_FOLDER: "spatial-cognition-videos",
-    BLOCKED_EMAILS: ["williamswinner200@gmail.com"]
+    BLOCKED_EMAILS: ["williamswinner200@gmail.com", "alvarezxoxo2@gmail.com", "robertgeorge0045@gmail.com"]
   };
   var CODE_REGEX = /^[A-Z0-9]{8}$/;
 
