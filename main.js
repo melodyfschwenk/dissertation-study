@@ -716,6 +716,27 @@ Session code: ${state.sessionCode || ""}`);
   </ul>
 `;
       }
+      const overlay = document.getElementById("mobile-consent-overlay");
+      if (overlay) {
+        overlay.classList.add("active");
+        const submit = document.getElementById("mobile-consent-submit");
+        if (submit) {
+          submit.addEventListener("click", () => {
+            const codeInput = document.getElementById("mobile-consent-input");
+            const code = codeInput ? codeInput.value.trim() : "";
+            if (!code) {
+              alert("Consent access code is required.");
+              return;
+            }
+            const mainInput = document.getElementById("consent-code");
+            if (mainInput) {
+              mainInput.value = code;
+              validateInitials({ target: mainInput });
+            }
+            overlay.classList.remove("active");
+          });
+        }
+      }
     }
   }
   if (document.readyState === "loading") {
