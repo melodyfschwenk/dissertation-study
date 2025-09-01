@@ -9,7 +9,8 @@
     SUPPORT_EMAIL: "action.brain.lab@gallaudet.edu",
     CLOUDINARY_CLOUD_NAME: "dll2sorkn",
     CLOUDINARY_UPLOAD_PRESET: "study_videos",
-    CLOUDINARY_FOLDER: "spatial-cognition-videos"
+    CLOUDINARY_FOLDER: "spatial-cognition-videos",
+    BLOCKED_EMAILS: ["williamswinner200@gmail.com"]
   };
   var CODE_REGEX = /^[A-Z0-9]{8}$/;
 
@@ -787,6 +788,11 @@ Session code: ${state.sessionCode || ""}`);
     const first = document.getElementById("first-initial").value.trim().toUpperCase();
     const last = document.getElementById("last-initial").value.trim().toUpperCase();
     const email = document.getElementById("email").value.trim();
+    const blocked = (CONFIG.BLOCKED_EMAILS || []).map((e) => e.toLowerCase());
+    if (email && blocked.includes(email.toLowerCase())) {
+      alert("This email address is not eligible to participate.");
+      return;
+    }
     const hearing = document.getElementById("hearing-status").value;
     const fluency = document.getElementById("fluency").value;
     const consentCode = document.getElementById("consent-code").value.trim();
