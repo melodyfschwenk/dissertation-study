@@ -64,8 +64,9 @@
   function isMobileDevice() {
     const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
     const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+    const iPadOS = navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1;
     const isSmallScreen = window.innerWidth <= 1024;
-    return hasTouch && (mobileUA || isSmallScreen);
+    return hasTouch && (mobileUA || iPadOS || isSmallScreen);
   }
 
   // src/videoUpload.js
