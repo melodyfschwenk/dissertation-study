@@ -63,7 +63,9 @@
   }
   function isMobileDevice() {
     const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-    const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+    const ua = navigator.userAgent || "";
+    const isIPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua) || isIPadOS;
     const isSmallScreen = window.innerWidth <= 1024;
     return hasTouch && (mobileUA || isSmallScreen);
   }
@@ -718,7 +720,6 @@ Session code: ${state.sessionCode || ""}`);
       }
       const overlay = document.getElementById("mobile-consent-overlay");
       if (overlay) {
-        overlay.classList.add("active");
         const submit = document.getElementById("mobile-consent-submit");
         if (submit) {
           submit.addEventListener("click", () => {
@@ -733,7 +734,7 @@ Session code: ${state.sessionCode || ""}`);
               mainInput.value = code;
               validateInitials({ target: mainInput });
             }
-            overlay.classList.remove("active");
+            overlay.style.display = "none";
           });
         }
       }

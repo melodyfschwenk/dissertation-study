@@ -51,7 +51,9 @@ export function ensureDemographicsLast(sequence) {
 
 export function isMobileDevice() {
   const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
-  const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+  const ua = navigator.userAgent || '';
+  const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua) || isIPadOS;
   const isSmallScreen = window.innerWidth <= 1024;
   return hasTouch && (mobileUA || isSmallScreen);
 }
