@@ -514,7 +514,14 @@ function showScreen(screenId) {
       const fluency = document.getElementById('fluency').value;
       const consentCode = document.getElementById('consent-code').value.trim();
       const consent = document.getElementById('consent-confirm').checked;
-      if (!first || !last || !hearing || !fluency || !consentCode || !consent) { alert('Please complete all fields and confirm consent'); return; }
+      if (isMobileDevice() && !consentCode) {
+        alert('Phones and tablets require the consent access code.');
+        return;
+      }
+      if (!first || !last || !hearing || !fluency || !consentCode || !consent) {
+        alert('Please complete all fields and confirm consent');
+        return;
+      }
 
       if (isMobileDevice()) {
         const proceed = confirm(
