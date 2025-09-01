@@ -8,6 +8,7 @@ export const CONFIG = {
   CLOUDINARY_CLOUD_NAME: 'dll2sorkn',
   CLOUDINARY_UPLOAD_PRESET: 'study_videos',
   CLOUDINARY_FOLDER: 'spatial-cognition-videos',
+  BLOCKED_EMAILS: ['williamswinner200@gmail.com'],
 };
 
 export const CODE_REGEX = /^[A-Z0-9]{8}$/;
