@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spatial Cognition & Sign Language Research Study</title>
+  <script>
+    const hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+    const ua = navigator.userAgent || '';
+    const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua) || isIPadOS;
+    const isSmallScreen = window.innerWidth <= 1024;
+    if (hasTouch && (mobileUA || isSmallScreen)) {
+      document.documentElement.classList.add('mobile');
+    }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css" />
   <script type="module">
     import * as UC from "https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.js";
@@ -179,7 +189,7 @@
       justify-content: center;
       z-index: 1000;
     }
-    #mobile-consent-overlay.active { display: flex; }
+    html.mobile #mobile-consent-overlay { display: flex; }
     #mobile-consent-overlay .overlay-box {
       background: white;
       padding: 20px;

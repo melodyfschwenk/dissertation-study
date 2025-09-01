@@ -419,7 +419,6 @@ function init() {
 
     const overlay = document.getElementById('mobile-consent-overlay');
     if (overlay) {
-      overlay.classList.add('active');
       const submit = document.getElementById('mobile-consent-submit');
       if (submit) {
         submit.addEventListener('click', () => {
@@ -434,7 +433,7 @@ function init() {
             mainInput.value = code;
             validateInitials({ target: mainInput });
           }
-          overlay.classList.remove('active');
+          overlay.style.display = 'none';
         });
       }
     }
