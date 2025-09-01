@@ -718,7 +718,6 @@ Session code: ${state.sessionCode || ""}`);
       }
       const overlay = document.getElementById("mobile-consent-overlay");
       if (overlay) {
-        overlay.classList.add("active");
         const submit = document.getElementById("mobile-consent-submit");
         if (submit) {
           submit.addEventListener("click", () => {
@@ -733,7 +732,7 @@ Session code: ${state.sessionCode || ""}`);
               mainInput.value = code;
               validateInitials({ target: mainInput });
             }
-            overlay.classList.remove("active");
+            overlay.style.display = "none";
           });
         }
       }
