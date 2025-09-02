@@ -12,6 +12,23 @@
     if (hasTouch && (mobileUA || iPadOS || isSmallScreen)) {
       document.documentElement.classList.add('mobile');
     }
+
+    const ua = navigator.userAgent;
+    const isAndroidTablet = /Android/i.test(ua) && !/Mobile/i.test(ua);
+    const isFirefox = ua.includes('Firefox');
+    const isEdge = ua.includes('Edg');
+    const isChrome = ua.includes('Chrome') && !ua.includes('Edg') && !ua.includes('OPR') && !ua.includes('SamsungBrowser');
+    const isSafari = ua.includes('Safari') && !ua.includes('Chrome') && !ua.includes('Chromium') && !ua.includes('Android');
+    const isSupportedBrowser = isSafari || isChrome || isEdge || isFirefox;
+
+    if (isAndroidTablet || !isSupportedBrowser) {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.innerHTML = `<div style="max-width:600px;margin:40px auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;line-height:1.6;text-align:center;">
+          <h1>Unsupported Device or Browser</h1>
+          <p>This study is only available on Chrome, Firefox, Edge, or Safari on desktop and mobile phones.</p>
+        </div>`;
+      });
+    }
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css" />
   <script type="module">
