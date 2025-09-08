@@ -872,6 +872,45 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
       const content = document.getElementById('task-content');
       const actionWord = state.isMobile ? 'tap' : 'click';
+
+      if (state.isMobile) {
+        const startText = `When you ${actionWord} <strong>Open Task</strong>, the task will open in a new tab. Return here when finished and ${actionWord} <em>I'm finished — Continue</em>.`;
+        content.innerHTML = `
+  <div class="card" id="prestart">
+    <p>${startText}</p>
+    <div class="button-group" style="margin-top:12px;">
+      <button class="button" id="start-embed">Open Task</button>
+      <button class="button outline" type="button" onclick="openSupportEmail('${taskCode}')">Report Technical Issue Instead</button>
+      ${task.canSkip ? `<button class="button skip" onclick="showSkipDialog('${taskCode}')" title="Please try the task first or email ${CONFIG.SUPPORT_EMAIL} for help">Unable to complete</button>` : ''}
+    </div>
+  </div>
+
+  <div class="embed-shell fs-shell" id="fs-shell" style="display:none;">
+    <div class="fs-toolbar" id="fs-toolbar">
+      <div>${task.name}</div>
+      <div class="actions">
+        <button class="button success" id="finish-btn" disabled>I'm finished — Continue</button>
+      </div>
+    </div>
+    <div class="embed-note">The task opened in a new tab. Return here when finished.</div>
+  </div>
+`;
+
+        showScreen('task-screen');
+
+        const prestart = document.getElementById('prestart');
+        const fsShell = document.getElementById('fs-shell');
+        const finishBtn = document.getElementById('finish-btn');
+        document.getElementById('start-embed').onclick = () => {
+          openEmbedInNewTab(taskCode);
+          prestart.style.display = 'none';
+          fsShell.style.display = 'block';
+          finishBtn.disabled = false;
+        };
+        finishBtn.onclick = () => completeTask(taskCode);
+        return;
+      }
+
       const startText = `When you ${actionWord} <strong>Ready to start</strong>, the task will appear below. ${state.isMobile ? 'Tap' : 'Click'} <em>Full size</em> for a distraction-free view. Leaving Full size will pause your task.`;
       const exitLabel = 'Exit full size';
       content.innerHTML = `
