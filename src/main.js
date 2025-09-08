@@ -864,22 +864,21 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
   <details style="margin-top:10px;"><summary style="cursor:pointer;">More info / troubleshooting</summary>
     <ul style="margin:8px 0 0 20px; text-align:left;">
       <li>If the game doesn't respond, click inside it once to give it keyboard focus.</li>
-      <li>If fullscreen doesn't work on your device, we'll switch to a distraction-free view.</li>
+      <li>If Full size doesn't work on your device, we'll switch to a distraction-free view.</li>
     </ul>
   </details>
 `;
 
 
       const content = document.getElementById('task-content');
-      const startText = state.isMobile ?
-        'When you click <strong>Continue</strong>, the task will appear below. When you\'re finished, click <em>I\'m finished — Continue</em>.' :
-        'When you click <strong>Continue</strong>, the task will open in fullscreen. When you\'re finished, click <em>I\'m finished — Continue</em>.';
-      const exitLabel = state.isMobile ? 'Close task' : 'Exit fullscreen';
+      const actionWord = state.isMobile ? 'tap' : 'click';
+      const startText = `When you ${actionWord} <strong>Ready to start</strong>, the task will appear below. ${state.isMobile ? 'Tap' : 'Click'} <em>Full size</em> for a distraction-free view. Leaving Full size will pause your task.`;
+      const exitLabel = 'Exit full size';
       content.innerHTML = `
   <div class="card" id="prestart">
     <p>${startText}</p>
     <div class="button-group" style="margin-top:12px;">
-      <button class="button" id="start-embed">Continue</button>
+      <button class="button" id="start-embed">Ready to start</button>
       <button class="button outline" type="button" onclick="openSupportEmail('${taskCode}')">Report Technical Issue Instead</button>
       ${task.canSkip ? `<button class="button skip" onclick="showSkipDialog('${taskCode}')" title="Please try the task first or email ${CONFIG.SUPPORT_EMAIL} for help">Unable to complete</button>` : ''}
     </div>
@@ -889,8 +888,9 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
     <div class="fs-toolbar" id="fs-toolbar">
       <div>${task.name}</div>
       <div class="actions">
+        <button class="button secondary" id="fs-btn">Full size</button>
         <button class="button success" id="finish-btn" disabled>I'm finished — Continue</button>
-        <button class="button secondary" id="exit-btn">${exitLabel}</button>
+        <button class="button secondary" id="exit-btn" style="display:none;">${exitLabel}</button>
       </div>
     </div>
     <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking" allowfullscreen></iframe>
@@ -903,21 +903,24 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
       const fsShell = document.getElementById('fs-shell');
       const finishBtn = document.getElementById('finish-btn');
       const exitBtn = document.getElementById('exit-btn');
+      const fsBtn = document.getElementById('fs-btn');
       const prestart = document.getElementById('prestart');
       const iframe = document.getElementById(iframeId);
       iframe.addEventListener('focus', () => taskTimer.recordActivity());
 
       const enableFinish = () => { finishBtn.disabled = false; };
 
-      async function goFullscreen() {
+      async function startEmbed() {
         prestart.style.display = 'none';
         fsShell.style.display = 'block';
 
         setTimeout(() => { try { iframe.focus(); } catch(e) {} }, 50);
 
-        if (state.isMobile) {
-          enterDistractionFree();
-        } else {
+        setTimeout(enableFinish, 6000);
+      }
+
+      async function showFullSize() {
+        if (!state.isMobile) {
           try {
             if (fsShell.requestFullscreen) { await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
             else if (fsShell.webkitRequestFullscreen) { fsShell.webkitRequestFullscreen(); }
@@ -926,32 +929,46 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
               if (!inFS) enterDistractionFree();
             }, 250);
           } catch (e) { enterDistractionFree(); }
+        } else {
+          enterDistractionFree();
         }
-
-        setTimeout(enableFinish, 6000);
+        if (fsBtn) fsBtn.style.display = 'none';
+        exitBtn.style.display = '';
       }
 
       function leaveFullscreenModes() {
         if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
         if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
         exitDistractionFree();
+        if (fsBtn) fsBtn.style.display = '';
+        exitBtn.style.display = 'none';
       }
 
-      document.getElementById('start-embed').onclick = goFullscreen;
+      document.getElementById('start-embed').onclick = startEmbed;
+      if (fsBtn) fsBtn.onclick = showFullSize;
       finishBtn.onclick = () => { leaveFullscreenModes(); completeTask(taskCode); };
-      exitBtn.onclick = () => { leaveFullscreenModes(); fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' }); enableFinish(); };
+      exitBtn.onclick = () => {
+        leaveFullscreenModes();
+        fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        enableFinish();
+        pauseStudy();
+      };
 
       const loadTimeout = setTimeout(() => {
         const note = document.createElement('div');
         note.className = 'embed-note';
-        note.textContent = 'Still loading… if nothing appears soon, try exiting fullscreen and re-entering.';
+        note.textContent = 'Still loading… if nothing appears soon, try exiting Full size and re-entering.';
         fsShell.appendChild(note);
       }, 7000);
       iframe.addEventListener('load', () => clearTimeout(loadTimeout), { once:true });
 
       document.addEventListener('keydown', function escHandler(ev) {
         if (ev.key === 'Escape') {
-          setTimeout(leaveFullscreenModes, 0);
+          setTimeout(() => {
+            leaveFullscreenModes();
+            fsShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            pauseStudy();
+          }, 0);
           document.removeEventListener('keydown', escHandler);
         }
       });
