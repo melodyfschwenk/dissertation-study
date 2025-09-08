@@ -871,9 +871,13 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
 
       const content = document.getElementById('task-content');
+      const startText = state.isMobile ?
+        'When you click <strong>Continue</strong>, the task will fill your screen. When you\'re finished, click <em>I\'m finished — Continue</em>.' :
+        'When you click <strong>Continue</strong>, the task will open in fullscreen. When you\'re finished, click <em>I\'m finished — Continue</em>.';
+      const exitLabel = state.isMobile ? 'Close task' : 'Exit fullscreen';
       content.innerHTML = `
   <div class="card" id="prestart">
-    <p>When you click <strong>Continue</strong>, the task will open in fullscreen. When you're finished, click <em>I'm finished — Continue</em>.</p>
+    <p>${startText}</p>
     <div class="button-group" style="margin-top:12px;">
       <button class="button" id="start-embed">Continue</button>
       <button class="button outline" type="button" onclick="openSupportEmail('${taskCode}')">Report Technical Issue Instead</button>
@@ -886,7 +890,7 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
       <div>${task.name}</div>
       <div class="actions">
         <button class="button success" id="finish-btn" disabled>I'm finished — Continue</button>
-        <button class="button secondary" id="exit-btn">Exit fullscreen</button>
+        <button class="button secondary" id="exit-btn">${exitLabel}</button>
       </div>
     </div>
     <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking" allowfullscreen></iframe>
@@ -911,14 +915,18 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
         setTimeout(() => { try { iframe.focus(); } catch(e) {} }, 50);
 
-        try {
-          if (fsShell.requestFullscreen) { await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
-          else if (fsShell.webkitRequestFullscreen) { fsShell.webkitRequestFullscreen(); }
-          setTimeout(() => {
-            const inFS = document.fullscreenElement || document.webkitFullscreenElement;
-            if (!inFS) enterDistractionFree();
-          }, 250);
-        } catch (e) { enterDistractionFree(); }
+        if (!state.isMobile) {
+          try {
+            if (fsShell.requestFullscreen) { await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
+            else if (fsShell.webkitRequestFullscreen) { fsShell.webkitRequestFullscreen(); }
+            setTimeout(() => {
+              const inFS = document.fullscreenElement || document.webkitFullscreenElement;
+              if (!inFS) enterDistractionFree();
+            }, 250);
+          } catch (e) { enterDistractionFree(); }
+        } else {
+          enterDistractionFree();
+        }
 
         setTimeout(enableFinish, 6000);
       }
@@ -936,7 +944,9 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
       const loadTimeout = setTimeout(() => {
         const note = document.createElement('div');
         note.className = 'embed-note';
-        note.textContent = 'Still loading… if nothing appears soon, try exiting fullscreen and re-entering.';
+        note.textContent = state.isMobile
+          ? 'Still loading… if nothing appears soon, try closing and reopening the task.'
+          : 'Still loading… if nothing appears soon, try exiting fullscreen and re-entering.';
         fsShell.appendChild(note);
       }, 7000);
       iframe.addEventListener('load', () => clearTimeout(loadTimeout), { once:true });
