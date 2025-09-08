@@ -915,7 +915,9 @@ const reqs = (TASKS[taskCode] && TASKS[taskCode].requirements) || '—';
 
         setTimeout(() => { try { iframe.focus(); } catch(e) {} }, 50);
 
-        if (!state.isMobile) {
+        if (state.isMobile) {
+          enterDistractionFree();
+        } else {
           try {
             if (fsShell.requestFullscreen) { await fsShell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
             else if (fsShell.webkitRequestFullscreen) { fsShell.webkitRequestFullscreen(); }

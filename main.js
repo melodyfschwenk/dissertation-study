@@ -1175,7 +1175,9 @@ Session code: ${state.sessionCode || ""}`);
         } catch (e) {
         }
       }, 50);
-      if (!state.isMobile) {
+      if (state.isMobile) {
+        enterDistractionFree();
+      } else {
         try {
           if (fsShell.requestFullscreen) {
             await fsShell.requestFullscreen({ navigationUI: "hide" }).catch(() => {
