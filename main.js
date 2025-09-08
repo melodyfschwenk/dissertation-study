@@ -16,7 +16,7 @@
 
   // src/tasks.js
   var TASKS = {
-    "RC": { name: "Reading Comprehension Task", description: "Read passages and answer questions", type: "embed", embedUrl: "https://melodyfschwenk.github.io/readingcomp/", canSkip: true, estMinutes: 15, requirements: "None", skilled: true },
+    "RC": { name: "Reading Comprehension Task", description: "Read passages and answer questions", type: "embed", embedUrl: "https://wiat-reading-comprehension.web.app/", canSkip: true, estMinutes: 15, requirements: "None", skilled: true },
     "MRT": { name: "Mental Rotation Task", description: "Decide if two images are the same or not", type: "embed", embedUrl: "https://melodyfschwenk.github.io/mrt/", canSkip: true, estMinutes: 6, requirements: "Keyboard recommended", skilled: true },
     "ASLCT": { name: "ASL Comprehension Test", description: "For ASL users only", url: "https://vl2portal.gallaudet.edu/assessment/", type: "external", canSkip: true, estMinutes: 15, requirements: "ASL users; stable connection", skilled: true },
     "VCN": { name: "Virtual Campus Navigation", description: "Virtual SILC Test of Navigation (SILCton)", url: "http://www.virtualsilcton.com/study/753798747", type: "external", canSkip: true, estMinutes: 20, requirements: "Desktop/laptop; keyboard (WASD) & mouse", skilled: true },
@@ -1132,9 +1132,11 @@ Session code: ${state.sessionCode || ""}`);
   </details>
 `;
     const content = document.getElementById("task-content");
+    const startText = state.isMobile ? "When you click <strong>Continue</strong>, the task will appear below. When you're finished, click <em>I'm finished \u2014 Continue</em>." : "When you click <strong>Continue</strong>, the task will open in fullscreen. When you're finished, click <em>I'm finished \u2014 Continue</em>.";
+    const exitLabel = state.isMobile ? "Close task" : "Exit fullscreen";
     content.innerHTML = `
   <div class="card" id="prestart">
-    <p>When you click <strong>Continue</strong>, the task will open in fullscreen. When you're finished, click <em>I'm finished \u2014 Continue</em>.</p>
+    <p>${startText}</p>
     <div class="button-group" style="margin-top:12px;">
       <button class="button" id="start-embed">Continue</button>
       <button class="button outline" type="button" onclick="openSupportEmail('${taskCode}')">Report Technical Issue Instead</button>
@@ -1147,7 +1149,7 @@ Session code: ${state.sessionCode || ""}`);
       <div>${task.name}</div>
       <div class="actions">
         <button class="button success" id="finish-btn" disabled>I'm finished \u2014 Continue</button>
-        <button class="button secondary" id="exit-btn">Exit fullscreen</button>
+        <button class="button secondary" id="exit-btn">${exitLabel}</button>
       </div>
     </div>
     <iframe id="${iframeId}" class="embed-frame" src="${url}" allow="fullscreen; gamepad; xr-spatial-tracking" allowfullscreen></iframe>
@@ -1173,19 +1175,21 @@ Session code: ${state.sessionCode || ""}`);
         } catch (e) {
         }
       }, 50);
-      try {
-        if (fsShell.requestFullscreen) {
-          await fsShell.requestFullscreen({ navigationUI: "hide" }).catch(() => {
-          });
-        } else if (fsShell.webkitRequestFullscreen) {
-          fsShell.webkitRequestFullscreen();
+      if (!state.isMobile) {
+        try {
+          if (fsShell.requestFullscreen) {
+            await fsShell.requestFullscreen({ navigationUI: "hide" }).catch(() => {
+            });
+          } else if (fsShell.webkitRequestFullscreen) {
+            fsShell.webkitRequestFullscreen();
+          }
+          setTimeout(() => {
+            const inFS = document.fullscreenElement || document.webkitFullscreenElement;
+            if (!inFS) enterDistractionFree();
+          }, 250);
+        } catch (e) {
+          enterDistractionFree();
         }
-        setTimeout(() => {
-          const inFS = document.fullscreenElement || document.webkitFullscreenElement;
-          if (!inFS) enterDistractionFree();
-        }, 250);
-      } catch (e) {
-        enterDistractionFree();
       }
       setTimeout(enableFinish, 6e3);
     }
