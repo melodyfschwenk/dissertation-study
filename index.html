@@ -192,41 +192,6 @@
     .button.skip:hover:not(:disabled) { background: var(--gray-300); }
     .button-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
 
-    /* Mobile consent overlay */
-    #mobile-consent-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    html.mobile #mobile-consent-overlay { display: flex; }
-    #mobile-consent-overlay .overlay-box {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      text-align: center;
-      max-width: 300px;
-      width: 90%;
-    }
-    #mobile-consent-overlay input {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid var(--gray-300);
-      border-radius: 8px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-    #mobile-consent-overlay .button {
-      margin-top: 10px;
-      width: 100%;
-    }
 
     /* Session widget */
     .session-widget { background: linear-gradient(135deg, #2563eb20, #1d4ed820); border-radius: 10px; padding: 20px; margin-bottom: 30px; display: none; }
@@ -336,13 +301,6 @@
 
 </head>
 <body>
-  <div id="mobile-consent-overlay">
-    <div class="overlay-box">
-      <p>Phones and tablets require the consent access code to continue.</p>
-      <input type="text" id="mobile-consent-input" placeholder="e.g., ABC123" />
-      <button id="mobile-consent-submit" class="button">Continue</button>
-    </div>
-  </div>
   <div class="container">
     <div class="header">
       <h1>Spatial Cognition & Sign Language Research Study</h1>
@@ -454,12 +412,7 @@
         <h2>New Participant Registration</h2>
         <p style="color: var(--text-secondary); margin-bottom: 30px;">Create your unique session to track your progress</p>
 
-        <p style="margin-bottom: 20px;">Please confirm you have completed the consent form and enter the access code provided on Qualtrics.</p>
-
-        <div class="form-group">
-          <label for="consent-code">Consent Access Code</label>
-          <input type="text" id="consent-code" placeholder="e.g., ABC123" />
-        </div>
+        <p style="margin-bottom: 20px;">Please confirm you have completed the consent form.</p>
 
         <div class="form-group checkbox">
           <label>

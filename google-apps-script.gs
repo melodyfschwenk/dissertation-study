@@ -191,7 +191,7 @@ function doPost(e) {
       case 'consent_verified':
         withDocLock_(function () {
           setConsentVerify_(ss, data.sessionCode || 'none', data.type, 'Verified',
-            data.method || 'unknown', data.codeSuffix || data.ridSuffix || '', data.timestamp);
+            data.method || 'unknown', data.timestamp);
           logSessionEvent(ss, {
             sessionCode: data.sessionCode || '',
             eventType: 'Consent Verified',
@@ -204,7 +204,7 @@ function doPost(e) {
       case 'consent_affirmed':
         withDocLock_(function () {
           setConsentVerify_(ss, data.sessionCode || 'none', data.type, 'Affirmed',
-            data.method || 'affirmation', '', data.timestamp);
+            data.method || 'affirmation', data.timestamp);
           logSessionEvent(ss, {
             sessionCode: data.sessionCode || '',
             eventType: 'Consent Affirmed',
@@ -473,7 +473,7 @@ function sanitizeInput_(obj) {
 var SESSIONS_HEADERS = [
   'Session Code','Participant ID','Email','Created Date','Last Activity',
   'Total Time (min)','Active Time (min)','Idle Time (min)','Paused Time (min)','Tasks Completed','Status',
-  'Device Type','Consent Status','Consent Source','Consent Code','Consent Timestamp',
+  'Device Type','Consent Status','Consent Source','Consent Timestamp',
   'EEG Status','EEG Scheduled At','EEG Scheduling Source',
   'Hearing Status','Fluency','State JSON'
 ];
@@ -484,7 +484,6 @@ var CONSENT_HEADER_VARIANTS = {
   'Consent 1': 'Consent Status',
   'Consent 2': 'Consent Status',
   'Consent Verify Source': 'Consent Source',
-  'Consent Verify Code': 'Consent Code',
   'Consent Verify Timestamp': 'Consent Timestamp'
 };
 
@@ -2553,18 +2552,17 @@ function ensureConsentColumns_(ss) {
     return {
       status: ensureHeader_('Consent Status'),
       src: ensureHeader_('Consent Source'),
-      code: ensureHeader_('Consent Code'),
       when: ensureHeader_('Consent Timestamp')
     };
   });
 }
 
-function setConsentVerify_(ss, sessionCode, which, status, source, codeSuffix, ts) {
+function setConsentVerify_(ss, sessionCode, which, status, source, ts) {
   if (!sessionCode || sessionCode === 'none') return;
   withDocLock_(function () {
     var sheet = ss.getSheetByName('Sessions');
     if (!sheet) return;
-    var cols = ensureConsentColumns_(ss);
+    ensureConsentColumns_(ss);
 
     var row = findRowBySessionCode_(sheet, sessionCode);
     if (!row) return;
@@ -2573,7 +2571,6 @@ function setConsentVerify_(ss, sessionCode, which, status, source, codeSuffix, t
       'Consent Status': status || 'Verified',
       'Consent Source': source || ''
     };
-    if (codeSuffix) kv['Consent Code'] = codeSuffix;
     kv['Consent Timestamp'] = ts || new Date().toISOString();
 
     setManyByHeader_(sheet, row, kv);
@@ -2704,7 +2701,7 @@ function enforceColumnFormats_(ss) {
   }
 
   // Force text where Sheets loves to "help"
-  ['Tasks Completed','Status','Device Type','Consent Status','Consent Source','Consent Code',
+  ['Tasks Completed','Status','Device Type','Consent Status','Consent Source',
    'EEG Status','EEG Scheduling Source','Hearing Status','Fluency','Email']
     .forEach(function(h){ fmt(h, '@'); });
 
