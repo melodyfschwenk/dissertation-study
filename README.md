@@ -44,3 +44,5 @@ PORT=<optional port, defaults to 3000>
 ```
 
 Do not commit the `.env` file to version control.
+
+The Uploadcare widget uses the public key `5bbde6a6390e682bbbe7`, which is already configured in the client.

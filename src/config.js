@@ -8,6 +8,7 @@ export const CONFIG = {
   CLOUDINARY_CLOUD_NAME: 'dll2sorkn',
   CLOUDINARY_UPLOAD_PRESET: 'study_videos',
   CLOUDINARY_FOLDER: 'spatial-cognition-videos',
+  UPLOADCARE_PUBLIC_KEY: window.UPLOADCARE_PUBLIC_KEY || '5bbde6a6390e682bbbe7',
   BLOCKED_EMAILS: ['williamswinner200@gmail.com', 'alvarezxoxo2@gmail.com', 'robertgeorge0045@gmail.com'],
 };
 
