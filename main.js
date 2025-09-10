@@ -717,26 +717,6 @@ Session code: ${state.sessionCode || ""}`);
   </ul>
 `;
       }
-      const overlay = document.getElementById("mobile-consent-overlay");
-      if (overlay) {
-        const submit = document.getElementById("mobile-consent-submit");
-        if (submit) {
-          submit.addEventListener("click", () => {
-            const codeInput = document.getElementById("mobile-consent-input");
-            const code = codeInput ? codeInput.value.trim() : "";
-            if (!code) {
-              alert("Consent access code is required.");
-              return;
-            }
-            const mainInput = document.getElementById("consent-code");
-            if (mainInput) {
-              mainInput.value = code;
-              validateInitials({ target: mainInput });
-            }
-            overlay.style.display = "none";
-          });
-        }
-      }
     }
   }
   if (document.readyState === "loading") {
@@ -749,7 +729,6 @@ Session code: ${state.sessionCode || ""}`);
     document.getElementById("last-initial").addEventListener("input", validateInitials);
     document.getElementById("hearing-status").addEventListener("change", validateInitials);
     document.getElementById("fluency").addEventListener("change", validateInitials);
-    document.getElementById("consent-code").addEventListener("input", validateInitials);
     document.getElementById("consent-confirm").addEventListener("change", validateInitials);
     document.getElementById("resume-code").addEventListener("input", (e) => {
       e.target.value = e.target.value.toUpperCase();
@@ -764,9 +743,8 @@ Session code: ${state.sessionCode || ""}`);
     const last = document.getElementById("last-initial").value;
     const hearing = document.getElementById("hearing-status").value;
     const fluency = document.getElementById("fluency").value;
-    const consentCode = document.getElementById("consent-code").value;
     const consent = document.getElementById("consent-confirm").checked;
-    document.getElementById("create-session-btn").disabled = !(first && last && hearing && fluency && consentCode && consent);
+    document.getElementById("create-session-btn").disabled = !(first && last && hearing && fluency && consent);
   }
   function showScreen(screenId) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -816,13 +794,8 @@ Session code: ${state.sessionCode || ""}`);
     }
     const hearing = document.getElementById("hearing-status").value;
     const fluency = document.getElementById("fluency").value;
-    const consentCode = document.getElementById("consent-code").value.trim();
     const consent = document.getElementById("consent-confirm").checked;
-    if (isMobileDevice() && !consentCode) {
-      alert("Phones and tablets require the consent access code.");
-      return;
-    }
-    if (!first || !last || !hearing || !fluency || !consentCode || !consent) {
+    if (!first || !last || !hearing || !fluency || !consent) {
       alert("Please complete all fields and confirm consent");
       return;
     }
@@ -837,7 +810,6 @@ Session code: ${state.sessionCode || ""}`);
     state.email = email;
     state.hearingStatus = hearing;
     state.fluency = fluency;
-    state.consentCode = consentCode;
     state.consentConfirmed = consent;
     const seed = Math.abs(hashCode(state.sessionCode));
     state.sequenceIndex = seed;
@@ -859,7 +831,6 @@ Session code: ${state.sessionCode || ""}`);
       email: state.email,
       hearingStatus: state.hearingStatus,
       fluency: state.fluency,
-      consentCode: state.consentCode,
       consentConfirmed: state.consentConfirmed,
       deviceType: state.isMobile ? "mobile/tablet" : "desktop",
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
